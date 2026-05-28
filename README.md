@@ -156,12 +156,3 @@ Build time, storage, and bandwidth consumption are reported through the usage da
 
 ![Infrastructure usage](./images/019.png)
 
----
-
-## Feedback
-
-Feedback from alpha users is welcomed and informs ongoing development priorities.
-
-## License
-
-Refer to the [LICENSE](./LICENSE) file for licensing terms.
