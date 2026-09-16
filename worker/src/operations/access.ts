@@ -1,0 +1,235 @@
+import type { Env } from '../types';
+import type { OperationsSetupConfiguration } from '../../../contracts/system';
+import {
+  isValidStudioWorkerSecret,
+  resolveStudioWorkerSecretState,
+  STUDIO_WORKER_SECRET_MIN_LENGTH,
+  type StudioWorkerSecretState,
+} from '../../../contracts/worker-secret';
+import {
+  synchronizeSystemIncident,
+  type SystemIncident,
+} from '../system/system-incident';
+
+export type OperationsConfiguration =
+  | { state: 'disabled'; tokenState: StudioWorkerSecretState }
+  | {
+      state: 'invalid';
+      allowedIps: string[] | null;
+      tokenState: StudioWorkerSecretState;
+      reason:
+        | 'allowed_ips_empty'
+        | 'allowed_ip_invalid'
+        | 'token_missing'
+        | 'token_too_short'
+        | 'token_invalid';
+    }
+  | {
+      state: 'ready';
+      allowedIps: string[];
+      token: string;
+    };
+
+function normalizeIpv4(value: string): string | null {
+  const segments = value.split('.');
+  if (segments.length !== 4) return null;
+
+  const normalized: string[] = [];
+  for (const segment of segments) {
+    if (
+      !/^(?:0|[1-9]\d{0,2})$/u.test(segment)
+      || Number(segment) > 255
+    ) {
+      return null;
+    }
+    normalized.push(String(Number(segment)));
+  }
+  return normalized.join('.');
+}
+
+export function normalizeIpAddress(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+
+  const ipv4 = normalizeIpv4(trimmed);
+  if (ipv4) return ipv4;
+  if (!trimmed.includes(':')) return null;
+
+  try {
+    const parsed = new URL(`http://[${trimmed}]/`);
+    if (
+      parsed.username
+      || parsed.password
+      || parsed.port
+      || !parsed.hostname.startsWith('[')
+      || !parsed.hostname.endsWith(']')
+    ) {
+      return null;
+    }
+    return parsed.hostname.slice(1, -1).toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function parseAllowedIps(value: string | undefined):
+  | { ok: true; ips: string[] }
+  | { ok: false; reason: 'allowed_ips_empty' | 'allowed_ip_invalid' } {
+  if (value === undefined || value.trim().length === 0) {
+    return { ok: false, reason: 'allowed_ips_empty' };
+  }
+
+  const normalized = new Set<string>();
+  for (const entry of value.split(',')) {
+    const ip = normalizeIpAddress(entry);
+    if (!ip) {
+      return { ok: false, reason: 'allowed_ip_invalid' };
+    }
+    normalized.add(ip);
+  }
+
+  return { ok: true, ips: [...normalized] };
+}
+
+export function resolveOperationsConfiguration(
+  env: Env,
+): OperationsConfiguration {
+  const token = env.STUDIO_OPERATIONS_TOKEN;
+  const tokenState = resolveStudioWorkerSecretState(token);
+  if (env.STUDIO_OPERATIONS_ALLOWED_IPS === undefined) {
+    return { state: 'disabled', tokenState };
+  }
+
+  const allowedIps = parseAllowedIps(env.STUDIO_OPERATIONS_ALLOWED_IPS);
+  if (!allowedIps.ok) {
+    return {
+      state: 'invalid', reason: allowedIps.reason, allowedIps: null, tokenState,
+    };
+  }
+
+  const invalid = { state: 'invalid', allowedIps: allowedIps.ips, tokenState } as const;
+  if (token === undefined || token.length === 0) {
+    return { ...invalid, reason: 'token_missing' };
+  }
+  if (token.length < STUDIO_WORKER_SECRET_MIN_LENGTH) {
+    return { ...invalid, reason: 'token_too_short' };
+  }
+  if (!isValidStudioWorkerSecret(token)) {
+    return { ...invalid, reason: 'token_invalid' };
+  }
+
+  return {
+    state: 'ready',
+    allowedIps: allowedIps.ips,
+    token,
+  };
+}
+
+export function resolveTrustedOperationsClientIp(
+  request: Request,
+): string | null {
+  const cloudflareIp = request.headers.get('CF-Connecting-IP');
+  if (cloudflareIp !== null) {
+    return normalizeIpAddress(cloudflareIp);
+  }
+
+  const hostname = new URL(request.url).hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return '127.0.0.1';
+  }
+  if (hostname === '[::1]') {
+    return '::1';
+  }
+
+  // X-Forwarded-For is deliberately ignored. Cloudflare supplies
+  // CF-Connecting-IP in deployed Workers, while local development is limited
+  // to an actual loopback URL.
+  return null;
+}
+
+export function isOperationsIpAllowed(
+  configuration: { allowedIps: readonly string[] | null },
+  clientIp: string | null,
+): clientIp is string {
+  return clientIp !== null && configuration.allowedIps?.includes(clientIp) === true;
+}
+
+export type OperationsRequestBoundary =
+  | { state: 'not_found' }
+  | { state: 'setup_required'; setup: OperationsSetupConfiguration }
+  | {
+      state: 'available';
+      configuration: Extract<OperationsConfiguration, { state: 'ready' }>;
+      clientIp: string;
+    };
+
+/** Shared pre-authentication boundary; never verifies or consumes a token. */
+export function resolveOperationsRequestBoundary(
+  request: Request,
+  configuration: OperationsConfiguration,
+): OperationsRequestBoundary {
+  const origin = request.headers.get('Origin');
+  if (origin !== null && origin !== new URL(request.url).origin) {
+    return { state: 'not_found' };
+  }
+  const clientIp = resolveTrustedOperationsClientIp(request);
+  if (configuration.state === 'disabled') {
+    return {
+      state: 'setup_required',
+      setup: {
+        allowed_ips: 'missing', token: configuration.tokenState, client_ip: clientIp,
+      },
+    };
+  }
+  if (configuration.state === 'invalid' && configuration.allowedIps === null) {
+    return {
+      state: 'setup_required',
+      setup: {
+        allowed_ips: 'invalid', token: configuration.tokenState, client_ip: clientIp,
+      },
+    };
+  }
+
+  // A valid allowlist always takes precedence over token setup diagnostics.
+  // Never disclose token configuration to a requester outside that boundary.
+  if (!isOperationsIpAllowed({ allowedIps: configuration.allowedIps }, clientIp)) {
+    return { state: 'not_found' };
+  }
+  if (configuration.state === 'invalid') {
+    return {
+      state: 'setup_required',
+      setup: {
+        allowed_ips: 'valid',
+        token: configuration.tokenState === 'missing' ? 'missing' : 'invalid',
+      },
+    };
+  }
+  return { state: 'available', configuration, clientIp };
+}
+
+function configurationIncident(
+  configuration: OperationsConfiguration,
+): SystemIncident | null {
+  if (configuration.state !== 'invalid') {
+    return null;
+  }
+
+  return {
+    code: 'OPERATIONS_CONFIGURATION_INVALID',
+    fingerprint: configuration.reason,
+    metadata: {
+      component: 'worker_configuration',
+      action: 'resolve_operations_access',
+      reason: configuration.reason,
+    },
+  };
+}
+
+export function synchronizeOperationsConfigurationIncident(
+  configuration: OperationsConfiguration,
+): void {
+  synchronizeSystemIncident(
+    'operations_configuration',
+    configurationIncident(configuration),
+  );
+}

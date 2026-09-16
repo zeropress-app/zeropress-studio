@@ -1,0 +1,1 @@
+declare const __ZEROPRESS_MANAGED_MEDIA_STORAGE_ENABLED__: boolean;

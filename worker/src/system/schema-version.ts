@@ -1,0 +1,2 @@
+export const STUDIO_SCHEMA_VERSION = 1;
+export const MIN_SUPPORTED_STUDIO_SCHEMA_VERSION = 1;
