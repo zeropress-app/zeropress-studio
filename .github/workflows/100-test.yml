@@ -1,0 +1,93 @@
+name: Package Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - "22.22.0"
+          - "24"
+    env:
+      HUSKY: "0"
+      WRANGLER_SEND_METRICS: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Verify lockfile resolves every dependency from the registry
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+
+            const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+            const offenders = Object.entries(lock.packages ?? {}).filter(([name, entry]) => (
+              name !== ""
+              && (entry.link === true || !String(entry.resolved ?? "").startsWith("https://registry.npmjs.org/"))
+            ));
+
+            if (offenders.length > 0) {
+              for (const [name, entry] of offenders) {
+                console.error(`::error::${name} resolves to ${entry.resolved ?? "a local link"} instead of a registry tarball`);
+              }
+              process.exit(1);
+            }
+            console.log(`Lockfile OK: ${Object.keys(lock.packages).length - 1} dependencies from the registry`);
+          '
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build SPA and Worker
+        run: npm run build
+
+      - name: Install Chromium
+        if: ${{ matrix.node-version == '24' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Run local Worker E2E
+        id: e2e
+        if: ${{ matrix.node-version == '24' }}
+        run: npm run test:e2e
+
+      - name: Upload E2E summary
+        if: ${{ !cancelled() && matrix.node-version == '24' && steps.e2e.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-summary
+          path: playwright-report/summary.json
+          if-no-files-found: error
+          retention-days: 7
