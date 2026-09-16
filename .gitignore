@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vscode/
+.wrangler/
+client/.wrangler/
+.DS_Store
+.dev.vars*
+.env*
+*.tsbuildinfo
+/playwright-report/
+/test-results/
