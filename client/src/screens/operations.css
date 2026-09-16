@@ -1,0 +1,1085 @@
+/*
+ * Operations console.
+ *
+ * Operators authenticate with a password separate from the Studio session.
+ * The console owns maintenance mode, database upgrades and backups,
+ * administrator recovery, and uninstall actions. Primitives own cards, tables,
+ * fields, notices, buttons, and dialogs.
+ *
+ * The lock screen shares the Studio sign-in frame; Operations independently
+ * owns authentication state and token validation.
+ *
+ * Explain risk through actions.*.level text, reinforced by color and button
+ * variants, rather than relying on color alone.
+ */
+
+/* Console frame. */
+
+.operations-dashboard {
+  min-height: 100svh;
+  background-color: var(--studio-background);
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--studio-text) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--studio-text) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    var(--studio-effect-canvas);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+}
+
+/*
+ * Operations renders outside StudioShell and cannot inherit the page column
+ * from studio-route-content. Build the same column using shared tokens.
+ */
+.operations-body {
+  width: min(var(--studio-standalone-page-width), 100%);
+  margin: 0 auto;
+  padding: 28px var(--studio-page-gutter) 64px;
+}
+
+.operations-hero {
+  --studio-focus: var(--studio-focus-on-ink);
+
+  position: relative;
+  display: grid;
+  min-height: 190px;
+  align-items: stretch;
+  gap: 22px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  padding: clamp(28px, 4vw, 42px);
+  border: 1px solid var(--studio-sidebar-border);
+  border-radius: var(--studio-radius-3xl);
+  background: var(--studio-effect-ink-gradient);
+  box-shadow: var(--studio-effect-shadow-hero);
+  color: var(--studio-sidebar-text);
+}
+
+.operations-hero::before,
+.operations-hero::after {
+  position: absolute;
+  top: -168px;
+  right: -64px;
+  width: 360px;
+  height: 360px;
+  border: 1px solid color-mix(
+    in oklab,
+    var(--studio-sidebar-text) 11%,
+    transparent
+  );
+  border-radius: var(--studio-radius-full);
+  content: "";
+  pointer-events: none;
+}
+
+.operations-hero::after {
+  top: -112px;
+  right: -124px;
+  width: 430px;
+  height: 430px;
+  border-color: color-mix(
+    in oklab,
+    var(--studio-sidebar-text) 7%,
+    transparent
+  );
+}
+
+.operations-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.operations-hero-copy {
+  max-width: 720px;
+}
+
+.operations-hero-toolbar,
+.operations-hero-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.operations-hero-toolbar {
+  flex-wrap: wrap;
+}
+
+.operations-hero-main {
+  align-items: flex-end;
+}
+
+.operations-hero-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  color: var(--studio-sidebar-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: -0.02em;
+}
+
+.operations-hero-brand > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operations-hero-kicker {
+  margin: 0;
+  color: var(--studio-signal);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.operations-hero-title {
+  margin: 14px 0 0;
+  color: var(--studio-sidebar-text);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.05em;
+  line-height: 1.03;
+}
+
+.operations-hero-description {
+  max-width: 670px;
+  margin: 18px 0 0;
+  color: var(--studio-sidebar-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.operations-hero-version {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--studio-sidebar-border);
+  border-radius: var(--studio-radius-full);
+  background: color-mix(
+    in oklab,
+    var(--studio-sidebar-accent) 72%,
+    transparent
+  );
+  color: var(--studio-sidebar-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.operations-hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.operations-hero-actions .studio-chrome-toggle,
+.operations-hero-actions .studio-chrome-select,
+.operations-hero-actions > .operations-lock-action > .studio-button {
+  border-color: var(--studio-sidebar-border);
+  background: var(--studio-sidebar-accent);
+  color: var(--studio-sidebar-text-muted);
+}
+
+.operations-hero-actions .studio-chrome-select > select {
+  color: var(--studio-sidebar-text);
+}
+
+.operations-hero-actions .studio-chrome-toggle:hover,
+.operations-hero-actions .studio-chrome-select:hover,
+.operations-hero-actions
+  > .operations-lock-action
+  > .studio-button:hover:not(:disabled) {
+  border-color: var(--studio-sidebar-text-muted);
+  background: var(--studio-sidebar);
+  color: var(--studio-sidebar-text);
+}
+
+.operations-lock-action > .studio-button {
+  min-height: 40px;
+}
+
+.operations-lock-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.operations-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.operations-navigation,
+.operations-route {
+  min-width: 0;
+}
+
+.operations-route-pending {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+.operations-navigation {
+  position: sticky;
+  top: 24px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-card);
+}
+
+.operations-navigation-picker {
+  display: none;
+  min-width: 0;
+}
+
+.operations-navigation-sections {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operations-navigation-sections a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-lg);
+  color: var(--studio-text-muted);
+  text-decoration: none;
+}
+
+.operations-navigation-sections a:hover {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.operations-navigation-sections a.active {
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.operations-navigation-sections a:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: -3px;
+}
+
+.operations-navigation-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.operations-navigation-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+.operations-navigation-label {
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  line-height: 1.4;
+}
+
+.operations-navigation-description {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.operations-page {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+}
+
+.operations-page-heading {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.9fr) minmax(0, 1.2fr);
+  align-items: end;
+  gap: 28px;
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.operations-page-heading-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.operations-page-heading-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.operations-page-heading-icon > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.operations-page-kicker {
+  margin: 0;
+  color: var(--studio-signal);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.operations-page-title {
+  margin: 7px 0 0;
+  color: var(--studio-text);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.operations-page-description {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+/* Prevent subpath panels from expanding the route column to their min-content width. */
+.operations-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* Status summary. */
+
+.operations-summary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.operations-summary-four-columns {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/*
+ * The page summary is a separate block below the hero. Keep page-level
+ * spacing off .operations-summary, which is also reused inside panels.
+ */
+.operations-overview-summary {
+  margin: 0;
+}
+
+.operations-summary-card {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-card);
+}
+
+.operations-summary-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.operations-summary-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.operations-summary-icon > svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.operations-summary-label {
+  min-width: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.operations-summary-value {
+  color: var(--studio-text);
+  font-family: var(--studio-font-mono);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.operations-summary-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.operations-action-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.operations-action-icon > svg {
+  width: 19px;
+  height: 19px;
+}
+
+.operations-button-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/*
+ * Separate panel headings from tables and long forms without introducing
+ * nested Panel landmarks.
+ */
+.operations-content-card {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+/* Environment details table. */
+
+.operations-env-key {
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-env-value {
+  color: var(--studio-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.operations-env-kind {
+  white-space: nowrap;
+}
+
+.operations-note {
+  margin: 12px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+/* Action cards. */
+
+.operations-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.operations-action {
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.operations-action-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.operations-action-heading > div {
+  min-width: 0;
+}
+
+.operations-action-icon {
+  border: 1px solid var(--studio-danger);
+  background: var(--studio-danger-surface);
+  color: var(--studio-danger);
+}
+
+/* The text names the risk level; color only reinforces it. */
+.operations-level {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.operations-level-danger {
+  color: var(--studio-danger);
+}
+
+.operations-level-primary {
+  color: var(--studio-primary);
+}
+
+.operations-action-title {
+  margin: 4px 0 0;
+  color: var(--studio-text);
+  font-size: 1.0625rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-action-description {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.operations-action-condition {
+  margin: 0;
+  color: var(--studio-warning);
+  font-size: 0.75rem;
+}
+
+/* Pin actions to the card bottom so they align across cards of different heights. */
+.operations-action-button {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* Administrator recovery. */
+
+.operations-recovery-form {
+  display: grid;
+  gap: 18px;
+}
+
+.operations-recovery-passwords {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.operations-recovery-account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.operations-recovery-fact {
+  padding: 6px 9px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+}
+
+/* Select the full recovery target user ID at once for copying. */
+.operations-code {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  user-select: all;
+}
+
+/* Group high-impact choices, such as resetting MFA, with their checkbox and explanation. */
+.operations-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  cursor: pointer;
+}
+
+.operations-acknowledgement > input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 2px 0 0;
+  accent-color: var(--studio-primary);
+}
+
+.operations-acknowledgement-text {
+  display: grid;
+  gap: 4px;
+}
+
+.operations-acknowledgement-title {
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-acknowledgement-detail {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+/* Stack the dialog explanation, form, and review section with consistent spacing. */
+.operations-dialog-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.operations-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Review the pending changes immediately before execution. */
+.operations-review {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+/* Successful result: the heading communicates success alongside color. */
+.operations-review-complete {
+  border-color: var(--studio-success);
+  background: var(--studio-success-surface);
+}
+
+.operations-review-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.0625rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-review-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.operations-review-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.operations-review-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+}
+
+.operations-review-list dt {
+  color: var(--studio-text);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-review-list dd {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* Backup and migration. */
+
+.operations-transfer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.operations-transfer {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.operations-transfer:only-child {
+  grid-column: 1 / -1;
+}
+
+.operations-transfer-submit {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+/* Group credentials separately so secret inputs are visually distinct. */
+.operations-credentials {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+.operations-credentials-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.operations-credentials-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+/* Restore artifact summary in a two-column grid rather than a table. */
+.operations-artifact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-border);
+}
+
+.operations-artifact > div {
+  min-width: 0;
+  padding: 10px;
+  background: var(--studio-surface);
+}
+
+.operations-artifact dt {
+  color: var(--studio-text-muted);
+  font-size: 0.625rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.operations-artifact dd {
+  margin: 4px 0 0;
+  color: var(--studio-text);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.operations-file-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.operations-file-input:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+/* Deletion report. */
+
+.operations-report {
+  display: grid;
+  gap: 8px;
+}
+
+.operations-report .studio-field > textarea {
+  width: 100%;
+  max-height: 320px;
+  padding: 13px 14px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.65;
+  resize: vertical;
+  tab-size: 4;
+  white-space: pre;
+}
+
+.operations-report .studio-field > textarea:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+/* Database upgrade. */
+
+.operations-upgrade-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+}
+
+.operations-upgrade-state-detail {
+  color: var(--studio-text-muted);
+}
+
+.operations-upgrade-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operations-upgrade-step {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(0, 1fr) auto;
+  gap: 5px 16px;
+  padding: 13px 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  font-size: 0.8125rem;
+}
+
+.operations-upgrade-step > code {
+  grid-column: 1 / -1;
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.operations-upgrade-form {
+  display: grid;
+  gap: 14px;
+  max-width: 42rem;
+}
+
+@media (max-width: 1200px) {
+  .operations-overview-summary,
+  .operations-overview-summary.operations-summary-four-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .operations-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .operations-navigation {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .operations-navigation-picker {
+    display: block;
+  }
+
+  .operations-navigation-sections {
+    display: none;
+  }
+
+  .operations-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operations-action-grid,
+  .operations-transfer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operations-page-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .operations-action {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  /*
+   * Operations is outside StudioShell and does not inherit its mobile gutter
+   * override. Apply the same 14px value to this standalone screen.
+   */
+  .operations-dashboard {
+    --studio-page-gutter: 14px;
+  }
+
+  /* Standalone screens use the same mobile page gutter as the shell. */
+  .operations-body {
+    padding-block: 20px 48px;
+  }
+
+  .operations-hero {
+    min-height: 0;
+    gap: 24px;
+    padding: 30px 22px 38px;
+  }
+
+  .operations-hero-main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .operations-hero-title {
+    font-size: 2rem;
+  }
+
+  .operations-summary,
+  .operations-overview-summary.operations-summary-four-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operations-stack {
+    gap: 20px;
+  }
+
+  .operations-hero-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .operations-hero-actions {
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .operations-lock-action > .studio-button {
+    width: 40px;
+    padding: 0;
+  }
+
+  .operations-lock-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .operations-recovery-passwords,
+  .operations-review-row,
+  .operations-upgrade-step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operations-content-card {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .operations-upgrade-step > code {
+    grid-column: auto;
+  }
+
+  .operations-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}

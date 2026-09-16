@@ -1,0 +1,16 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-EPnhyydS9AA3WyqgHzKcwGuG5hbTtmwS0QN5vWsbBNQ='; style-src 'self' 'unsafe-inline'; worker-src 'self'; img-src 'self' data: blob: http: https:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
+# Font filenames have no build hash. Use a new filename whenever their contents change.
+# Update all references when adding the new font version.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Image model directories use the reviewed manifest SHA-256 prefix. A changed
+# artifact is synchronized to a new path instead of replacing these bytes.
+/image-models/*
+  Cache-Control: public, max-age=31536000, immutable

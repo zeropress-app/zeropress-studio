@@ -1,0 +1,415 @@
+/*
+ * Pretendard Variable (self-hosted)
+ *
+ * Source: orioncactus/pretendard v1.3.9
+ *         packages/pretendard/dist/web/variable/woff2/PretendardVariable.woff2
+ * License: SIL Open Font License 1.1
+ *          client/public/fonts/PretendardVariable.LICENSE.txt
+ * sha256 9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4
+ * Size: 2,057,688 bytes
+ *
+ * One family covers Latin and Hangul to align en/ko metrics. Serve it as a
+ * Studio asset to preserve CSP font-src 'self', without a third-party font
+ * CDN. font-display: swap keeps fallback text visible while the font loads.
+ */
+
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * ZeroPress Studio design tokens.
+ *
+ * Screen styles reference these tokens for colors, radii, letter spacing,
+ * and shadows rather than defining raw values.
+ *
+ * Only this file's [data-theme='dark'] block owns theme differences. Screen
+ * and primitive styles must not use prefers-color-scheme or [data-theme].
+ * This keeps them independent of themes. design-tokens.test.ts checks the
+ * same contrast combinations in both palettes.
+ *
+ * The document root's data-theme always records the resolved theme, including
+ * OS-following preferences. theme-preference.ts combines stored and OS choices
+ * in one place, so CSS must not independently query prefers-color-scheme.
+ *
+ * All colors use oklch within the sRGB gamut.
+ * Contrast: 4.5:1 for body text (WCAG 2.2 AA 1.4.3), 3:1 for controls (1.4.11).
+ *
+ * CSS custom properties do not work in @media conditions, so use only these
+ * fixed breakpoints:
+ * - 640px: single-column layouts
+ * - 900px: off-canvas sidebar
+ * - 1200px: wide desktop adjustments
+ */
+
+:root {
+  color-scheme: light;
+
+  /*
+   * Typography.
+   *
+   * Pretendard covers Latin and Hangul in one family to align en/ko metrics.
+   * Use OS-specific Hangul fonts as fallbacks while the self-hosted font loads.
+   * Do not use a third-party font CDN.
+   */
+  --studio-font-sans:
+    "Pretendard Variable", Pretendard, Inter, ui-sans-serif, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
+  --studio-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /*
+   * Use four fixed weight levels. Intermediate variable-font values such as
+   * 650, 680, or 690 would make weight inconsistent across screens.
+   */
+  --studio-weight-regular: 400;
+  --studio-weight-medium: 500;
+  --studio-weight-semibold: 600;
+  --studio-weight-bold: 700;
+
+  /*
+   * Surfaces.
+   *
+   * Shared warm canvas, card, and muted surfaces use lightness differences
+   * to separate editing layers.
+   */
+  --studio-background: oklch(0.955 0.018 72);
+  --studio-surface: oklch(0.985 0.012 76);
+  --studio-surface-subtle: oklch(0.925 0.018 72);
+
+  /*
+   * Text.
+   *
+   * Use neutral ink tones. Keep muted text dark enough for body-text contrast
+   * on status badges and primary-surface backgrounds.
+   */
+  --studio-text: oklch(0.240 0.012 50);
+  --studio-text-muted: oklch(0.490 0.025 53);
+
+  /*
+   * Borders.
+   *
+   * border is decorative. Use border-strong for input, button, and checkbox
+   * boundaries that communicate control state to satisfy WCAG 1.4.11.
+   */
+  --studio-border: oklch(0.840 0.025 65);
+  --studio-border-strong: oklch(0.595 0.025 58);
+  --studio-border-strong-hover: oklch(0.525 0.027 53);
+
+  /*
+   * Brand.
+   *
+   * The editing UI uses a clay primary accent. LogoMark follows a warm paper,
+   * charcoal, and terracotta palette independently of UI state colors.
+   */
+  --studio-primary: oklch(0.515 0.140 37);
+  --studio-primary-hover: oklch(0.465 0.125 36);
+  --studio-primary-foreground: oklch(0.980 0.012 75);
+  --studio-primary-surface: oklch(0.910 0.025 72);
+  /* The lighter endpoint is for gradients and ambient effects, not button text backgrounds. */
+  --studio-primary-glow: oklch(0.670 0.130 45);
+  /* Small information-hierarchy accent; do not use it as a general interactive accent. */
+  --studio-signal: oklch(0.690 0.130 40);
+
+  /*
+   * LogoMark.
+   *
+   * Canonical palette shared by the app mark and product logo/favicon exports.
+   * Keep all five face colors fixed across backgrounds and themes. The app badge
+   * owns its background and size. These OKLCH values match the fallback hex colors.
+   */
+  --studio-logo-top: oklch(0.6975 0.1502 39.9); /* #ea7951 */
+  --studio-logo-left: oklch(0.7645 0.1217 48.6); /* #f19a6b */
+  --studio-logo-right: oklch(0.6386 0.1631 35.9); /* #dc603f */
+  --studio-logo-bottom-left: oklch(0.7233 0.1389 45.3); /* #ec8757 */
+  --studio-logo-bottom-right: oklch(0.6002 0.1585 34.2); /* #cd553a */
+
+  /*
+   * Focus.
+   *
+   * Focus indicators communicate state and require 3:1 contrast. Use opaque
+   * colors so rings remain visible and covered by contrast checks.
+   *
+   * Dark ink surfaces (sidebar, drawer, and code viewer) redirect --studio-focus
+   * to the on-ink token. Ring rules always read --studio-focus, regardless of
+   * the surface they appear on.
+   */
+  --studio-focus: oklch(0.570 0.135 37);
+  --studio-focus-on-ink: oklch(0.740 0.115 53);
+
+  /*
+   * States.
+   *
+   * success, warning, and danger supplement primary for draft/published/trash,
+   * ready/disabled/needsSetup, and comment moderation states. Use -surface for
+   * badge backgrounds and the corresponding base color for text.
+   */
+  --studio-success: oklch(0.520 0.120 155);
+  --studio-success-surface: oklch(0.960 0.035 155);
+  --studio-warning: oklch(0.520 0.105 75);
+  --studio-warning-surface: oklch(0.965 0.034 85);
+  --studio-danger: oklch(0.530 0.190 25);
+  --studio-danger-surface: oklch(0.960 0.019 25);
+  --studio-danger-hover: oklch(0.470 0.175 25);
+  --studio-on-solid: oklch(0.983 0.007 80.7);
+
+  /*
+   * Sidebar.
+   *
+   * Warm ink frames the paper-like workspace. Hover uses a light surface;
+   * active items use clay text on a neutral light surface.
+   */
+  --studio-sidebar: oklch(0.220 0.014 48);
+  --studio-sidebar-text: oklch(0.960 0.020 74);
+  --studio-sidebar-text-muted: oklch(0.760 0.025 70);
+  --studio-sidebar-accent: oklch(0.310 0.022 43);
+  --studio-sidebar-border: oklch(0.400 0.022 48);
+  --studio-sidebar-primary: oklch(0.740 0.115 53);
+
+  /*
+   * Composite effects.
+   *
+   * Gradients and large surfaces use semantic tokens so sign-in, installation,
+   * and Operations share a palette instead of defining screen-specific colors.
+   */
+  --studio-effect-canvas:
+    radial-gradient(
+      110% 80% at 88% 8%,
+      color-mix(in oklab, var(--studio-primary-glow) 48%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 70% at 4% 96%,
+      color-mix(in oklab, var(--studio-warning-surface) 72%, transparent) 0%,
+      transparent 62%
+    );
+  --studio-effect-ink-gradient:
+    linear-gradient(
+      155deg,
+      var(--studio-sidebar) 0%,
+      var(--studio-sidebar-accent) 62%,
+      color-mix(in oklab, var(--studio-sidebar) 72%, var(--studio-primary)) 100%
+    );
+  --studio-effect-primary-gradient:
+    linear-gradient(100deg, var(--studio-primary), var(--studio-primary-glow));
+  --studio-effect-shadow-hero:
+    0 40px 90px -40px color-mix(in oklab, var(--studio-text) 38%, transparent);
+  --studio-effect-shadow-glow:
+    0 18px 40px -18px color-mix(in oklab, var(--studio-primary) 58%, transparent);
+
+  /*
+   * Radii.
+   *
+   * Use seven levels plus full. md is the default; reserve xs for tight surfaces
+   * such as inline-link focus rings.
+   */
+  --studio-radius-xs: 4px;
+  --studio-radius-sm: 8px;
+  --studio-radius-md: 10px;
+  --studio-radius-lg: 12px;
+  --studio-radius-xl: 15px;
+  --studio-radius-2xl: 18px;
+  --studio-radius-3xl: 26px;
+  --studio-radius-full: 999px;
+
+  /*
+   * Page column.
+   *
+   * The authenticated shell fills the remaining workspace and shares this gutter.
+   * Only standalone dashboards such as Operations use a separate maximum width.
+   */
+  --studio-standalone-page-width: 1180px;
+  --studio-page-gutter: 24px;
+
+  /*
+   * Elevation.
+   *
+   * scrim is a translucent modal backdrop and is excluded from contrast checks.
+   */
+  --studio-scrim: oklch(0.240 0.012 50 / 0.48);
+  --studio-shadow-card:
+    0 1px 2px oklch(0.240 0.012 50 / 0.07),
+    0 8px 24px -16px oklch(0.240 0.012 50 / 0.20);
+  --studio-shadow-lift:
+    0 2px 4px oklch(0.240 0.012 50 / 0.08),
+    0 18px 40px -22px oklch(0.240 0.012 50 / 0.30);
+
+  font-family: var(--studio-font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * Dark palette.
+ *
+ * Override only color tokens. Radii, page geometry, font weights, and font
+ * families remain independent of the theme.
+ *
+ * Preserve the light palette's surface hierarchy: cards are lighter than the
+ * page, muted surfaces sit between them, and the sidebar remains darkest.
+ * This keeps the workspace prominent and contrast relationships consistent.
+ *
+ * Filled buttons invert their foreground relationship: dark clay with light
+ * text in the light theme, light clay with dark ink in the dark theme. State
+ * hues (155/85/25) retain their meaning and primary stays warm in both themes.
+ */
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Surfaces. */
+  --studio-background: oklch(0.180 0.012 48);
+  --studio-surface: oklch(0.225 0.015 48);
+  --studio-surface-subtle: oklch(0.205 0.014 48);
+
+  /* Text. */
+  --studio-text: oklch(0.930 0.018 72);
+  --studio-text-muted: oklch(0.700 0.025 68);
+
+  /* Borders. */
+  --studio-border: oklch(0.400 0.022 48);
+  --studio-border-strong: oklch(0.535 0.025 52);
+  --studio-border-strong-hover: oklch(0.635 0.025 55);
+
+  /* Brand. */
+  --studio-primary: oklch(0.670 0.135 42);
+  --studio-primary-hover: oklch(0.740 0.115 53);
+  --studio-primary-foreground: oklch(0.170 0.012 45);
+  --studio-primary-surface: oklch(0.280 0.018 49);
+  --studio-primary-glow: oklch(0.740 0.115 53);
+  --studio-signal: oklch(0.720 0.130 46);
+
+  /*
+   * Use a light ring on dark surfaces. The on-ink token already targets dark
+   * ink surfaces in both themes and needs no override here.
+   */
+  --studio-focus: oklch(0.670 0.135 42);
+
+  /* States. */
+  --studio-success: oklch(0.790 0.130 155);
+  --studio-success-surface: oklch(0.300 0.045 155);
+  --studio-warning: oklch(0.840 0.115 85);
+  --studio-warning-surface: oklch(0.310 0.045 80);
+  --studio-danger: oklch(0.740 0.145 25);
+  --studio-danger-surface: oklch(0.310 0.055 25);
+  --studio-danger-hover: oklch(0.805 0.104 25);
+  --studio-on-solid: oklch(0.170 0.012 45);
+
+  /* Sidebar. */
+  --studio-sidebar: oklch(0.135 0.010 45);
+  --studio-sidebar-text: oklch(0.950 0.020 73);
+  --studio-sidebar-text-muted: oklch(0.700 0.025 67);
+  --studio-sidebar-accent: oklch(0.220 0.020 41);
+  --studio-sidebar-border: oklch(0.400 0.022 48);
+  --studio-sidebar-primary: oklch(0.720 0.130 46);
+
+  /* Composite effects. */
+  --studio-effect-canvas:
+    radial-gradient(
+      110% 80% at 88% 8%,
+      color-mix(in oklab, var(--studio-primary) 32%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 70% at 4% 96%,
+      color-mix(in oklab, var(--studio-text-muted) 22%, transparent) 0%,
+      transparent 62%
+    );
+  --studio-effect-ink-gradient:
+    linear-gradient(
+      155deg,
+      var(--studio-sidebar) 0%,
+      var(--studio-sidebar-accent) 62%,
+      color-mix(in oklab, var(--studio-sidebar) 72%, var(--studio-primary)) 100%
+    );
+  --studio-effect-primary-gradient:
+    linear-gradient(100deg, var(--studio-primary), var(--studio-primary-glow));
+  --studio-effect-shadow-hero:
+    0 40px 90px -40px color-mix(in oklab, var(--studio-sidebar) 80%, transparent);
+  --studio-effect-shadow-glow:
+    0 18px 40px -18px color-mix(in oklab, var(--studio-primary) 48%, transparent);
+
+  /*
+   * Elevation.
+   *
+   * Use darker, wider shadows on dark surfaces. Borders and surface lightness
+   * differences convey card elevation more strongly than shadows.
+   */
+  --studio-scrim: oklch(0.110 0.004 70 / 0.68);
+  --studio-shadow-card:
+    0 1px 2px oklch(0.110 0.004 70 / 0.42),
+    0 8px 24px -16px oklch(0.110 0.004 70 / 0.72);
+  --studio-shadow-lift:
+    0 2px 4px oklch(0.110 0.004 70 / 0.48),
+    0 18px 40px -22px oklch(0.110 0.004 70 / 0.86);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+/*
+ * Reserve scrollbar space to prevent horizontal content shifts when moving
+ * between short and long pages on systems with space-consuming scrollbars.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  /* A fixed minimum width would overflow a 320px viewport with a stable scrollbar gutter. */
+  min-width: 0;
+  background: var(--studio-background);
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-regular);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

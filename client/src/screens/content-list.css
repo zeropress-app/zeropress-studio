@@ -1,0 +1,422 @@
+/*
+ * Content lists: posts, pages, authors, media, and taxonomy.
+ *
+ * These screens share the content-list namespace and frame. Primitives own
+ * headings, tables, badges, filter tabs, pagination, empty states, notices,
+ * and dialogs. This file owns layout shared across the list family.
+ */
+
+.content-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+/*
+ * Editorial toolbar combining search, filters, and create actions.
+ * Post and page status filters span the table width on the next row.
+ */
+.content-list-toolbar-editorial {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 14px;
+}
+
+.content-list-toolbar-controls {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-list-search {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 320px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/*
+ * Avoid percentage min-width inside content-sized flex items: the circular
+ * sizing dependency can push adjacent buttons outside the container.
+ */
+.content-list-search .studio-field {
+  min-width: 0;
+  flex: 0 1 300px;
+}
+
+.content-list-toolbar-editorial .content-list-search {
+  /*
+   * Use a small search basis when deciding wraps, then give it remaining space.
+   * This keeps the create action alongside author/link filters. At 640px and
+   * below, give search its own row and let the remaining controls wrap as needed.
+   */
+  flex: 1 1 160px;
+  justify-content: flex-start;
+}
+
+.content-list-toolbar-editorial .content-list-search .studio-field {
+  flex: 1 1 320px;
+}
+
+.content-list-author-filter,
+.content-list-select-filter {
+  min-width: 180px;
+  flex: 0 1 220px;
+}
+
+.content-list-author-filter .studio-field,
+.content-list-author-filter select,
+.content-list-select-filter .studio-field,
+.content-list-select-filter select {
+  width: 100%;
+}
+
+.content-list-create-action {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
+.content-list-button-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/* Introductory row for totals and policy guidance. */
+.content-list-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* Read-only metrics describe the whole collection regardless of list filters. */
+.content-list-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.content-list-metrics-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.content-list-metrics > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+}
+
+.content-list-metrics dt {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.content-list-metrics dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.5rem;
+  font-weight: var(--studio-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Action result notice with bottom spacing to separate it from the list. */
+.content-list-message {
+  margin-bottom: 16px;
+}
+
+.content-list-pagination {
+  margin-top: 16px;
+}
+
+/* Table cells. */
+
+/* Two-line cell for a name and supporting details. */
+.content-list-stacked-cell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.content-list-cell-primary {
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.content-list-cell-detail {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.content-list-title-link {
+  display: grid;
+  gap: 2px;
+  color: var(--studio-text);
+  text-decoration: none;
+}
+
+.content-list-title-link:hover .content-list-title {
+  color: var(--studio-primary);
+  text-decoration: underline;
+}
+
+.content-list-title-link:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-sm);
+}
+
+.content-list-title {
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.content-list-slug {
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.content-list-search-match {
+  display: -webkit-box;
+  margin: var(--space-2) 0 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.content-list-search-match mark {
+  border-radius: var(--studio-radius-xs);
+  background: var(--color-warning-surface);
+  color: inherit;
+}
+
+.content-list-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.content-list-selection-cell {
+  width: 44px;
+  text-align: center;
+}
+
+.content-list-selection-cell input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.content-list-bulk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.content-list-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.content-list-bulk-results {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-inline-start: 20px;
+}
+
+.content-list-bulk-results a {
+  overflow-wrap: anywhere;
+}
+
+.author-list-identity,
+.author-avatar-editor {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.author-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+}
+
+.author-avatar-list {
+  width: 36px;
+  height: 36px;
+}
+
+.author-account-cell {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.author-avatar-editor {
+  flex-wrap: wrap;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+}
+
+.author-avatar-editor-preview {
+  width: 52px;
+  height: 52px;
+}
+
+.author-avatar-editor-copy {
+  display: grid;
+  min-width: 150px;
+  flex: 1;
+  gap: 2px;
+}
+
+.author-avatar-editor-detail {
+  color: var(--studio-text-muted);
+}
+
+/* Dialogs. */
+
+.content-list-dialog-notice {
+  margin-top: 18px;
+}
+
+.content-list-dialog-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+/* Keep taxonomy tabs and search visible while only the results area's loading state changes. */
+.taxonomy-results {
+  min-width: 0;
+  min-height: 160px;
+}
+
+.taxonomy-identity {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: 2px;
+}
+
+.taxonomy-description {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.taxonomy-post-count {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .content-list-metrics-four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .content-list-toolbar {
+    align-items: stretch;
+  }
+
+  .content-list-search,
+  .content-list-toolbar-editorial .content-list-search {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .content-list-search .studio-field,
+  .content-list-toolbar-editorial .content-list-search .studio-field {
+    flex: 1 1 0;
+  }
+
+  .content-list-author-filter,
+  .content-list-select-filter {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  .content-list-metrics {
+    gap: 8px;
+  }
+
+  .content-list-metrics > div {
+    gap: 4px;
+    padding: 12px 10px;
+  }
+
+  .content-list-metrics dt {
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  .content-list-metrics dd {
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  .content-list-bulk-toolbar,
+  .content-list-bulk-actions {
+    align-items: stretch;
+  }
+
+  .content-list-bulk-actions {
+    width: 100%;
+  }
+}
+
+/* Mute fallback text for missing values to distinguish it from actual data. */
+.content-list-placeholder {
+  color: var(--studio-text-muted);
+}

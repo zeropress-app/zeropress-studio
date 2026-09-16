@@ -1,0 +1,1666 @@
+/*
+ * Studio primitives
+ *
+ * Styles for components in client/src/components/primitives.
+ * Use shared tokens rather than raw values. Add a primitive option for
+ * screen-specific variants instead of overriding primitive classes in screen CSS.
+ */
+
+/* --- Product identity ---------------------------------------------------- */
+
+/*
+ * In-app LogoMark instances use this ink badge. The product mark owns its
+ * background and contrast instead of needing a palette for every light surface.
+ */
+.studio-logo-badge {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--studio-sidebar-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-sidebar-accent);
+}
+
+.studio-logo-badge > svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* --- PageHeader ----------------------------------------------------------- */
+
+.studio-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.studio-page-header-heading {
+  min-width: 0;
+}
+
+.studio-page-header-kicker {
+  margin: 0 0 6px;
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.studio-page-header-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.studio-page-header-description {
+  margin: 8px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.studio-page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * StudioShell renders the title and description in the topbar. Keep page actions
+ * in the first body row, separate from global account and site actions.
+ */
+.studio-page-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* --- Panel ---------------------------------------------------------------- */
+
+.studio-panel {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-card);
+}
+
+.studio-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.studio-panel-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.studio-panel-heading-copy {
+  min-width: 0;
+}
+
+.studio-panel-leading {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.studio-panel-leading > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.studio-panel-kicker {
+  margin: 0 0 4px;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.studio-panel-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.0625rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.studio-panel-description {
+  margin: 5px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.studio-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-panel-body {
+  padding: 20px;
+}
+
+.studio-panel-body-flush {
+  padding: 0;
+}
+
+.studio-panel-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--studio-border);
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+/*
+ * Settings layout with headings in the left column and forms on the right.
+ * The media query below restores a single column on narrow screens.
+ */
+@media (min-width: 900px) {
+  .studio-panel-split {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.5fr);
+  }
+
+  .studio-panel-split > .studio-panel-header {
+    border-right: 1px solid var(--studio-border);
+    border-bottom: 0;
+  }
+
+  .studio-panel-split > .studio-panel-body {
+    padding: 22px 24px;
+  }
+
+  .studio-panel-split > .studio-panel-footer {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- Button --------------------------------------------------------------- */
+
+.studio-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-md);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.studio-button:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.studio-button-sm {
+  min-height: 32px;
+  padding: 0 11px;
+  font-size: 0.8125rem;
+}
+
+.studio-button-lg {
+  min-height: 48px;
+  padding: 0 20px;
+  font-size: 0.9375rem;
+}
+
+.studio-button-block {
+  width: 100%;
+}
+
+.studio-button-primary {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary);
+  color: var(--studio-primary-foreground);
+}
+
+.studio-button-primary:hover:not(:disabled) {
+  border-color: var(--studio-primary-hover);
+  background: var(--studio-primary-hover);
+}
+
+.studio-button-secondary {
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+}
+
+.studio-button-secondary:hover:not(:disabled) {
+  border-color: var(--studio-border-strong-hover);
+  background: var(--studio-surface-subtle);
+}
+
+.studio-button-ghost {
+  background: transparent;
+  color: var(--studio-text-muted);
+}
+
+.studio-button-text {
+  justify-content: flex-start;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  background: transparent;
+  color: var(--studio-text);
+  line-height: 1.5;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.studio-button-text:hover:not(:disabled) {
+  color: var(--studio-primary);
+  text-decoration: underline;
+}
+
+.studio-button-ghost:hover:not(:disabled) {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-button-danger {
+  border-color: var(--studio-danger);
+  background: var(--studio-danger);
+  color: var(--studio-on-solid);
+}
+
+.studio-button-danger:hover:not(:disabled) {
+  border-color: var(--studio-danger-hover);
+  background: var(--studio-danger-hover);
+}
+
+/* --- ActionMenu ---------------------------------------------------------- */
+
+.studio-action-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.studio-action-menu > .studio-button {
+  width: 32px;
+  padding-inline: 0;
+}
+
+.studio-action-menu-trigger-icon,
+.studio-action-menu-item-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/* The body portal sits outside the table's overflow boundary, so use viewport coordinates. */
+.studio-action-menu-popover {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  min-width: 176px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  gap: 2px;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-lift);
+}
+
+.studio-action-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--studio-radius-md);
+  background: transparent;
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.studio-action-menu-item:hover {
+  background: var(--studio-surface-subtle);
+}
+
+.studio-action-menu-item:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: -2px;
+  background: var(--studio-surface-subtle);
+}
+
+.studio-action-menu-item-critical {
+  color: var(--studio-danger);
+}
+
+.studio-action-menu-item-critical:hover,
+.studio-action-menu-item-critical:focus-visible {
+  background: var(--studio-danger-surface);
+}
+
+/* --- StatusPill ----------------------------------------------------------- */
+
+.studio-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: var(--studio-radius-full);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  white-space: nowrap;
+}
+
+.studio-pill-neutral {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+}
+
+.studio-pill-positive {
+  background: var(--studio-success-surface);
+  color: var(--studio-success);
+}
+
+.studio-pill-attention {
+  background: var(--studio-warning-surface);
+  color: var(--studio-warning);
+}
+
+.studio-pill-critical {
+  background: var(--studio-danger-surface);
+  color: var(--studio-danger);
+}
+
+/* --- Deployment configuration reference --------------------------------- */
+
+.studio-configuration-reference {
+  display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.studio-configuration-name {
+  overflow-wrap: anywhere;
+  color: inherit;
+  font-family: var(--studio-font-mono);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-configuration-kind {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.studio-configuration-kind-worker_secret {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+/* --- Callout -------------------------------------------------------------- */
+
+/* Persistent guidance shares Notice tone colors with a simpler layout. */
+.studio-callout {
+  display: grid;
+  gap: 4px;
+  padding: 13px 15px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-md);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.studio-callout-title {
+  font-weight: var(--studio-weight-semibold);
+}
+
+/* --- Notice --------------------------------------------------------------- */
+
+.studio-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 15px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-md);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.studio-notice-body {
+  min-width: 0;
+  flex: 1 1 22ch;
+}
+
+.studio-notice-title {
+  display: block;
+  margin-bottom: 3px;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-notice-content > :first-child {
+  margin-top: 0;
+}
+
+.studio-notice-content > :last-child {
+  margin-bottom: 0;
+}
+
+.studio-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-notice-info {
+  border-color: var(--studio-border);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-notice-success {
+  background: var(--studio-success-surface);
+  color: var(--studio-success);
+}
+
+.studio-notice-warning {
+  background: var(--studio-warning-surface);
+  color: var(--studio-warning);
+}
+
+.studio-notice-error {
+  background: var(--studio-danger-surface);
+  color: var(--studio-danger);
+}
+
+/* --- Toast --------------------------------------------------------------- */
+
+/*
+ * Sonner owns the fixed stack, keyboard handling, and timers. Style it with
+ * Studio tokens here. Place it below modals (50/60) and above the topbar and
+ * popovers (20/30), so an open Dialog also covers it visually.
+ */
+.studio-toaster[data-sonner-toaster] {
+  --width: min(380px, calc(100vw - 24px));
+
+  z-index: 45;
+  font-family: var(--studio-font-sans);
+}
+
+.studio-toast {
+  display: grid;
+  width: var(--width);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid var(--studio-border-strong);
+  border-inline-start: 4px solid var(--studio-primary);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-lift);
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.studio-toast:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-toast-success {
+  border-inline-start-color: var(--studio-success);
+}
+
+.studio-toast-info {
+  border-inline-start-color: var(--studio-primary);
+}
+
+.studio-toast-icon {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  grid-column: 1;
+  grid-row: 1;
+  place-items: center;
+  margin-top: 2px;
+  color: var(--studio-primary);
+}
+
+.studio-toast-success .studio-toast-icon {
+  color: var(--studio-success);
+}
+
+.studio-toast-icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.studio-toast-content {
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.studio-toast-title {
+  display: grid;
+  gap: 3px;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-toast-action {
+  width: fit-content;
+  color: var(--studio-primary);
+  font-weight: var(--studio-weight-semibold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.studio-toast-action:hover {
+  color: var(--studio-primary-hover);
+}
+
+.studio-toast-action:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-sm);
+}
+
+.studio-toast-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  grid-column: 3;
+  grid-row: 1;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+}
+
+.studio-toast-close:hover {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-toast-close:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+/* --- EmptyState ----------------------------------------------------------- */
+
+.studio-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 34px 20px;
+  border: 1px dashed var(--studio-border-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+  text-align: center;
+}
+
+.studio-empty-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-empty-description {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.studio-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* --- Spinner -------------------------------------------------------------- */
+
+/*
+ * Indeterminate progress indicator. The container's `gap` controls spacing;
+ * the indicator has no margins.
+ */
+/*
+ * Set display explicitly: an inline span ignores width and height and renders
+ * as a border fragment instead of a ring. Flex-item blockification can hide
+ * this bug, so sizing must not depend on the container's display mode.
+ */
+.studio-spinner {
+  display: inline-block;
+  flex: 0 0 auto;
+  border-style: solid;
+  border-radius: var(--studio-radius-full);
+  /*
+   * An inline-block sits on the baseline and leaves descender space below it,
+   * which can make its wrapper appear larger than the ring.
+   */
+  vertical-align: middle;
+  animation: studio-spin 850ms linear infinite;
+}
+
+/* Inline button and body usage inherits text color, including on filled buttons. */
+.studio-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: color-mix(in oklab, currentColor 25%, transparent);
+  border-top-color: currentColor;
+}
+
+/* Larger loading indicators use primary color to stand apart from muted text. */
+.studio-spinner-lg {
+  width: 46px;
+  height: 46px;
+  border-width: 3px;
+  border-color: var(--studio-border);
+  border-top-color: var(--studio-primary);
+}
+
+@keyframes studio-spin {
+  to { transform: rotate(360deg); }
+}
+
+/*
+ * Stop rotation for reduced motion while retaining the ring. Adjacent text
+ * still conveys progress. Keep this rule with the primitive rather than
+ * depending on global motion rules in styles.css.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .studio-spinner {
+    animation: none;
+  }
+
+  /* Sonner handles toast motion; viewport transitions need a separate rule. */
+  .studio-toaster[data-sonner-toaster] {
+    transition: none;
+  }
+}
+
+/* --- ChromeSelect --------------------------------------------------------- */
+
+/*
+ * Pill control for the topbar and pre-authentication screen corners.
+ * The host screen's slot owns positioning.
+ */
+/*
+ * Use border-strong for control boundaries to meet WCAG 1.4.11's 3:1 contrast
+ * requirement; the decorative border token does not provide enough contrast.
+ */
+.studio-chrome-select {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+}
+
+.studio-chrome-select > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  pointer-events: none;
+}
+
+.studio-chrome-select > select {
+  /*
+   * Make the native select fill the 40px control height so the pointer and
+   * touch target includes more than the text line box.
+   */
+  align-self: stretch;
+  min-width: 68px;
+  min-height: 38px;
+  padding: 0 18px 0 0;
+  border: 0;
+  background: none;
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+}
+
+/*
+ * The outer control owns the focus ring. Remove Chromium's native select
+ * outline to avoid overlapping rings.
+ */
+.studio-chrome-select > select:focus-visible {
+  outline: none;
+}
+
+.studio-chrome-select:focus-within {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+/*
+ * Compact icon action beside ChromeSelect, sharing its 40px height and control
+ * boundary. The icon represents the action's result rather than the current value.
+ */
+.studio-chrome-toggle {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+}
+
+.studio-chrome-toggle:hover {
+  border-color: var(--studio-border-strong-hover);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-chrome-toggle:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.studio-chrome-toggle > svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  pointer-events: none;
+}
+
+/* --- InlineStatus --------------------------------------------------------- */
+
+/*
+ * Inline status within a section. This container owns the gap between the
+ * spinner and text; Spinner itself has no margins.
+ */
+.studio-inline-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+}
+
+/* --- RouteLoading -------------------------------------------------------- */
+
+/*
+ * Route loading placeholder. The shell already provides column width and
+ * gutters. min-height keeps the spinner away from the topbar during short waits.
+ */
+.studio-route-loading {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+}
+
+/* --- DataTable ------------------------------------------------------------ */
+
+.studio-table-scroll {
+  overflow-x: auto;
+}
+
+.studio-table-scroll-framed {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+}
+
+.studio-table-scroll:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.studio-table th,
+.studio-table td {
+  padding: 11px 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.studio-table thead th {
+  border-bottom: 1px solid var(--studio-border);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio-table tbody tr + tr th,
+.studio-table tbody tr + tr td {
+  border-top: 1px solid var(--studio-border);
+}
+
+.studio-table tbody th {
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-table tbody td {
+  color: var(--studio-text);
+}
+
+/*
+ * Stack rows as cards on narrow screens. Hide thead and use each cell's
+ * data-label as its heading. Disable minWidthPx-based horizontal scrolling.
+ */
+.studio-table-selection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--studio-border);
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.studio-table-selection input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--studio-primary);
+}
+
+@media (max-width: 640px) {
+  .studio-table-stacked {
+    min-width: 0 !important;
+  }
+
+  /* Prevent desktop column ratios from squeezing the entire card into the first column. */
+  .studio-table-stacked colgroup {
+    display: none;
+  }
+
+  .studio-table-stacked thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .studio-table-stacked tbody tr {
+    display: grid;
+    gap: 6px;
+    padding: 14px 0;
+  }
+
+  .studio-table-scroll-framed .studio-table-stacked tbody tr {
+    padding: 14px 16px;
+  }
+
+  .studio-table-stacked tbody tr + tr {
+    border-top: 1px solid var(--studio-border);
+  }
+
+  .studio-table-stacked tbody th,
+  .studio-table-stacked tbody td,
+  .studio-table-stacked tbody tr + tr th,
+  .studio-table-stacked tbody tr + tr td {
+    display: grid;
+    gap: 3px;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .studio-table-stacked tbody td::before {
+    content: attr(data-label);
+    color: var(--studio-text-muted);
+    font-size: 0.625rem;
+    font-weight: var(--studio-weight-semibold);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  /* Native table semantics remain intact; compact cards opt into cell roles. */
+  .studio-table-stacked-compact tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    padding: 14px 16px;
+  }
+
+  .studio-table-stacked-compact tbody tr > td {
+    min-width: 0;
+    width: auto;
+    align-content: start;
+    overflow-wrap: anywhere;
+  }
+
+  .studio-table-stacked-compact tbody td::before {
+    font-size: 0.6875rem;
+  }
+
+  .studio-table-stacked-compact tbody td[data-stack="primary"] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 36px;
+  }
+
+  .studio-table-stacked-compact tbody tr:has(> [data-stack="select"]) > [data-stack="primary"] {
+    padding-inline-start: 30px;
+  }
+
+  .studio-table-stacked-compact tbody tr:has(> [data-stack="actions"]) > [data-stack="primary"] {
+    padding-inline-end: 44px;
+  }
+
+  .studio-table-stacked-compact tbody td[data-stack="select"] {
+    /* Transparent padding on the primary cell also intercepts pointers in the shared grid row. */
+    z-index: 1;
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: start;
+    padding-block-start: 8px;
+  }
+
+  .studio-table-stacked-compact tbody td[data-stack="actions"] {
+    z-index: 1;
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .studio-table-stacked-compact tbody td[data-stack="wide"] {
+    grid-column: 1 / -1;
+  }
+
+  .studio-table-stacked-compact tbody td:is(
+    [data-stack="primary"], [data-stack="select"],
+    [data-stack="actions"], [data-stack="preview"]
+  )::before,
+  .studio-table-stacked-compact [data-stack-detail="secondary"] {
+    display: none;
+  }
+}
+
+/* --- FilterTabs ----------------------------------------------------------- */
+
+.studio-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.studio-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease;
+}
+
+.studio-filter-tab:hover {
+  border-color: var(--studio-border-strong-hover);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-filter-tab:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-filter-tab-selected {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.studio-filter-tab-label {
+  min-width: 0;
+}
+
+.studio-filter-tab-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+}
+
+.studio-filter-tab-selected .studio-filter-tab-count {
+  background: var(--studio-surface);
+  color: var(--studio-primary);
+}
+
+/*
+ * Editorial list status row. It has the same semantics as pills, but underlines
+ * the active item to reduce the toolbar's visual weight on wide screens.
+ */
+.studio-filter-tabs-underline {
+  width: 100%;
+  gap: 2px 4px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.studio-filter-tabs-underline .studio-filter-tab {
+  min-height: 40px;
+  margin-bottom: -1px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+.studio-filter-tabs-underline .studio-filter-tab:hover {
+  border-bottom-color: var(--studio-border-strong-hover);
+  background: transparent;
+}
+
+.studio-filter-tabs-underline .studio-filter-tab-selected,
+.studio-filter-tabs-underline .studio-filter-tab-selected:hover {
+  border-bottom-color: var(--studio-primary);
+  background: transparent;
+  color: var(--studio-text);
+}
+
+.studio-filter-tabs-underline .studio-filter-tab-selected .studio-filter-tab-count {
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+/* --- Tabs ----------------------------------------------------------------- */
+
+.studio-tabs {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.studio-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.studio-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--studio-text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+  transition: color 130ms ease, border-color 130ms ease;
+}
+
+.studio-tab-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.studio-tab-count {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-tab:hover:not(:disabled) {
+  color: var(--studio-text);
+}
+
+/* View switching is locked while there are unsaved changes. */
+.studio-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.studio-tab:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: -3px;
+  border-radius: var(--studio-radius-sm);
+}
+
+.studio-tab-selected {
+  border-bottom-color: var(--studio-primary);
+  color: var(--studio-primary);
+}
+
+.studio-tabpanel {
+  min-width: 0;
+}
+
+.studio-tabpanel:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-md);
+}
+
+/* --- Pagination ----------------------------------------------------------- */
+
+.studio-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.studio-pagination-position {
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+}
+
+/* --- Field ---------------------------------------------------------------- */
+
+.studio-field {
+  display: grid;
+  gap: 6px;
+}
+
+.studio-field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.studio-field-label {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-field-adornment {
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+.studio-field-control {
+  position: relative;
+  min-width: 0;
+}
+
+.studio-field-leading {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  display: inline-flex;
+  color: var(--studio-text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.studio-field-leading > svg {
+  width: 17px;
+  height: 17px;
+}
+
+.studio-field > input,
+.studio-field > select,
+.studio-field > textarea,
+.studio-field-input,
+.studio-field-control > input,
+.studio-field-control > select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font: inherit;
+}
+
+.studio-field-control > input,
+.studio-field-control > select {
+  padding-inline-start: 38px;
+}
+
+.studio-field > textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.studio-field > input:hover:not(:disabled),
+.studio-field > select:hover:not(:disabled),
+.studio-field > textarea:hover:not(:disabled),
+.studio-field-input:hover:not(:disabled),
+.studio-field-control > input:hover:not(:disabled),
+.studio-field-control > select:hover:not(:disabled) {
+  border-color: var(--studio-border-strong-hover);
+}
+
+.studio-field > input:focus-visible,
+.studio-field > select:focus-visible,
+.studio-field > textarea:focus-visible,
+.studio-field-input:focus-visible,
+.studio-field-control > input:focus-visible,
+.studio-field-control > select:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.studio-field > input:disabled,
+.studio-field > select:disabled,
+.studio-field > textarea:disabled,
+.studio-field-input:disabled,
+.studio-field-control > input:disabled,
+.studio-field-control > select:disabled {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  cursor: not-allowed;
+}
+
+.studio-field > input[aria-invalid="true"],
+.studio-field > select[aria-invalid="true"],
+.studio-field > textarea[aria-invalid="true"],
+.studio-field-input[aria-invalid="true"],
+.studio-field-control > input[aria-invalid="true"],
+.studio-field-control > select[aria-invalid="true"] {
+  border-color: var(--studio-danger);
+}
+
+/*
+ * Document titles use a stronger editing hierarchy than ordinary settings.
+ * Field still owns accessible labels and state associations; screens must
+ * not override the input's internal implementation.
+ */
+.studio-field-title > input {
+  padding: 2px 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--studio-border-strong);
+  border-radius: 0;
+  background: transparent;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.studio-field-title > input:hover:not(:disabled) {
+  border-color: var(--studio-border-strong-hover);
+}
+
+.studio-field-title > input:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 3px;
+}
+
+.studio-field-title > input:disabled {
+  background: transparent;
+}
+
+.studio-field-hint {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/*
+ * Supporting output derived from input. It shows the value that will be saved,
+ * so use body text color to distinguish it from a static, muted hint.
+ */
+.studio-field-note {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.studio-field-error {
+  margin: 0;
+  color: var(--studio-danger);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+  line-height: 1.55;
+}
+
+/* --- Switch --------------------------------------------------------------- */
+
+.studio-switch {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  background: var(--studio-surface-subtle);
+}
+
+/* Compact variant for use in a grid with other fields; no separate container. */
+.studio-switch-inline {
+  min-height: 0;
+  padding: 0;
+  background: none;
+}
+
+.studio-switch-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.studio-switch-label {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-switch-description {
+  max-width: 540px;
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.studio-switch-control {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 24px;
+  appearance: none;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-border);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.studio-switch-control::before {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-card);
+  content: "";
+  transition: transform 120ms ease;
+}
+
+.studio-switch-control:checked {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary);
+}
+
+.studio-switch-control:checked::before {
+  transform: translateX(18px);
+}
+
+.studio-switch-control:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-switch-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Joined list: the list owns the outer border, with dividers between items. */
+.studio-switch-group {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+}
+
+.studio-switch-group > .studio-switch + .studio-switch {
+  border-top: 1px solid var(--studio-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-switch-control,
+  .studio-switch-control::before {
+    transition: none;
+  }
+}
+
+/* --- Dialog --------------------------------------------------------------- */
+
+.studio-dialog-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--studio-scrim);
+}
+
+.studio-dialog-backdrop-blur {
+  backdrop-filter: blur(8px);
+}
+
+.studio-dialog {
+  width: min(520px, 100%);
+  padding: 24px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-2xl);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-lift);
+}
+
+.studio-dialog:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-dialog-wide {
+  width: min(820px, 100%);
+}
+
+.studio-dialog-editor {
+  width: min(1180px, 100%);
+}
+
+.studio-dialog-kicker {
+  margin: 0 0 6px;
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.studio-dialog-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.1875rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Static reading-start headings do not need a button-like browser outline.
+ * Keep focus-visible indicators on actual Tab targets: links, buttons, and inputs.
+ */
+.studio-dialog-title[tabindex="-1"]:focus {
+  outline: none;
+}
+
+.studio-dialog-description {
+  margin: 8px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.studio-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .studio-page-header,
+  .studio-panel-header,
+  .studio-notice {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .studio-notice-body {
+    flex: 0 1 auto;
+  }
+
+  .studio-page-header-actions,
+  .studio-page-shell-actions,
+  .studio-panel-actions,
+  .studio-dialog-actions {
+    justify-content: stretch;
+  }
+
+  .studio-page-header-actions > .studio-button,
+  .studio-page-shell-actions > .studio-button,
+  .studio-panel-actions > .studio-button,
+  .studio-dialog-actions > .studio-button {
+    flex: 1 1 auto;
+  }
+}

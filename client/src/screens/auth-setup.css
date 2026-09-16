@@ -1,0 +1,793 @@
+/*
+ * Installation and account activation.
+ *
+ * These multi-step flows share the auth-* frame in screens/auth.css for cards,
+ * the grid background, logo, locale switcher, inputs, and actions. This file
+ * owns step headings, two-column forms, password assessment, account summaries,
+ * and activation target details.
+ *
+ * Password assessment is also used in Operations administrator recovery.
+ */
+
+.setup-header {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 28px;
+}
+
+.setup-title {
+  margin: 11px 0 0;
+  color: var(--studio-text);
+  font-size: 1.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+
+.setup-description {
+  margin: 11px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* Studio installation progress. */
+
+.setup-progress {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 520px);
+  margin: 0 auto 28px;
+}
+
+.setup-progress-list {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-progress-step {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  white-space: nowrap;
+}
+
+.setup-progress-step:not(:last-child) {
+  flex: 1 1 auto;
+}
+
+.setup-progress-marker {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-full);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  line-height: 1;
+  text-align: center;
+}
+
+.setup-progress-marker > svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.setup-progress-connector {
+  min-width: 8px;
+  height: 1px;
+  flex: 1 1 auto;
+  margin: 0 clamp(5px, 1.5vw, 12px);
+  background: var(--studio-border);
+}
+
+.setup-progress-step[data-state="current"] {
+  color: var(--studio-primary);
+}
+
+.setup-progress-step[data-state="current"] > .setup-progress-marker {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+}
+
+.setup-progress-step[data-state="completed"] {
+  color: var(--studio-success);
+}
+
+.setup-progress-step[data-state="completed"] > .setup-progress-marker {
+  border-color: var(--studio-success);
+  background: var(--studio-success-surface);
+}
+
+.setup-progress-step[data-state="completed"]
+  > .setup-progress-connector {
+  background: var(--studio-success);
+}
+
+/* Forms. */
+
+.setup-form {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* Single-column form for steps without paired fields, such as enrollment. */
+.setup-form-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.setup-form-account {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.setup-field-wide {
+  grid-column: 1 / -1;
+}
+
+.setup-form-section {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--studio-surface-subtle);
+}
+
+.setup-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.setup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.setup-actions > .studio-button-primary {
+  min-width: 230px;
+}
+
+/* Space for a compact visibility-toggle button inside the input. */
+.setup-password {
+  position: relative;
+}
+
+.setup-password > input {
+  padding-right: 52px;
+}
+
+.setup-password-action {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 34px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+}
+
+.setup-password-action > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.setup-password-action:hover:not(:disabled) {
+  background: var(--studio-border);
+  color: var(--studio-text);
+}
+
+.setup-password-action:focus-visible {
+  outline: 3px solid var(--studio-focus);
+}
+
+/* Password assessment. */
+
+.setup-strength {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.setup-strength-meter {
+  display: grid;
+  gap: 11px;
+}
+
+.setup-strength-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setup-strength-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.setup-strength-note {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+/*
+ * Five-segment strength meter using danger, warning, and success tokens.
+ * The filled segment count and adjacent text convey strength alongside color.
+ */
+.setup-strength-bars {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.setup-strength-bar {
+  height: 5px;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-border);
+}
+
+.setup-strength-bars[data-score="0"] > .setup-strength-bar[data-filled="true"],
+.setup-strength-bars[data-score="1"] > .setup-strength-bar[data-filled="true"] {
+  background: var(--studio-danger);
+}
+
+.setup-strength-bars[data-score="2"] > .setup-strength-bar[data-filled="true"] {
+  background: var(--studio-warning);
+}
+
+.setup-strength-bars[data-score="3"] > .setup-strength-bar[data-filled="true"],
+.setup-strength-bars[data-score="4"] > .setup-strength-bar[data-filled="true"] {
+  background: var(--studio-success);
+}
+
+.setup-requirements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 15px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-requirement {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.setup-requirement > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+/* Pass and fail states use different icon shapes as well as colors (WCAG 1.4.1). */
+.setup-requirement[data-state="passed"] {
+  color: var(--studio-success);
+}
+
+.setup-requirement[data-state="failed"] {
+  color: var(--studio-danger);
+}
+
+.setup-requirement[data-state="warning"] {
+  color: var(--studio-warning);
+}
+
+.setup-guidance {
+  margin: 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--studio-border);
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+/* Account summary and activation target. */
+
+.setup-account-summary {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 15px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+}
+
+.setup-account-summary-value {
+  overflow: hidden;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  text-overflow: ellipsis;
+}
+
+.setup-activation-stage {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.setup-activation-identity {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 13px 15px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+  font-size: 0.75rem;
+}
+
+.setup-activation-person,
+.setup-activation-expiry {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.setup-activation-person {
+  gap: 10px;
+}
+
+.setup-activation-person-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.setup-activation-person-icon > svg,
+.setup-activation-expiry > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.setup-activation-person-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.setup-activation-person-name,
+.setup-activation-person-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-activation-person-name {
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.setup-activation-person-detail,
+.setup-activation-expiry {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+}
+
+.setup-activation-expiry {
+  gap: 7px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.setup-activation-expiry > svg {
+  flex: 0 0 16px;
+}
+
+.setup-activation-form {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.setup-activation-actions {
+  margin-top: auto;
+}
+
+@media (max-width: 640px) {
+  .setup-progress-step {
+    gap: 4px;
+    font-size: 0.6875rem;
+  }
+
+  .setup-progress-marker {
+    width: 12px;
+    flex-basis: 12px;
+  }
+
+  .setup-progress-connector {
+    min-width: 4px;
+    margin: 0 3px;
+  }
+
+  .setup-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-field-wide,
+  .setup-account-summary {
+    grid-column: auto;
+  }
+
+  .setup-requirements {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-strength-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .setup-strength-note {
+    text-align: left;
+  }
+}
+
+/* Installation screen. */
+
+.auth-install-rail .setup-header-install {
+  margin-bottom: 0;
+}
+
+.auth-activation-rail .setup-header-activation {
+  margin-bottom: 0;
+}
+
+.auth-install-rail .setup-header-install > .auth-kicker,
+.auth-activation-rail .setup-header-activation > .auth-kicker {
+  color: var(--studio-signal);
+  letter-spacing: 0.2em;
+}
+
+.auth-install-rail .setup-header-install > .setup-title:focus,
+.auth-activation-rail .setup-header-activation > .setup-title:focus {
+  outline: 0;
+}
+
+.setup-license {
+  display: grid;
+  gap: 18px;
+}
+
+/*
+ * All three steps share the available desktop installation panel height.
+ * Short content pushes only the action row down; long content lets the panel
+ * and document grow naturally without fixed positioning.
+ */
+.setup-install-stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.setup-install-stage > .setup-actions {
+  margin-top: auto;
+}
+
+.setup-license-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--studio-surface-subtle);
+}
+
+.setup-license-heading h2 {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.setup-license-heading p {
+  margin: 7px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.setup-license-text {
+  width: 100%;
+  max-height: 265px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--studio-border);
+  background: color-mix(
+    in oklab,
+    var(--studio-text) 3%,
+    var(--studio-surface)
+  );
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  tab-size: 3;
+  white-space: pre-wrap;
+}
+
+.setup-license-text:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.setup-license-source {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-primary);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  line-height: 1.4;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.setup-license-source:hover {
+  color: var(--studio-primary-hover);
+}
+
+.setup-license-source:focus-visible {
+  border-radius: var(--studio-radius-sm);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 3px;
+}
+
+.setup-license-source > svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+/* Show desktop progress vertically inside the ink rail. */
+.auth-install-rail .setup-progress,
+.auth-activation-rail .setup-progress {
+  width: 100%;
+  margin: 32px 0 0;
+}
+
+.auth-install-rail .setup-progress-list,
+.auth-activation-rail .setup-progress-list {
+  display: grid;
+  gap: 2px;
+}
+
+.auth-install-rail .setup-progress-step,
+.auth-activation-rail .setup-progress-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+  color: var(--studio-sidebar-text-muted);
+  white-space: normal;
+}
+
+.auth-install-rail .setup-progress-step:not(:last-child),
+.auth-activation-rail .setup-progress-step:not(:last-child) {
+  flex: none;
+}
+
+.auth-install-rail .setup-progress-marker,
+.auth-activation-rail .setup-progress-marker {
+  width: 32px;
+  height: 32px;
+  border-color: var(--studio-sidebar-border);
+  color: var(--studio-sidebar-text-muted);
+}
+
+.auth-install-rail .setup-progress-connector,
+.auth-activation-rail .setup-progress-connector {
+  position: absolute;
+  top: 39px;
+  bottom: -7px;
+  left: 15px;
+  width: 1px;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  background: var(--studio-sidebar-border);
+}
+
+.auth-install-rail .setup-progress-step[data-state="current"],
+.auth-activation-rail .setup-progress-step[data-state="current"] {
+  color: var(--studio-sidebar-text);
+}
+
+.auth-install-rail
+  .setup-progress-step[data-state="current"]
+  > .setup-progress-marker,
+.auth-activation-rail
+  .setup-progress-step[data-state="current"]
+  > .setup-progress-marker {
+  border-color: var(--studio-sidebar-text);
+  background: var(--studio-sidebar-accent);
+  color: var(--studio-sidebar-text);
+}
+
+.auth-install-rail .setup-progress-step[data-state="completed"],
+.auth-activation-rail .setup-progress-step[data-state="completed"] {
+  color: var(--studio-sidebar-primary);
+}
+
+.auth-install-rail
+  .setup-progress-step[data-state="completed"]
+  > .setup-progress-marker,
+.auth-activation-rail
+  .setup-progress-step[data-state="completed"]
+  > .setup-progress-marker {
+  border-color: var(--studio-sidebar-primary);
+  background: color-mix(
+    in oklab,
+    var(--studio-sidebar-primary) 14%,
+    transparent
+  );
+  color: var(--studio-sidebar-primary);
+}
+
+.auth-install-rail
+  .setup-progress-step[data-state="completed"]
+  > .setup-progress-connector,
+.auth-activation-rail
+  .setup-progress-step[data-state="completed"]
+  > .setup-progress-connector {
+  background: var(--studio-sidebar-primary);
+}
+
+@media (max-width: 900px) {
+  .auth-install-rail .setup-progress,
+  .auth-activation-rail .setup-progress {
+    margin-top: 25px;
+  }
+
+  .auth-install-rail .setup-progress-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .auth-activation-rail .setup-progress-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .auth-install-rail .setup-progress-step,
+  .auth-activation-rail .setup-progress-step {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    justify-items: center;
+    gap: 7px;
+    font-size: 0.6875rem;
+    text-align: center;
+  }
+
+  .auth-install-rail .setup-progress-marker,
+  .auth-activation-rail .setup-progress-marker {
+    width: 28px;
+    height: 28px;
+  }
+
+  .auth-install-rail .setup-progress-connector,
+  .auth-activation-rail .setup-progress-connector {
+    top: 13px;
+    right: calc(-50% + 18px);
+    bottom: auto;
+    left: calc(50% + 18px);
+    width: auto;
+    height: 1px;
+  }
+}
+
+@media (max-width: 640px) {
+  .setup-license-card,
+  .setup-form-section {
+    padding: 16px;
+  }
+
+  .setup-license-text {
+    padding: 13px;
+  }
+
+  .setup-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .setup-actions > .studio-button,
+  .setup-actions > .studio-button-primary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .auth-install-rail .setup-progress-label,
+  .auth-activation-rail .setup-progress-label {
+    max-width: 64px;
+    white-space: normal;
+  }
+
+  .setup-activation-identity {
+    display: grid;
+  }
+}

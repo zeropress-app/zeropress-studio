@@ -1,0 +1,465 @@
+/*
+ * Account security: MFA, passwords, passkeys, and sessions.
+ *
+ * These screens share the account-* namespace. Primitives own headings,
+ * panels, fields, notices, buttons, and dialogs. This stylesheet owns session
+ * cards, authentication summaries, reauthentication forms, completion screens,
+ * and passkey lists.
+ *
+ * MfaEnrollmentPanel is shared with pre-authentication flows and styled there.
+ */
+
+/*
+ * Stack panels with consistent gaps instead of per-card margins that would
+ * also add space before the first card.
+ */
+.account-stack {
+  display: grid;
+  gap: 18px;
+}
+
+/* Back-navigation row above the heading. */
+.account-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 16px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  text-decoration: none;
+}
+
+.account-back:hover {
+  color: var(--studio-primary);
+  text-decoration: underline;
+}
+
+.account-back:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-xs);
+}
+
+.account-message {
+  margin-bottom: 18px;
+}
+
+/* Status rows within sections. */
+
+/*
+ * Inline loading and result states that replace section content.
+ * This container's gap controls spacing between the spinner and text.
+ */
+.account-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.account-state-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-state-title {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-state-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/* Authentication method summary. */
+
+.account-mfa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.account-mfa-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.account-mfa-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+}
+
+.account-mfa-icon > svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.account-mfa-body {
+  min-width: 0;
+}
+
+.account-mfa-method {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-mfa-name {
+  margin: 3px 0 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-mfa-detail {
+  margin: 6px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.account-mfa-action {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.account-mfa-note {
+  margin: 14px 0 0;
+}
+
+/* Session list. */
+
+.account-session-list {
+  display: grid;
+  gap: 14px;
+}
+
+.account-session {
+  padding: 18px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+/*
+ * Mark the current session with both a left accent and a badge so color
+ * is not the only indicator.
+ */
+.account-session-current {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+  box-shadow: inset 3px 0 0 var(--studio-primary);
+}
+
+.account-session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.account-session-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-session-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 28px;
+  margin: 16px 0 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.account-session-meta > div {
+  min-width: 0;
+}
+
+.account-session-meta dt {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-session-meta dd {
+  margin: 4px 0 0;
+  color: var(--studio-text);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.account-session-user-agent {
+  grid-column: 1 / -1;
+}
+
+.account-no-other-sessions {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* Reauthentication form. */
+
+.account-form-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.account-step-up {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+  padding: 15px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.account-step-up-legend {
+  padding: 0;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-step-up-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-step-up-option {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.account-step-up-option:hover {
+  border-color: var(--studio-border-strong-hover);
+}
+
+.account-step-up-option > input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--studio-primary);
+}
+
+/* Password visibility is off by default because this control reveals the value. */
+.account-password-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.account-password-toggle > input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--studio-primary);
+}
+
+/* Completion screen. */
+
+.account-complete {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  text-align: center;
+}
+
+.account-complete-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  margin: 0 0 5px;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-success);
+  color: var(--studio-on-solid);
+  font-size: 1.4375rem;
+  font-weight: var(--studio-weight-bold);
+}
+
+.account-complete-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.account-complete-detail {
+  max-width: 600px;
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.account-complete-action {
+  margin-top: 11px;
+}
+
+/* Passkey list. */
+
+.account-credential-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-credential {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.account-credential-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.account-credential-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-credential-name {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.account-credential-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+}
+
+.account-credential-authenticator {
+  margin: 6px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.account-credential-meta > div {
+  min-width: 0;
+}
+
+.account-credential-meta dt {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.account-credential-meta dd {
+  margin: 4px 0 0;
+  color: var(--studio-text);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.account-credential-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+/* Space between the dialog description and notice; the action row owns its spacing. */
+.account-dialog-notice {
+  margin-top: 18px;
+}
+
+.account-dialog-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .account-mfa-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-credential-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .account-session-header,
+  .account-credential {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-session-meta,
+  .account-credential-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-session-user-agent {
+    grid-column: auto;
+  }
+
+  .account-credential-actions {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,23 @@
+export const newsletterSettings = {
+  documentTitle: 'Newsletter — ZeroPress Studio',
+  kicker: 'SITE CONFIGURATION',
+  title: 'Newsletter',
+  description: 'Invite visitors to subscribe through your site’s newsletter section.',
+  loading: { title: 'Loading Newsletter settings', description: 'Loading signup settings…' },
+  loadError: { title: 'Newsletter settings could not be loaded', description: 'Check your connection and try again.', retry: 'Try again' },
+  presentation: { title: 'Signup invitation', description: 'Write your signup invitation. Your theme controls its appearance and any default text.' },
+  destination: { title: 'Signup destination', description: 'Provide a signup page, an embedded form URL, or both. At least one is required when enabled.' },
+  fields: {
+    enabled: { label: 'Include newsletter CTA', description: 'Show the signup invitation on your site. Turning it off keeps your draft.' },
+    title: { label: 'Title (optional)', description: 'A short heading for the signup invitation.' },
+    description: { label: 'Description (optional)', description: 'Tell visitors what they will receive.' },
+    buttonLabel: { label: 'Button label (optional)', description: 'Text for the signup button. Leave blank to use the theme’s default.' },
+    signupUrl: { label: 'Signup URL (optional)', description: 'Use an HTTP(S) URL or a site-relative path such as /subscribe/.' },
+    embedUrl: { label: 'Embed URL (optional)', description: 'The page to embed as a signup form. Use an HTTP(S) URL or a site-relative path.' },
+    destinationError: 'Use valid navigation URLs and provide at least one destination before enabling the CTA.',
+  },
+  state: { saved: 'Newsletter CTA settings saved.', dirty: 'You have unsaved changes.', clean: 'All changes are saved.', defaults: 'The CTA is disabled until these settings are saved and enabled.', lastSaved: 'Last saved {{date}}' },
+  actions: { reset: 'Reset changes', save: 'Save Newsletter', saving: 'Saving…' },
+  errors: { conflictTitle: 'Newsletter settings changed in another session', conflictDescription: 'Your edits remain in this form. Load the latest saved values before editing and saving again.', reload: 'Load latest values', forbidden: 'Your account cannot manage site settings.', validation: 'Review the CTA text and destination URLs before saving.', timeout: 'The Newsletter settings request timed out. Please try again.', network: 'Studio could not be reached. Check your connection and try again.', invalidResponse: 'Studio returned an unexpected Newsletter settings response.', api: 'Studio could not save Newsletter settings. Your edits remain in this form.' },
+  discard: { kicker: 'UNSAVED CHANGES', title: 'Leave without saving?', description: 'Changes made on this page will be discarded.', stay: 'Keep editing', leave: 'Discard and leave' },
+} as const;

@@ -1,0 +1,934 @@
+/*
+ * Studio shell.
+ *
+ * Styles for StudioShell, StudioNotFoundPage, and StudioAccessDeniedPage.
+ * Use tokens and three breakpoints: 1200px hides topbar descriptions, 900px
+ * moves the sidebar off-canvas, and 640px compacts the topbar.
+ *
+ * The dark ink sidebar frames the workspace. Use --studio-sidebar-* tokens
+ * on this surface.
+ */
+
+.studio-shell {
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100svh;
+  background: var(--studio-background);
+}
+
+/*
+ * Collapse to the icon column while keeping labels in the DOM as accessible
+ * names; hide them only visually.
+ */
+.studio-shell-collapsed {
+  grid-template-columns: 68px minmax(0, 1fr);
+}
+
+/*
+ * The ink pill uses the default focus token because its outer ring sits on
+ * the page background. The on-ink token would lack contrast on a light page.
+ */
+.studio-skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 12px;
+  left: 12px;
+  padding: 10px 14px;
+  transform: translateY(-160%);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-sidebar);
+  color: var(--studio-sidebar-text);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-bold);
+  text-decoration: none;
+  transition: transform 120ms ease;
+}
+
+.studio-skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Sidebar. */
+
+/*
+ * Keep the brand and footer fixed while only navigation scrolls. Scrolling
+ * the whole sidebar would push the footer off short screens.
+ */
+.studio-sidebar {
+  /*
+   * Use a light focus ring on the ink surface. Brand links, navigation links,
+   * and the collapse button inherit this token.
+   */
+  --studio-focus: var(--studio-focus-on-ink);
+
+  /*
+   * This surface is dark in both themes. Override the inherited color-scheme
+   * so native navigation scrollbars use a dark track even in the light theme.
+   * Scrollbar width stays unchanged, preserving layout.
+   */
+  color-scheme: dark;
+
+  position: sticky;
+  top: 0;
+  display: grid;
+  height: 100vh;
+  height: 100svh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 20px 12px 12px;
+  overflow: hidden;
+  border-right: 1px solid var(--studio-sidebar-border);
+  background: var(--studio-effect-ink-gradient);
+}
+
+.studio-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 0 6px;
+  color: var(--studio-sidebar-text);
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.studio-shell-collapsed .studio-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.studio-brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-brand-emphasis {
+  font-weight: var(--studio-weight-semibold);
+}
+
+/*
+ * overflow-y: auto also sets this grid item's automatic minimum size to zero,
+ * allowing it to fit a minmax(0, 1fr) track without overlapping the footer.
+ */
+.studio-sidebar-navigation {
+  margin-top: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.studio-navigation-section + .studio-navigation-section {
+  margin-top: 14px;
+}
+
+.studio-navigation-section-utility {
+  padding-top: 10px;
+  border-top: 1px solid var(--studio-sidebar-border);
+}
+
+.studio-shell-collapsed .studio-navigation-section
+  + .studio-navigation-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--studio-sidebar-border);
+}
+
+.studio-navigation-section-label {
+  display: block;
+  margin: 0 10px 6px;
+  color: var(--studio-sidebar-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.04em;
+}
+
+.studio-sidebar-navigation ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-sidebar-navigation a {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 11px;
+  padding: 0 11px;
+  border-radius: var(--studio-radius-md);
+  color: var(--studio-sidebar-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+  text-decoration: none;
+  transition: background-color 130ms ease, color 130ms ease;
+}
+
+.studio-shell-collapsed .studio-sidebar-navigation a {
+  justify-content: center;
+  padding: 0;
+}
+
+.studio-sidebar-navigation a svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.studio-sidebar-navigation a:hover {
+  background: color-mix(
+    in oklab,
+    var(--studio-sidebar-text) 5%,
+    transparent
+  );
+  color: var(--studio-sidebar-text);
+}
+
+.studio-sidebar-navigation a.active {
+  background: var(--studio-sidebar-accent);
+  box-shadow: inset 0 0 0 1px color-mix(
+    in oklab,
+    var(--studio-sidebar-text) 15%,
+    transparent
+  );
+  color: var(--studio-sidebar-primary);
+  font-weight: var(--studio-weight-semibold);
+}
+
+/*
+ * Collapsed sidebar tooltips portal outside the navigation scroll container,
+ * avoiding clipping in short viewports and remaining open under the pointer.
+ */
+.studio-sidebar-tooltip {
+  --studio-focus: var(--studio-focus-on-ink);
+
+  position: fixed;
+  z-index: 40;
+  max-width: min(240px, calc(100vw - 96px));
+  padding: 7px 10px;
+  overflow: hidden;
+  transform: translateY(-50%);
+  border: 1px solid var(--studio-sidebar-border);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-sidebar);
+  box-shadow: var(--studio-shadow-lift);
+  color: var(--studio-sidebar-text);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-medium);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sidebar footer. */
+
+/*
+ * Put the border on the container so the button's hover background does not
+ * cover the divider.
+ */
+.studio-sidebar-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--studio-sidebar-border);
+}
+
+/*
+ * Match navigation row height, spacing, and hover styling. Collapse is a
+ * button action rather than navigation, but occupies the same column.
+ */
+.studio-sidebar-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 11px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--studio-radius-md);
+  background: none;
+  color: var(--studio-sidebar-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+  cursor: pointer;
+  transition: background-color 130ms ease, color 130ms ease;
+}
+
+.studio-sidebar-toggle:hover {
+  background: color-mix(
+    in oklab,
+    var(--studio-sidebar-text) 5%,
+    transparent
+  );
+  color: var(--studio-sidebar-text);
+}
+
+.studio-shell-collapsed .studio-sidebar-toggle {
+  justify-content: center;
+  padding: 0;
+}
+
+.studio-sidebar-toggle svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+/* Workspace. */
+
+/*
+ * Use a vertical flex layout to keep the footer at the bottom on short pages.
+ * A grid would constrain the topbar's sticky containing block to its own track.
+ */
+.studio-workspace {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.studio-topbar {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+}
+
+.studio-mobile-menu-button {
+  display: none;
+}
+
+.studio-mobile-navigation-header button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+}
+
+.studio-mobile-navigation-header button:hover {
+  border-color: var(--studio-border-strong-hover);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-mobile-menu-button svg,
+.studio-mobile-navigation-header button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.studio-page-context {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.studio-page-context-title,
+.studio-page-context-description {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-page-context-title {
+  color: var(--studio-text);
+  font-size: 1.0625rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.studio-page-context-description {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-regular);
+  line-height: 1.35;
+}
+
+.studio-topbar-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.studio-site-title {
+  min-width: 0;
+  max-width: min(28ch, 30vw);
+  overflow: hidden;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-visit-site {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.studio-visit-site:hover {
+  border-color: var(--studio-border-strong-hover);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-primary);
+}
+
+.studio-visit-site svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+/* Account menu. */
+
+.studio-account-region {
+  position: relative;
+}
+
+.studio-account-button {
+  display: flex;
+  min-height: 44px;
+  max-width: 300px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 9px 5px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-lg);
+  background: transparent;
+  color: var(--studio-text);
+  cursor: pointer;
+}
+
+.studio-account-button:hover,
+.studio-account-button[aria-expanded="true"] {
+  border-color: var(--studio-border);
+  background: var(--studio-surface-subtle);
+}
+
+.studio-account-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  overflow: hidden;
+}
+
+.identity-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.studio-account-button-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  text-align: left;
+}
+
+.studio-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-account-name {
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-account-button > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.studio-account-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(292px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-xl);
+  background: var(--studio-surface);
+  box-shadow: var(--studio-shadow-lift);
+}
+
+.studio-account-menu-identity {
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px 12px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.studio-account-identity-name,
+.studio-account-identity-role {
+  overflow-wrap: anywhere;
+}
+
+.studio-account-identity-name {
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+}
+
+.studio-account-identity-role {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+}
+
+.studio-account-menu nav {
+  display: grid;
+  gap: 3px;
+  padding: 7px 0;
+}
+
+.studio-account-menu nav a,
+.studio-account-logout {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--studio-radius-sm);
+  background: transparent;
+  color: var(--studio-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.studio-account-menu nav a:hover,
+.studio-account-menu nav a.active,
+.studio-account-logout:hover {
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text);
+}
+
+.studio-account-menu nav svg,
+.studio-account-logout svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+/*
+ * Show theme selection in the account menu. Display all three choices so
+ * users can select a value without predicting a cycle button's next state.
+ */
+.studio-theme-switcher {
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-top: 1px solid var(--studio-border);
+}
+
+.studio-theme-switcher-label {
+  display: block;
+  width: 100%;
+  padding: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 8px;
+  padding: 3px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.studio-theme-option {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.studio-theme-option-label {
+  display: grid;
+  min-height: 32px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.studio-theme-options input:checked + .studio-theme-option-label {
+  background: var(--studio-surface);
+  color: var(--studio-primary);
+  box-shadow: var(--studio-shadow-card);
+}
+
+.studio-theme-options input:focus-visible + .studio-theme-option-label {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.studio-account-logout {
+  border-top: 1px solid var(--studio-border);
+  border-radius: 0 0 var(--studio-radius-sm) var(--studio-radius-sm);
+  color: var(--studio-danger);
+}
+
+/* Route area. */
+
+/*
+ * Authenticated routes use the full workspace beside the sidebar, including
+ * space gained by collapsing it. Primitives may constrain reading or form
+ * width without narrowing the shell for lists, editors, and dashboards.
+ */
+.studio-route-content {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  padding: 24px var(--studio-page-gutter) 64px;
+}
+
+/*
+ * RouteLoading owns the placeholder before route content is available.
+ * See .studio-route-loading in primitives.css.
+ */
+
+/* Footer. */
+
+/*
+ * Let the divider span the workspace while aligning footer text with the
+ * body's shared gutter.
+ */
+.studio-footer {
+  border-top: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+}
+
+.studio-footer-version {
+  display: block;
+  width: 100%;
+  padding: 16px var(--studio-page-gutter);
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-medium);
+}
+
+/* Spacing for the logout dialog's error notice without overriding the primitive. */
+.studio-dialog-notice {
+  margin-top: 18px;
+}
+
+/* Not found and access denied. */
+
+/* Combined with the route frame's 28px top padding, this produces 84px. */
+.studio-not-found {
+  max-width: 700px;
+  padding-top: 56px;
+}
+
+.studio-not-found-code {
+  display: block;
+  margin-bottom: 16px;
+  color: var(--studio-border);
+  font-size: clamp(84px, 16vw, 150px);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.08em;
+  line-height: 0.8;
+}
+
+.studio-not-found h1 {
+  margin: 10px 0 0;
+  color: var(--studio-text);
+  font-size: clamp(32px, 4vw, 46px);
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.04em;
+}
+
+.studio-not-found p {
+  max-width: 600px;
+  margin: 16px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.studio-not-found > .studio-not-found-kicker {
+  display: block;
+  margin: 0;
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: 0.16em;
+}
+
+.studio-not-found-action {
+  margin-top: 24px;
+}
+
+/* Focus. */
+
+.studio-skip-link:focus-visible,
+.studio-brand:focus-visible,
+.studio-sidebar-navigation a:focus-visible,
+.studio-sidebar-toggle:focus-visible,
+.studio-mobile-menu-button:focus-visible,
+.studio-mobile-navigation button:focus-visible,
+.studio-visit-site:focus-visible,
+.studio-account-button:focus-visible,
+.studio-account-menu a:focus-visible,
+.studio-account-menu button:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Draw navigation focus rings inside links to avoid clipping by the vertical
+ * scroll container. Other shell controls retain the shared outer ring.
+ */
+.studio-sidebar-navigation a:focus-visible {
+  outline-offset: -3px;
+}
+
+/* 1200px: reserve space for the topbar title. */
+
+@media (max-width: 1200px) {
+  .studio-page-context-description {
+    display: none;
+  }
+}
+
+/* 900px: move the sidebar off-canvas. */
+
+@media (max-width: 900px) {
+  .studio-shell,
+  .studio-shell-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The collapse button disappears with the sidebar; the drawer has no collapsed state. */
+  .studio-sidebar {
+    display: none;
+  }
+
+  .studio-topbar {
+    gap: 12px;
+    padding: 0 18px;
+  }
+
+  .studio-mobile-menu-button {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--studio-border-strong);
+    border-radius: var(--studio-radius-md);
+    background: var(--studio-surface);
+    color: var(--studio-text-muted);
+    cursor: pointer;
+  }
+
+  .studio-mobile-navigation-backdrop {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    background: var(--studio-scrim);
+  }
+
+  .studio-mobile-navigation {
+    /*
+     * The drawer shares the ink surface but portals into the modal layer, so
+     * set its focus token explicitly instead of relying on sidebar inheritance.
+     */
+    --studio-focus: var(--studio-focus-on-ink);
+
+    /*
+     * This element is the scroll container. Set color-scheme explicitly because
+     * the portal also prevents inheriting the sidebar's scrollbar setting.
+     */
+    color-scheme: dark;
+
+    display: grid;
+    width: min(310px, calc(100% - 40px));
+    height: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 16px 12px;
+    overflow-y: auto;
+    border-right: 1px solid var(--studio-sidebar-border);
+    background: var(--studio-effect-ink-gradient);
+  }
+
+  .studio-mobile-navigation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .studio-mobile-navigation-header button {
+    border-color: var(--studio-sidebar-border);
+    background: var(--studio-sidebar-accent);
+    color: var(--studio-sidebar-text);
+  }
+
+  .studio-mobile-navigation-header button:hover {
+    border-color: var(--studio-sidebar-text-muted);
+    background: var(--studio-sidebar-accent);
+    color: var(--studio-sidebar-text);
+  }
+
+  .studio-mobile-navigation .studio-sidebar-navigation {
+    margin-top: 28px;
+  }
+
+  /*
+   * Compact only the desktop sidebar. Retain touch targets and group spacing
+   * in the drawer used on small screens.
+   */
+  .studio-mobile-navigation .studio-navigation-section
+    + .studio-navigation-section {
+    margin-top: 22px;
+  }
+
+  .studio-mobile-navigation .studio-navigation-section-utility {
+    padding-top: 14px;
+  }
+
+  .studio-mobile-navigation .studio-navigation-section-label {
+    margin-bottom: 8px;
+  }
+
+  .studio-mobile-navigation .studio-sidebar-navigation ul {
+    gap: 3px;
+  }
+
+  .studio-mobile-navigation .studio-sidebar-navigation a {
+    min-height: 40px;
+  }
+}
+
+/* 640px: compact the topbar. */
+
+@media (max-width: 640px) {
+  /* Adjust the shared gutter once so both body and footer follow it. */
+  .studio-shell {
+    --studio-page-gutter: 14px;
+  }
+
+  .studio-route-content {
+    padding-block: 20px 48px;
+  }
+
+  .studio-topbar {
+    padding: 0 14px;
+  }
+
+  .studio-page-context-title {
+    font-size: 0.9375rem;
+  }
+
+  .studio-topbar-actions {
+    gap: 5px;
+  }
+
+  .studio-site-title {
+    display: none;
+  }
+
+  .studio-account-button {
+    gap: 5px;
+  }
+
+  .studio-account-button-copy {
+    display: none;
+  }
+
+  .studio-visit-site {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .studio-visit-site span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

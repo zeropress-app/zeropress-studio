@@ -1,0 +1,164 @@
+/*
+ * Dashboard.
+ *
+ * Primitives own headings, panels, notices, badges, empty states, and buttons.
+ * This stylesheet owns only Dashboard-specific layout.
+ */
+
+.dashboard-stack {
+  display: grid;
+  gap: 18px;
+}
+
+/* Content overview. */
+
+.dashboard-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-overview-card {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  text-decoration: none;
+  transition: border-color 130ms ease, background-color 130ms ease;
+}
+
+.dashboard-overview-card:hover {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+}
+
+.dashboard-overview-card:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-card-label {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dashboard-card-value {
+  font-size: 1.75rem;
+  font-weight: var(--studio-weight-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.dashboard-card-detail {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+}
+
+/* Needs attention and quick actions. */
+
+.dashboard-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.dashboard-secondary-grid > :only-child {
+  grid-column: 1 / -1;
+}
+
+.dashboard-attention-list,
+.dashboard-quick-actions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-quick-actions {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.dashboard-attention-list a,
+.dashboard-quick-actions a {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-medium);
+  text-decoration: none;
+  transition: border-color 130ms ease, background-color 130ms ease;
+}
+
+.dashboard-attention-list a:hover,
+.dashboard-quick-actions a:hover {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+}
+
+.dashboard-attention-list a:focus-visible,
+.dashboard-quick-actions a:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-attention-count {
+  min-width: 30px;
+  color: var(--studio-primary);
+  font-size: 1.0625rem;
+  font-weight: var(--studio-weight-bold);
+}
+
+.dashboard-attention-label,
+.dashboard-quick-action-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-link-arrow {
+  margin-left: auto;
+  color: var(--studio-text-muted);
+}
+
+/* Service readiness. */
+
+.dashboard-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.dashboard-runtime-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.dashboard-runtime-label {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-medium);
+}
+
+@media (max-width: 900px) {
+  .dashboard-secondary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

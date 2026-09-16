@@ -1,0 +1,404 @@
+/*
+ * Structure editors: shared master-detail frame for Menus and Widgets.
+ *
+ * Both screens share target selection, editing headers, and save actions.
+ * Screen-specific classes own the menu tree and widget list/forms. Primitives
+ * own headings, cards, fields, badges, empty states, notices, and dialogs.
+ */
+
+/* Action result notice with bottom spacing to separate it from the editing area. */
+.structure-message {
+  margin-bottom: 18px;
+}
+
+.structure-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  overflow-wrap: anywhere;
+}
+
+.structure-sidebar,
+.structure-editor,
+.structure-items,
+.structure-form-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.structure-sidebar-header,
+.structure-items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.structure-section-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.structure-selector {
+  display: none;
+}
+
+/* Target selection. */
+
+.structure-target-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.structure-target {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.structure-target:hover:not(:disabled) {
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface-subtle);
+}
+
+.structure-target:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.structure-target[aria-current="true"] {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+}
+
+.structure-target:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.structure-target-top,
+.structure-target-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.structure-target-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.structure-count {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.structure-target-key {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  gap: 6px;
+  color: var(--studio-text-muted);
+}
+
+.structure-target-key > code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+}
+
+.structure-target-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.structure-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Full-row fields such as multiline inputs and switches. */
+.structure-field-wide {
+  grid-column: 1 / -1;
+}
+
+/* Dialog forms. */
+
+.structure-dialog-form,
+.widget-editor-form {
+  min-width: 0;
+  margin-block-start: 20px;
+}
+
+.widget-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.widget-editor-reference {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.widget-editor-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.structure-delete-action {
+  grid-column: 1 / -1;
+  padding-block-start: 12px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.structure-help {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* Flat widget list. */
+
+.widget-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.widget-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.widget-item-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+}
+
+.widget-item-copy {
+  display: grid;
+  flex: 1 1 180px;
+  min-width: 0;
+  gap: 2px;
+}
+
+.widget-item-copy > .studio-button {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-item-summary {
+  display: block;
+  overflow: hidden;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-item-status,
+.widget-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.widget-item-actions {
+  margin-inline-start: auto;
+}
+
+/* Widget link list. */
+
+.structure-link-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.structure-link-list-label {
+  padding: 0;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.structure-link-row {
+  display: grid;
+  grid-template-columns:
+    minmax(120px, 0.7fr) minmax(180px, 1.3fr) minmax(110px, 0.45fr);
+  gap: 10px;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+.structure-link-row-label {
+  padding: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.structure-link-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Save action row. */
+
+.structure-savebar {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.structure-save-state,
+.structure-save-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.structure-save-state {
+  justify-content: flex-start;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+.structure-save-actions {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+@media (max-width: 1200px) {
+  .structure-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .structure-sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
+    align-items: center;
+  }
+
+  .structure-selector {
+    display: block;
+  }
+
+  .structure-target-list {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .structure-sidebar,
+  .structure-save-actions,
+  .widget-editor-fields,
+  .widget-editor-search,
+  .structure-link-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .structure-field-wide,
+  .widget-editor-reference,
+  .structure-delete-action,
+  .structure-link-actions {
+    grid-column: auto;
+  }
+
+  .structure-save-actions {
+    width: 100%;
+  }
+
+  .widget-item {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .widget-item-copy {
+    grid-column: 2 / -1;
+  }
+
+  .widget-item-status,
+  .widget-item-actions {
+    flex-wrap: nowrap;
+    justify-content: start;
+    margin-inline-start: 0;
+  }
+
+  .widget-item-status {
+    grid-column: 2;
+  }
+
+  .widget-item-actions {
+    grid-column: 3;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Matches --studio-background. theme-preference.ts updates this value to match the active
+      theme.
+    -->
+    <meta name="theme-color" content="#f8eee3" />
+    <meta name="description" content="ZeroPress Studio" />
+    <!--
+      Resolve the theme before the first paint to avoid a light flash for dark-theme users. Keep
+      this logic aligned with lib/theme-preference.ts; theme-preference.test.ts checks both
+      implementations.
+    -->
+    <script>
+      (function () {
+        globalThis.__zod_globalConfig = Object.assign(
+          globalThis.__zod_globalConfig || {},
+          { jitless: true }
+        );
+        try {
+          var stored = localStorage.getItem('zeropress-studio.theme');
+          var dark = stored === 'dark' || ((stored !== 'light')
+            && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          if (dark) {
+            document.querySelector('meta[name="theme-color"]')
+              .setAttribute('content', '#16100d');
+          }
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!--
+      Self-hosted Pretendard Variable. font-display: swap keeps rendering unblocked; preloading
+      shortens the fallback-font period.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/PretendardVariable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <title>Sign in · ZeroPress Studio</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

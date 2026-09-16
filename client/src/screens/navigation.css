@@ -1,0 +1,260 @@
+/* Menu-specific ordered tree and draft-editing dialogs. The shared
+   master-detail frame lives in structure.css. */
+.navigation-items,
+.navigation-form-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.navigation-items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.navigation-tree {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigation-tree-node {
+  min-width: 0;
+}
+
+.navigation-tree .navigation-tree {
+  margin-block-start: 10px;
+  margin-inline-start: 12px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--studio-border);
+}
+
+.navigation-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.navigation-item-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+}
+
+.navigation-item-copy {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.navigation-item-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.navigation-new-tab {
+  display: inline-flex;
+  color: var(--studio-text-muted);
+  flex-shrink: 0;
+}
+
+.navigation-item-reference {
+  display: block;
+  margin-block-start: 2px;
+  overflow: hidden;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navigation-item-reference[data-state="missing"],
+.navigation-item-reference[data-state="trash"] {
+  color: var(--studio-danger);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.navigation-item-parent {
+  display: block;
+  margin-block-start: 4px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.navigation-item-kind {
+  flex-shrink: 0;
+}
+
+.navigation-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-inline-start: auto;
+  gap: 2px;
+}
+
+.navigation-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.navigation-picker-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.navigation-picker-filters[data-with-status="true"] {
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 160px) auto;
+}
+
+.navigation-picker {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  margin-block-start: 20px;
+}
+
+.navigation-picker-back {
+  justify-self: start;
+}
+
+.navigation-picker-results {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  min-height: 160px;
+}
+
+.navigation-picker-results:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.navigation-reference-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.navigation-reference-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.navigation-reference-detail {
+  display: block;
+  margin-block-start: 4px;
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.navigation-dialog-form {
+  min-width: 0;
+  margin-block-start: 20px;
+}
+
+.navigation-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.navigation-checkbox > input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--studio-primary);
+}
+
+.navigation-advanced {
+  min-width: 0;
+  padding-block-start: 14px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.navigation-advanced > summary {
+  width: fit-content;
+  margin-block-end: 12px;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.navigation-advanced > summary:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.navigation-help {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.navigation-delete-action {
+  padding-block-start: 12px;
+  border-top: 1px solid var(--studio-border);
+}
+
+@media (max-width: 640px) {
+  .navigation-picker-filters,
+  .navigation-picker-filters[data-with-status="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Preserve the semantic tree; parent/depth labels replace accumulating
+     indentation so all ten levels stay editable in a 320px workspace. */
+  .navigation-tree .navigation-tree {
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .navigation-item {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .navigation-item-kind {
+    grid-column: 1 / -1;
+  }
+
+  .navigation-item-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

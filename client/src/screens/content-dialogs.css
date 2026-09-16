@@ -1,0 +1,118 @@
+/*
+ * Content editing dialogs.
+ *
+ * Styles for ContentRevisionHistoryDialog and recovery-copy selection.
+ * Primitives own dialog frames, focus, buttons, notices, fields, tables, and
+ * pagination. This file owns only dialog-body layout.
+ */
+
+/* Shared body layout. */
+
+.content-revision-body,
+.content-recovery-body {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.content-revision-state {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Revision comparison. */
+
+.content-revision-selectors,
+.content-revision-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.content-revision-sources textarea {
+  min-height: 200px;
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.content-revision-diff-editor,
+.content-revision-diff-loading {
+  height: clamp(300px, 52vh, 560px);
+  overflow: hidden;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+.content-revision-diff-editor:focus-within {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.content-revision-diff-loading {
+  display: grid;
+  place-items: center;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+}
+
+.content-revision-diff-loading-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-revision-diff-fallback {
+  display: grid;
+  gap: 12px;
+}
+
+.content-revision-comparison {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+}
+
+.content-revision-subheading {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+/* Separate the comparison table as a card on the subtle surface. */
+.content-revision-comparison .studio-table-scroll {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+/* Draft recovery. */
+
+.content-recovery-updated {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+}
+
+.content-recovery-inline {
+  display: grid;
+  gap: 6px;
+}
+
+.content-recovery-inline p {
+  margin: 0;
+}
+
+.content-recovery-stale,
+.content-recovery-error {
+  color: var(--studio-danger);
+  font-weight: var(--studio-weight-medium);
+}

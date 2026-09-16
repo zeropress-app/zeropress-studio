@@ -1,0 +1,316 @@
+/*
+ * Studio user management.
+ *
+ * The user list supports invitations, roles, status changes, and access resets
+ * with administrator reauthentication. Primitives own headings, tables,
+ * panels, badges, fields, notices, and dialogs. This file owns table-cell
+ * layout and reauthentication forms.
+ */
+
+.users-message {
+  margin-bottom: 16px;
+}
+
+/* Table cells. */
+
+.users-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.users-identity,
+.users-security {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.users-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-bold);
+}
+
+.users-security {
+  align-items: flex-start;
+}
+
+.users-security-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.users-security-icon-ready {
+  color: var(--studio-success);
+}
+
+.users-security-icon-missing {
+  color: var(--studio-warning);
+}
+
+.users-identity-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.users-cell-primary {
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-semibold);
+}
+
+.users-cell-detail {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.users-author-link {
+  width: fit-content;
+  color: var(--studio-primary);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.users-author-link:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-sm);
+}
+
+/* Reauthentication dialogs. */
+
+.users-dialog-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.users-change-fields {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.users-management-identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.users-management-identity-name {
+  color: var(--studio-text);
+  overflow-wrap: anywhere;
+}
+
+.users-management-identity-email {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.users-change-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-border);
+}
+
+.users-change-summary > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 13px 15px;
+  background: var(--studio-surface-subtle);
+}
+
+.users-change-summary dt {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.users-change-summary dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.users-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.users-field-wide {
+  grid-column: 1 / -1;
+}
+
+.users-deletion-impact {
+  display: grid;
+  gap: 15px;
+}
+
+.users-deletion-impact-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-border);
+}
+
+.users-deletion-impact-list > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px 15px;
+  background: var(--studio-surface-subtle);
+}
+
+.users-deletion-impact-list dt {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.users-deletion-impact-list dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.users-deletion-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.users-deletion-acknowledgement > input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  accent-color: var(--studio-danger);
+}
+
+.users-verification {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+  padding: 15px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.users-verification-legend {
+  padding: 0;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.users-verification-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.users-verification-option {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.users-verification-option:hover {
+  border-color: var(--studio-border-strong-hover);
+}
+
+.users-verification-option > input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--studio-primary);
+}
+
+/* Setup link result. */
+
+.users-result {
+  display: grid;
+  gap: 13px;
+  margin-top: 18px;
+}
+
+.users-setup-url {
+  min-height: 96px;
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.users-result-expiry {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .users-dialog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .users-field-wide {
+    grid-column: auto;
+  }
+
+  .users-deletion-impact-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .users-change-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

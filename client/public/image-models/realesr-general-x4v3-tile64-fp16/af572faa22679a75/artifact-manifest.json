@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "artifact_id": "realesr-general-x4v3-tile64-fp16",
+  "source_contract_sha256": "94b36144f6fa1e2cfe35bb510f97786c41637d17838a338451fedf100154426c",
+  "upstream": {
+    "repository": "https://github.com/xinntao/Real-ESRGAN",
+    "source_ref": "v0.3.0",
+    "source_commit": "fa4c8a03ae3dbc9ea6ed471a6ab5da94ac15c2ea",
+    "license": "BSD-3-Clause",
+    "license_file": "licenses/Real-ESRGAN-BSD-3-Clause.txt"
+  },
+  "weight": {
+    "name": "realesr-general-x4v3.pth",
+    "release": "v0.2.5.0",
+    "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-general-x4v3.pth",
+    "bytes": 4885111,
+    "sha256": "8dc7edb9ac80ccdc30c3a5dca6616509367f05fbc184ad95b731f05bece96292"
+  },
+  "architecture": {
+    "name": "SRVGGNetCompact",
+    "input_layout": "NHWC",
+    "input_shape": [
+      1,
+      64,
+      64,
+      3
+    ],
+    "output_shape": [
+      1,
+      256,
+      256,
+      3
+    ],
+    "scale": 4,
+    "features": 64,
+    "convolutions": 32,
+    "activation": "prelu",
+    "denoise_strength": 1
+  },
+  "conversion": {
+    "format": "tfjs_graph_model",
+    "weight_quantization": "float16",
+    "recommended_tile_overlap": 12
+  },
+  "toolchain": {
+    "python": "3.11.11",
+    "torch": "2.2.2",
+    "tensorflow": "2.15.1",
+    "tensorflowjs_converter": "4.22.0"
+  },
+  "generated_model": {
+    "format": "graph-model",
+    "generated_by": "2.15.1",
+    "converted_by": "TensorFlow.js Converter v4.22.0"
+  },
+  "verification": {
+    "pytorch_to_tensorflow": {
+      "max_abs_error": 0.0000035762786865234375,
+      "mean_abs_error": 4.688777153205592e-7,
+      "max_abs_error_limit": 0.0001,
+      "mean_abs_error_limit": 0.00001
+    },
+    "tensorflowjs": {
+      "backend": "cpu",
+      "runtime": "4.22.0",
+      "max_abs_error": 0.0019054412841796875,
+      "mean_abs_error": 0.0003225197872917344,
+      "max_abs_error_limit": 0.02,
+      "mean_abs_error_limit": 0.002
+    }
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "bytes": 1520,
+      "sha256": "65b1ca394efc2ba895a74db5789aa5644af6f5d8052f7469724ceda04a5a319c"
+    },
+    {
+      "path": "group1-shard1of1.bin",
+      "bytes": 2426664,
+      "sha256": "68eaa3be3e5e70be460eed0df6f3672ff3a78f559f919129ee15dc37d553f411"
+    },
+    {
+      "path": "model.json",
+      "bytes": 76078,
+      "sha256": "3891f9e872eb757be0de8a0f7cc410c611759f574f6b4a3ab64521fbbd433779"
+    }
+  ]
+}

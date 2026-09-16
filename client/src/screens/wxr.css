@@ -1,0 +1,561 @@
+/*
+ * WordPress WXR import.
+ *
+ * Inspect the file in the browser, show the plan, and send chunks sequentially
+ * after confirmation. Primitives own headings, panels, fields, tables, notices,
+ * and buttons. This file owns media strategies, file selection, count grids,
+ * warnings, and progress layout.
+ */
+
+/*
+ * PageHeader and Settings navigation retain their shared margins. Group only
+ * internal WXR sections so workflow gaps do not double the shared spacing.
+ */
+.wxr-flow {
+  display: grid;
+  gap: 18px;
+}
+
+/* Show the supported WXR version beside the heading. */
+.wxr-version {
+  padding: 6px 11px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+/* Media strategy. */
+
+.wxr-strategy {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+}
+
+.wxr-strategy-legend {
+  padding: 0 5px;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-strategy-description {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/*
+ * Keep the accessible name to the option title and attach its description
+ * with aria-describedby. The layout separates them accordingly.
+ */
+.wxr-strategy-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wxr-strategy-option > input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--studio-primary);
+}
+
+.wxr-strategy-option-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.wxr-strategy-option-label {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-strategy-option-description {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.wxr-permalink-values {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.wxr-permalink-value {
+  color: var(--studio-text);
+  overflow-wrap: anywhere;
+}
+
+/* Indent inputs beneath the strategy that enables them to show their dependency. */
+.wxr-prefix-field {
+  margin-left: 28px;
+}
+
+/* File selection. */
+
+/*
+ * Hide the file input visually and make the entire label clickable.
+ * The label shows focus through :focus-within.
+ */
+.wxr-file-picker {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border: 1px dashed var(--studio-border-strong);
+  border-radius: var(--studio-radius-lg);
+  background: var(--studio-surface-subtle);
+  cursor: pointer;
+}
+
+.wxr-file-picker:focus-within {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+}
+
+.wxr-file-picker:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.wxr-file-picker-name {
+  min-width: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.wxr-file-picker-action {
+  flex: 0 0 auto;
+  padding: 10px 13px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+  color: var(--studio-primary);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-file-picker > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wxr-file-meta {
+  display: block;
+  margin-top: 9px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline progress. */
+
+.wxr-inline-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 13px 15px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-primary-surface);
+}
+
+.wxr-inline-status-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wxr-inline-status-title {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-inline-status-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/* Source summary and counts. */
+
+.wxr-source {
+  display: grid;
+  gap: 6px;
+  max-width: min(28rem, 100%);
+  margin: 0;
+}
+
+.wxr-source-row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 10px;
+}
+
+.wxr-source dt {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-source dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.wxr-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.wxr-count {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.wxr-counts dt {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-counts dd {
+  margin: 4px 0 0;
+  color: var(--studio-text);
+  font-size: 1.3125rem;
+  font-weight: var(--studio-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Site settings candidates. */
+
+.wxr-site-settings {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wxr-setting-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wxr-setting-option {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  cursor: pointer;
+}
+
+.wxr-setting-option:has(input:checked) {
+  border-color: var(--studio-primary);
+  background: var(--studio-primary-surface);
+}
+
+.wxr-setting-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.wxr-setting-option > input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--studio-primary);
+}
+
+.wxr-setting-option-content,
+.wxr-setting-comparison {
+  display: grid;
+  min-width: 0;
+}
+
+.wxr-setting-option-content {
+  gap: 7px;
+}
+
+.wxr-setting-option-title {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-setting-comparison {
+  gap: 3px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.wxr-setting-value {
+  color: var(--studio-text);
+  font-weight: var(--studio-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.wxr-site-url {
+  padding-top: 16px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.wxr-site-url-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.9375rem;
+}
+
+.wxr-site-url-description {
+  margin: 5px 0 13px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.wxr-url-options {
+  display: grid;
+  gap: 11px;
+}
+
+.wxr-url-options .wxr-strategy-option-description {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.wxr-custom-url-field {
+  margin: 14px 0 0 28px;
+}
+
+/* Scope and policies. */
+
+.wxr-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.wxr-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+/* Warnings and failures. */
+
+.wxr-warnings,
+.wxr-failures {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wxr-warning {
+  padding: 11px 13px;
+  border: 1px solid var(--studio-warning);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-warning-surface);
+}
+
+.wxr-warning-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--studio-warning);
+  font-size: 0.8125rem;
+}
+
+.wxr-warning-label {
+  font-weight: var(--studio-weight-semibold);
+}
+
+.wxr-warning-count {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.wxr-warning-affected {
+  display: block;
+  margin-top: 5px;
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.wxr-failure-list {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.wxr-failure-list > summary {
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+}
+
+.wxr-failure-list > summary:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.wxr-failures {
+  margin-top: 10px;
+}
+
+.wxr-failure-label {
+  display: block;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.wxr-failure-reason {
+  display: block;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Confirmation and progress. */
+
+.wxr-acknowledge {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wxr-acknowledge > input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--studio-primary);
+}
+
+.wxr-acknowledge-label {
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.wxr-progress-track {
+  height: 10px;
+  margin: 0 0 16px;
+  overflow: hidden;
+  border-radius: var(--studio-radius-full);
+  background: var(--studio-border);
+}
+
+.wxr-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--studio-primary);
+  transition: width 180ms ease;
+}
+
+.wxr-progress-percent {
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wxr-result-notice {
+  margin-top: 16px;
+}
+
+.wxr-result-actions {
+  margin-top: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wxr-progress-fill {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .wxr-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wxr-scope-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wxr-setting-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .wxr-file-picker {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wxr-file-picker-action {
+    text-align: center;
+  }
+
+  .wxr-source-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .wxr-custom-url-field {
+    margin-left: 0;
+  }
+}

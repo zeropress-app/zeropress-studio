@@ -1,0 +1,178 @@
+/*
+ * Site data export.
+ *
+ * Entering /publish reads only item counts. Users explicitly generate data,
+ * then copy or download the result from the same card. Primitives own panels,
+ * notices, buttons, and loading states. This file owns generation metadata,
+ * warning details, and count layout.
+ */
+
+.preview-data-page {
+  min-width: 0;
+}
+
+.preview-data-progress {
+  display: grid;
+  gap: 12px;
+}
+
+.preview-data-progress-detail {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.preview-data-result {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.preview-data-action-icon,
+.preview-data-generated-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/*
+ * Show the generation time as compact metadata above the result instead of
+ * adding another success card.
+ */
+.preview-data-generated {
+  margin: 0;
+}
+
+.preview-data-generated > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.preview-data-generated dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.preview-data-generated dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-data-summary {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.preview-data-summary:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.preview-data-summary-title {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+/* Validation warnings. */
+
+.preview-data-warnings {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preview-data-warning {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, auto) minmax(120px, 0.6fr) minmax(0, 1.4fr);
+  gap: 14px;
+  padding: 10px 0;
+  font-size: 0.75rem;
+}
+
+.preview-data-warning + .preview-data-warning {
+  border-top: 1px solid var(--studio-border);
+}
+
+.preview-data-warning-code {
+  font-family: var(--studio-font-mono);
+  font-weight: var(--studio-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.preview-data-warning-path {
+  font-family: var(--studio-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.preview-data-warning-message {
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Item counts. */
+
+.preview-data-counts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.preview-data-count {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.preview-data-counts dt {
+  color: var(--studio-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.preview-data-counts dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 1.3125rem;
+  font-weight: var(--studio-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .preview-data-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .preview-data-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preview-data-warning {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+}

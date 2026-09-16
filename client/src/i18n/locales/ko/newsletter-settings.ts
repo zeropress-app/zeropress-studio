@@ -1,0 +1,23 @@
+export const newsletterSettings = {
+  documentTitle: '뉴스레터 — ZeroPress Studio',
+  kicker: '사이트 구성',
+  title: '뉴스레터',
+  description: '방문자에게 표시할 뉴스레터 구독 안내를 작성하세요.',
+  loading: { title: '뉴스레터 설정을 불러오는 중', description: '구독 안내 설정을 불러오는 중…' },
+  loadError: { title: '뉴스레터 설정을 불러올 수 없습니다', description: '연결 상태를 확인한 뒤 다시 시도하세요.', retry: '다시 시도' },
+  presentation: { title: '구독 안내', description: '구독 안내 문구를 작성하세요. 표시 방식과 기본 문구는 테마에 따라 달라집니다.' },
+  destination: { title: '구독 페이지', description: '구독 페이지나 삽입할 폼의 URL을 입력하세요. 구독 안내를 활성화하려면 하나 이상 필요합니다.' },
+  fields: {
+    enabled: { label: '뉴스레터 CTA 포함', description: '사이트에 구독 안내를 표시합니다. 비활성화해도 초안은 유지됩니다.' },
+    title: { label: '제목 (선택)', description: '구독을 안내하는 짧은 제목입니다.' },
+    description: { label: '설명 (선택)', description: '구독하면 어떤 소식을 받을 수 있는지 소개하세요.' },
+    buttonLabel: { label: '버튼 문구 (선택)', description: '구독 버튼에 표시할 문구입니다. 비워 두면 테마가 기본 문구를 정합니다.' },
+    signupUrl: { label: '구독 URL (선택)', description: 'HTTP(S) URL 또는 /subscribe/ 같은 사이트 기준 경로를 입력하세요.' },
+    embedUrl: { label: '삽입 URL (선택)', description: '구독 폼으로 삽입할 페이지의 HTTP(S) URL 또는 사이트 기준 경로입니다.' },
+    destinationError: '안전한 URL을 사용하고 CTA를 활성화하려면 하나 이상의 이동 대상을 입력해 주세요.',
+  },
+  state: { saved: '뉴스레터 CTA 설정을 저장했습니다.', dirty: '저장하지 않은 변경사항이 있습니다.', clean: '모든 변경사항이 저장되었습니다.', defaults: '설정을 저장하고 활성화하기 전까지 CTA는 비활성 상태입니다.', lastSaved: '마지막 저장: {{date}}' },
+  actions: { reset: '변경사항 되돌리기', save: '뉴스레터 저장', saving: '저장 중…' },
+  errors: { conflictTitle: '다른 세션에서 뉴스레터 설정이 변경되었습니다', conflictDescription: '현재 편집값은 유지됩니다. 최신 저장값을 불러온 후 다시 편집하고 저장해 주세요.', reload: '최신 값 불러오기', forbidden: '현재 계정은 사이트 설정을 관리할 수 없습니다.', validation: 'CTA 문구와 이동 URL을 확인한 후 저장해 주세요.', timeout: '뉴스레터 설정 요청 시간이 초과되었습니다. 다시 시도해 주세요.', network: 'Studio에 연결할 수 없습니다. 연결 상태를 확인한 후 다시 시도해 주세요.', invalidResponse: 'Studio가 예상하지 못한 뉴스레터 설정 응답을 반환했습니다.', api: 'Studio가 뉴스레터 설정을 저장하지 못했습니다. 현재 편집값은 유지됩니다.' },
+  discard: { kicker: '저장하지 않은 변경사항', title: '저장하지 않고 이동할까요?', description: '이 페이지에서 변경한 내용이 폐기됩니다.', stay: '계속 편집', leave: '폐기 후 이동' },
+} as const;

@@ -1,0 +1,867 @@
+/*
+ * Content editors: posts and pages.
+ *
+ * Both editors share one namespace and structure. Primitives own headings,
+ * cards, fields, buttons, notices, and dialogs. This file owns editor-specific
+ * layout and list controls.
+ */
+
+.content-editor-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+  text-decoration: none;
+}
+
+.content-editor-back:hover {
+  color: var(--studio-primary);
+  text-decoration: underline;
+}
+
+.content-editor-back:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+  border-radius: var(--studio-radius-sm);
+}
+
+/* Document identity. */
+
+.content-editor-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.content-editor-identity div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.content-editor-identity dt {
+  color: var(--studio-text-muted);
+  font-size: 0.625rem;
+  font-weight: var(--studio-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.content-editor-identity dd {
+  margin: 0;
+  color: var(--studio-text);
+  font-family: var(--studio-font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* Editor command bar. */
+
+/*
+ * Group document navigation, save status, and editing commands below the
+ * topbar. Existing handlers own saving, AI, and revisions; this element
+ * owns only their layout.
+ */
+.content-editor-command-bar {
+  position: sticky;
+  z-index: 10;
+  top: 68px;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--studio-border);
+  background: var(--studio-background);
+}
+
+.content-editor-command-bar .content-editor-back {
+  min-height: 38px;
+  margin: 0;
+  padding: 0 4px;
+}
+
+.content-editor-command-bar .content-editor-back > svg,
+.content-editor-button-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.content-editor-command-bar .content-editor-status {
+  grid-column: 2;
+  min-height: 38px;
+}
+
+.content-editor-command-buttons {
+  display: flex;
+  grid-column: 3;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Title surface. */
+
+.content-editor-title-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.content-editor-title-fields .content-editor-identity {
+  padding-top: 12px;
+  border-top: 1px solid var(--studio-border);
+}
+
+/* Two-column layout. */
+
+.content-editor-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  align-items: start;
+  gap: 18px;
+}
+
+/* Prioritize editing content and keep the metadata rail compact in both editors. */
+.content-editor-form.content-editor-post-form,
+.content-editor-form.content-editor-page-form {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  gap: 14px 20px;
+}
+
+.content-editor-recovery-fields {
+  display: contents;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.content-editor-main,
+.content-editor-sidebar {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.content-editor-post-form .content-editor-sidebar,
+.content-editor-page-form .content-editor-sidebar {
+  gap: 14px;
+}
+
+.content-editor-status {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+}
+
+.content-editor-saved {
+  color: var(--studio-success);
+  font-weight: var(--studio-weight-semibold);
+}
+
+.content-editor-failure {
+  color: var(--studio-danger);
+  font-weight: var(--studio-weight-medium);
+}
+
+.content-editor-danger-zone {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 14px;
+  border-top: 1px solid var(--studio-border);
+}
+
+/* Fields within cards. */
+
+.content-editor-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.content-editor-source {
+  font-family: var(--studio-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.content-editor-source-monaco,
+.content-editor-source-loading {
+  height: clamp(360px, 56vh, 720px);
+  overflow: hidden;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+.content-editor-source-monaco:focus-within {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.content-editor-source-loading {
+  display: grid;
+  place-items: center;
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+}
+
+.content-editor-source-loading-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-editor-source-fallback {
+  display: grid;
+  gap: 12px;
+}
+
+.content-editor-source-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.content-editor-source-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.content-editor-source-hint {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+}
+
+/* Visual and source HTML editors. */
+
+.content-body-editor,
+.tiptap-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.tiptap-editor-content {
+  min-width: 0;
+}
+
+.content-editor-mode-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.content-editor-mode-description {
+  color: var(--studio-text-muted);
+  font-size: 0.75rem;
+}
+
+.content-editor-dialog-form {
+  display: grid;
+  gap: 16px;
+}
+
+.content-editor-mode-comparison {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.content-editor-mode-buttons,
+.tiptap-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.content-editor-mode-buttons .studio-button[data-current='true']:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.content-editor-loading {
+  display: flex;
+  align-items: center;
+  min-height: 180px;
+  justify-content: center;
+  gap: 10px;
+  color: var(--studio-text-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.tiptap-table-toolbar {
+  border-style: dashed;
+}
+
+.tiptap-toolbar-button {
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-sm);
+  background: transparent;
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+}
+
+.tiptap-toolbar-button:hover:not(:disabled),
+.tiptap-toolbar-button[aria-pressed="true"] {
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface);
+  color: var(--studio-primary);
+}
+
+.tiptap-toolbar-button:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.tiptap-toolbar-button:disabled {
+  color: var(--studio-text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tiptap-color-control {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-sm);
+  cursor: pointer;
+}
+
+.tiptap-color-control:hover {
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface);
+}
+
+.tiptap-color-control input[type='color'] {
+  width: 26px;
+  height: 26px;
+  padding: 2px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface);
+  cursor: pointer;
+}
+
+.tiptap-color-control input[type='color']:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.tiptap-color-control input[type='color']:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tiptap-editor-surface {
+  display: flow-root;
+  min-height: 420px;
+  padding: 16px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  line-height: 1.65;
+}
+
+/*
+ * Override ProseMirror's word-wrap: break-word with a more specific Studio
+ * rule so wrapping does not increase the grid's min-content width.
+ */
+.tiptap-editor-content .tiptap-editor-surface {
+  overflow-wrap: anywhere;
+}
+
+.tiptap-editor-surface:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.tiptap-editor-surface[aria-readonly='true'] a {
+  cursor: text;
+  pointer-events: none;
+}
+
+.tiptap-editor-surface img,
+.tiptap-editor-surface video {
+  max-width: 100%;
+  height: auto;
+}
+
+.tiptap-editor-surface img.ProseMirror-selectednode {
+  outline: 3px solid var(--studio-primary);
+  outline-offset: -3px;
+}
+
+.tiptap-editor-surface img.alignleft {
+  float: left;
+  margin: 0 16px 16px 0;
+}
+
+.tiptap-editor-surface img.aligncenter {
+  display: block;
+  clear: both;
+  float: none;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.tiptap-editor-surface img.alignright {
+  float: right;
+  margin: 0 0 16px 16px;
+}
+
+.tiptap-editor-surface table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 640px) {
+  .tiptap-editor-surface img.alignleft,
+  .tiptap-editor-surface img.alignright {
+    display: block;
+    float: none;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+.tiptap-editor-surface th,
+.tiptap-editor-surface td {
+  min-width: 80px;
+  padding: 8px;
+  border: 1px solid var(--studio-border-strong);
+  vertical-align: top;
+}
+
+.tiptap-editor-surface pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 12px;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface-subtle);
+  font-family: var(--studio-font-mono);
+  white-space: pre-wrap;
+}
+
+.tiptap-embed-placeholder {
+  display: grid;
+  min-height: 84px;
+  place-items: center;
+  padding: 12px;
+  border: 1px dashed var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-semibold);
+}
+
+.content-editor-compatibility-reasons {
+  margin: 16px 0 0;
+  padding-left: 20px;
+  color: var(--studio-text);
+  line-height: 1.6;
+}
+
+/* Reference selection: authors, categories, tags, and parent pages. */
+
+.content-editor-option-search {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+}
+
+.content-editor-option-search input {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.content-editor-option-search input:hover:not(:disabled) {
+  border-color: var(--studio-border-strong-hover);
+}
+
+.content-editor-option-search input:focus-visible {
+  border-color: var(--studio-primary);
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.content-editor-check-list {
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.content-editor-check-list:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.content-editor-check-list label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: var(--studio-radius-sm);
+  cursor: pointer;
+}
+
+.content-editor-check-list label:hover {
+  background: var(--studio-surface);
+}
+
+.content-editor-check-list input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--studio-primary);
+}
+
+.content-editor-check-list input:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.content-editor-check-copy {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+}
+
+.content-editor-check-slug {
+  color: var(--studio-text-muted);
+  font-family: var(--studio-font-mono);
+  font-size: 0.75rem;
+}
+
+.content-editor-empty-reference {
+  margin: 0;
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/* Tag ordering. */
+
+.content-editor-tag-order {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tag-order;
+}
+
+.content-editor-tag-order li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface);
+}
+
+.content-editor-tag-name {
+  min-width: 0;
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+  font-weight: var(--studio-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.content-editor-tag-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+/* Featured image preview. */
+
+.featured-image-preview {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface-subtle);
+  object-fit: cover;
+}
+
+/* Notices within dialogs. */
+
+.content-editor-dialog-notice {
+  margin-top: 18px;
+}
+
+@media (max-width: 1200px) {
+  .content-editor-form.content-editor-post-form,
+  .content-editor-form.content-editor-page-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .content-editor-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content-editor-command-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .content-editor-command-bar .content-editor-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 0;
+  }
+
+  .content-editor-command-buttons {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .content-editor-source-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .content-editor-command-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-top: 8px;
+  }
+
+  .content-editor-command-bar .content-editor-back {
+    width: 38px;
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .content-editor-command-bar .content-editor-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .content-editor-command-buttons {
+    grid-column: 2;
+    grid-row: 1;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  /* Show secondary actions as icons while retaining text as their accessible names. */
+  .content-editor-back-label,
+  .content-editor-command-label-secondary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* Comment settings. */
+
+/*
+ * Comment permission is a checkbox rather than a Switch. A switch implies
+ * immediate application, but this field belongs to the document draft and
+ * requires saving. Its appearance intentionally differs from settings switches.
+ */
+.content-editor-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.content-editor-checkbox > input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: var(--studio-primary);
+}
+
+.content-editor-checkbox > input:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.content-editor-checkbox-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.content-editor-checkbox-label {
+  color: var(--studio-text);
+  font-size: 0.875rem;
+  font-weight: var(--studio-weight-semibold);
+  cursor: pointer;
+}
+
+.content-editor-checkbox-hint {
+  color: var(--studio-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+
+/*
+ * Comment permission and the runtime status below it. Keep the status link
+ * outside the checkbox label so clicking it neither toggles permission nor
+ * adds status text to the control's accessible name.
+ */
+.content-editor-comment-setting {
+  display: grid;
+  gap: 6px;
+}
+
+/* Comment runtime status. */
+
+/*
+ * Below the permission checkbox, show whether the site's comment runtime is
+ * enabled so the checkbox alone does not imply that comments are active.
+ */
+.content-editor-comment-status {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.content-editor-comment-status-muted {
+  color: var(--studio-text-muted);
+}
+
+.content-editor-comment-status-positive {
+  color: var(--studio-success);
+}
+
+.content-editor-comment-status-attention {
+  color: var(--studio-warning);
+}
+
+.content-editor-comment-status a {
+  color: inherit;
+  font-weight: var(--studio-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- AI content draft ----------------------------------------------------- */
+
+.ai-post-draft-form,
+.ai-post-draft-review,
+.ai-post-draft-review-fields,
+.ai-post-edit-review {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.ai-post-edit-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-post-draft-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ai-post-draft-preview {
+  max-height: min(55vh, 620px);
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-surface-subtle);
+}
+
+.ai-post-draft-preview .content-editor-mode-selector,
+.ai-post-draft-preview .tiptap-toolbar,
+.ai-post-draft-preview .tiptap-image-actions {
+  display: none;
+}
+
+.ai-post-draft-preview .tiptap-editor-surface {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .ai-post-draft-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
