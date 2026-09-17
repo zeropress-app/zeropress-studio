@@ -27,6 +27,7 @@ function request(path: string, body: unknown) {
     headers: {
       Origin: 'https://studio.local',
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
     },
     body: JSON.stringify(body),
   });

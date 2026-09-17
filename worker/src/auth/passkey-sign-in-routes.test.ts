@@ -24,7 +24,10 @@ function env(): Env {
 function jsonRequest(path: string, body: unknown): Request {
   return new Request(`https://studio.example.com${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
+    },
     body: JSON.stringify(body),
   });
 }
@@ -106,22 +109,33 @@ describe('passwordless passkey sign-in routes', () => {
       token: challengeToken,
       expiresAtIso: storedChallenge.expiresAtIso,
     });
+    const consumeRateLimit = vi.fn().mockResolvedValue({
+      allowed: true,
+      limit: 20,
+      remaining: 19,
+      resetAt: 1_786_448_100,
+    });
     const routes = createPasskeySignInRoutes({
       issueSession: vi.fn(),
       generateOptions,
       createChallenge,
-      consumeRateLimit: vi.fn().mockResolvedValue({
-        allowed: true,
-        limit: 20,
-        remaining: 19,
-        resetAt: 1_786_448_100,
-      }),
+      consumeRateLimit,
       now: () => now,
     });
+    const request = jsonRequest('/options', {});
+    request.headers.set('CF-Connecting-IP', '2001:0DB8:0:0::1');
+    request.headers.set('X-Forwarded-For', '203.0.113.99');
+    const environment = env();
 
-    const response = await routes.fetch(jsonRequest('/options', {}), env());
+    const response = await routes.fetch(request, environment);
 
     expect(response.status).toBe(200);
+    expect(environment.AUTH_ROUTE_RATE_LIMITER.limit).toHaveBeenCalledWith({
+      key: '2001:db8::1',
+    });
+    expect(consumeRateLimit).toHaveBeenCalledWith(expect.objectContaining({
+      ip: '2001:db8::1',
+    }));
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(generateOptions).toHaveBeenCalledWith({
       rpID: 'studio.example.com',
@@ -187,6 +201,7 @@ describe('passwordless passkey sign-in routes', () => {
     expect(issueSession).toHaveBeenCalledWith(expect.objectContaining({
       userId,
       authRevision,
+      ipAddress: '203.0.113.10',
     }));
     await expect(response.json()).resolves.toEqual({
       success: true,

@@ -4,7 +4,7 @@ import {
   passwordBreachCheckRequestSchema,
   passwordBreachCheckSuccessSchema,
 } from '../../../contracts/password-breach';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, requireClientIp } from '../lib/http';
 import { StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import { readJsonBody } from './auth-route-utils';
@@ -31,10 +31,11 @@ export function createPasswordBreachRoutes(dependencies: {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
 
+    const clientIp = requireClientIp(c);
     let rateLimit: { success: boolean };
     try {
       rateLimit = await c.env.AUTH_ROUTE_RATE_LIMITER.limit({
-        key: `password-check:${getClientIp(c)}`,
+        key: `password-check:${clientIp}`,
       });
     } catch (error) {
       throw new StudioOperationalError(

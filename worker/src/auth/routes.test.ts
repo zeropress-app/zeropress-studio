@@ -56,7 +56,10 @@ function env(
 function jsonRequest(path: string, body: unknown) {
   return new Request(`http://studio.local${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
+    },
     body: JSON.stringify(body),
   });
 }
@@ -100,7 +103,10 @@ describe('MFA authentication routes', () => {
     }).fetch(
       new Request('https://studio.example.com/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'CF-Connecting-IP': '203.0.113.10',
+        },
         body: JSON.stringify({
           email: 'owner@example.com',
           password: 'current password',
@@ -210,7 +216,7 @@ describe('MFA authentication routes', () => {
       db: withAuthRateLimits(database),
       userId,
       authRevision,
-      ipAddress: '127.0.0.1',
+      ipAddress: '203.0.113.10',
       networkMetadata: {
         asn: 13335,
         asOrganization: 'Cloudflare, Inc.',

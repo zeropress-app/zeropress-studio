@@ -24,6 +24,20 @@ const cases: {
 }[] = [
   { name: 'configured and allowed', state: 'available' },
   {
+    name: 'Quick Tunnel visitor cannot use the local relay IP allowlist',
+    requestOrigin: 'https://studio-test.trycloudflare.com',
+    overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: '127.0.0.1,::1' },
+    headers: { 'CF-Connecting-IP': allowedIp, 'X-Forwarded-For': '127.0.0.1' },
+    state: 'not_found',
+  },
+  {
+    name: 'a localhost Host cannot substitute for an allowed client IP',
+    requestOrigin: 'http://localhost:5173',
+    overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: '127.0.0.1' },
+    headers: { 'CF-Connecting-IP': undefined, 'X-Forwarded-For': '127.0.0.1' },
+    state: 'not_found',
+  },
+  {
     name: 'only site mode and auth secret configured',
     overrides: {
       STUDIO_OPERATIONS_ALLOWED_IPS: undefined,
@@ -75,10 +89,10 @@ const cases: {
     { requestOrigin: 'http://127.0.0.1:5173', clientIp: '127.0.0.1' },
     { requestOrigin: 'http://[::1]:5173', clientIp: '::1' },
   ].map(({ requestOrigin, clientIp }) => ({
-    name: `uses the existing loopback fallback (${requestOrigin})`,
+    name: `uses the loopback IP supplied by the development server (${requestOrigin})`,
     requestOrigin,
     overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: undefined },
-    headers: { 'CF-Connecting-IP': undefined },
+    headers: { 'CF-Connecting-IP': clientIp },
     state: 'setup_required' as const,
     configuration: { allowed_ips: 'missing' as const, token: 'valid' as const, client_ip: clientIp },
   })),

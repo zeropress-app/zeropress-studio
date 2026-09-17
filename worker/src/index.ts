@@ -411,7 +411,10 @@ export function createApp(dependencies?: {
 
     if (error instanceof StudioOperationalError) {
       logStudioOperationalError(error, requestMetadata);
-      if (error.code === 'AUTH_RATE_LIMIT_STORE_NOT_AVAILABLE') {
+      if (
+        error.code === 'AUTH_RATE_LIMIT_STORE_NOT_AVAILABLE'
+        || error.code === 'CLIENT_IP_NOT_AVAILABLE'
+      ) {
         return errorResponse(c, 503, 'SYSTEM_NOT_AVAILABLE');
       }
       if (

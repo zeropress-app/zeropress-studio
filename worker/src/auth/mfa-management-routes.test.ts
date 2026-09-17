@@ -56,6 +56,7 @@ function mutationRequest(path: string, body: unknown, csrf = csrfToken) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
       Origin: 'https://studio.local',
       Cookie: '__Host-zp_session=opaque',
       'X-ZeroPress-CSRF': csrf,
@@ -65,6 +66,36 @@ function mutationRequest(path: string, body: unknown, csrf = csrfToken) {
 }
 
 describe('MFA management routes', () => {
+  it('stops protected verification before checking a password when the client IP is unavailable', async () => {
+    const verifyPassword = vi.fn();
+    const onError = vi.fn();
+    const routes = createMfaManagementRoutes({
+      resolveSession: vi.fn().mockResolvedValue(resolvedSession),
+      verifyPassword,
+      now: () => now,
+    });
+    routes.onError((error, c) => {
+      onError(error);
+      return c.json({}, 503);
+    });
+    const request = mutationRequest('/authorize', {
+      operation: 'replace_totp',
+      password: 'current password',
+    });
+    request.headers.delete('CF-Connecting-IP');
+    request.headers.set('X-Forwarded-For', '127.0.0.1');
+    const environment = env();
+
+    const response = await routes.fetch(request, environment);
+
+    expect(response.status).toBe(503);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'CLIENT_IP_NOT_AVAILABLE',
+    }));
+    expect(environment.AUTH_ROUTE_RATE_LIMITER.limit).not.toHaveBeenCalled();
+    expect(verifyPassword).not.toHaveBeenCalled();
+  });
+
   it('reports one TOTP factor and fresh step-up state', async () => {
     const response = await createMfaManagementRoutes({
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),

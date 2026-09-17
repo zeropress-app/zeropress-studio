@@ -93,7 +93,7 @@ function successfulCredential(
 function requestBody(overrides?: Record<string, unknown>) {
   return new Request('http://studio.local/api/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.10' },
     body: JSON.stringify({
       email: 'Admin@Example.com',
       password: 'password',
@@ -117,6 +117,7 @@ function installRequestBody(input: {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${input.token ?? installToken}`,
+      'CF-Connecting-IP': '203.0.113.10',
       'Content-Type': input.contentType ?? 'application/json',
     },
     body: JSON.stringify({ interface_locale: 'en', ...body }),
@@ -130,6 +131,7 @@ function installAccessRequest(input: {
   return new Request('http://studio.local/api/system/install/access', {
     headers: {
       Authorization: `Bearer ${input.token ?? installToken}`,
+      'CF-Connecting-IP': '203.0.113.10',
       ...(input.origin ? { Origin: input.origin } : {}),
     },
   });
@@ -171,6 +173,91 @@ async function prepareInstallBody(input: {
     },
   };
 }
+
+describe('client IP security boundary', () => {
+  it.each([
+    '/api/auth/login',
+    '/api/auth/mfa/verify',
+    '/api/auth/mfa/enrollment/setup',
+    '/api/auth/mfa/enrollment/complete',
+    '/api/auth/passkey/options',
+    '/api/auth/passkey/verify',
+    '/api/auth/password/check',
+    '/api/auth/mfa/webauthn/options',
+    '/api/auth/mfa/webauthn/verify',
+    '/api/auth/account-setup/inspect',
+  ])('stops %s before authentication work when the client IP is unavailable', async (path) => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const authenticate = vi.fn();
+    const environment = createEnv();
+    const reserveBudgets = vi.spyOn(environment.DB, 'batch');
+    const app = createApp({ authenticate });
+
+    for (const cloudflareIp of [undefined, '', 'invalid-client-ip']) {
+      const response = await app.fetch(new Request(`https://studio.example${path}`, {
+        method: 'POST',
+        headers: {
+          Origin: 'https://studio.example',
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': '203.0.113.99',
+          ...(cloudflareIp === undefined ? {} : { 'CF-Connecting-IP': cloudflareIp }),
+        },
+        body: '{}',
+      }), environment);
+
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({
+        success: false,
+        error: { code: 'SYSTEM_NOT_AVAILABLE' },
+      });
+    }
+
+    expect(environment.AUTH_ROUTE_RATE_LIMITER.limit).not.toHaveBeenCalled();
+    expect(reserveBudgets).not.toHaveBeenCalled();
+    expect(authenticate).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledTimes(3);
+    expect(consoleSpy).toHaveBeenCalledWith({
+      message: 'Studio client IP is unavailable',
+      $zeropress: {
+        code: 'CLIENT_IP_NOT_AVAILABLE',
+        component: 'request',
+        action: 'resolve_client_ip',
+        method: 'POST',
+        pathname: path,
+        guidance: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain('invalid-client-ip');
+    expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain('203.0.113.99');
+  });
+
+  it('stops invalid installation-token attempts without trusting a forwarded IP', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const installDatabase = vi.fn();
+    const environment = createEnv(true, {
+      DB: createFakeD1({ tables: [] }).database,
+      STUDIO_SITE_MODE: 'initial',
+      STUDIO_INSTALL_TOKEN: installToken,
+    });
+    const request = installRequestBody({ token: 'wrong-install-token-value-0000000000' });
+    request.headers.delete('CF-Connecting-IP');
+    request.headers.set('X-Forwarded-For', '127.0.0.1');
+
+    const response = await createApp({ installDatabase }).fetch(request, environment);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: { code: 'SYSTEM_NOT_AVAILABLE' },
+    });
+    expect(installDatabase).not.toHaveBeenCalled();
+    expect(environment.AUTH_ROUTE_RATE_LIMITER.limit).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledOnce();
+    expect(consoleSpy).toHaveBeenCalledWith(expect.objectContaining({
+      $zeropress: expect.objectContaining({ code: 'CLIENT_IP_NOT_AVAILABLE' }),
+    }));
+  });
+});
 
 describe('GET /api/users', () => {
   it('mounts the canonical user-list path without a trailing slash', async () => {
@@ -460,7 +547,7 @@ describe('POST /api/auth/login', () => {
     });
     const malformed = new Request('http://studio.local/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.10' },
       body: '{',
     });
 
@@ -468,7 +555,7 @@ describe('POST /api/auth/login', () => {
     expect((await app.fetch(requestBody({ api_host: 'https://api.example.com' }), createEnv())).status).toBe(400);
     expect((await app.fetch(new Request('http://studio.local/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain', 'CF-Connecting-IP': '203.0.113.10' },
       body: 'email=admin@example.com',
     }), createEnv())).status).toBe(415);
   });
@@ -653,7 +740,7 @@ describe('GET /api/system/install/access', () => {
       error: { code: 'INVALID_INSTALL_TOKEN' },
     });
     expect(environment.AUTH_ROUTE_RATE_LIMITER.limit).toHaveBeenCalledWith({
-      key: 'install:127.0.0.1',
+      key: 'install:203.0.113.10',
     });
   });
 
@@ -1040,6 +1127,7 @@ describe('POST /api/system/install', () => {
         headers: {
           Origin: 'http://studio.local',
           'Content-Type': 'application/json',
+          'CF-Connecting-IP': '203.0.113.10',
         },
         body: JSON.stringify({
           password: 'harbor lantern canyon marble circuit',

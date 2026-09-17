@@ -26,6 +26,7 @@ function jsonRequest(path: string, body: unknown): Request {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
     },
     body: JSON.stringify(body),
   });

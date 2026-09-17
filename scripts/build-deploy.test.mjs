@@ -76,6 +76,27 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('build and deployment commands', () => {
+  it('builds Wrangler diagnostics locally and binds only to loopback', () => {
+    const result = run('preview:wrangler', ['--', '--port', '8788']);
+    expect(result.status, result.stderr).toBe(0);
+    expect(calls()).toEqual([
+      { tool: 'vite', args: ['build', '--mode', 'local-preview'] },
+      { tool: 'wrangler', args: [
+        'dev', '--config', join(root, artifact, 'wrangler.json'), '--local',
+        '--persist-to', 'client/.wrangler/state', '--port', '8788', '--ip', '127.0.0.1',
+      ] },
+    ]);
+  });
+
+  it.each([['--ip', '0.0.0.0'], ['--ip=0.0.0.0']])(
+    'directs LAN preview to Vite when given %j', (...args) => {
+      const result = run('preview:wrangler', ['--', ...args]);
+      expect(result.status).toBe(1);
+      expect(stripVTControlCharacters(result.stderr)).toContain('npm run preview -- --host 0.0.0.0');
+      expect(calls()).toEqual([]);
+    },
+  );
+
   it('builds once for the Cloudflare build then deploy commands', () => {
     const build = run('build');
     expect(build.status, build.stderr).toBe(0);

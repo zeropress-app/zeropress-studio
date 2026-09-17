@@ -11,7 +11,7 @@ import {
   type WebAuthnAuthenticationResponse,
   WEBAUTHN_CHALLENGE_TTL_SECONDS,
 } from '../../../contracts/webauthn';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, requireClientIp } from '../lib/http';
 import { StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import {
@@ -121,7 +121,7 @@ export function createPasskeySignInRoutes(
     const rateLimit = await consumeRateLimit({
       db: c.env.DB,
       authSecret,
-      ip: getClientIp(c),
+      ip: requireClientIp(c),
       now: currentTime(),
     });
     setAuthRateLimitHeaders(c, rateLimit);

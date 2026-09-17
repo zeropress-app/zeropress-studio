@@ -14,8 +14,8 @@ Operations is disabled until both values are configured:
 | `STUDIO_OPERATIONS_ALLOWED_IPS` | Plaintext | Comma-separated exact IPv4 or IPv6 addresses; remove the variable to disable Operations |
 | `STUDIO_OPERATIONS_TOKEN` | Secret | 32–256 printable ASCII characters (U+0021–U+007E), without spaces |
 
-CIDR ranges are not supported. Deployed requests use Cloudflare's
-`CF-Connecting-IP`; local development accepts loopback requests. If the
+CIDR ranges are not supported. Addresses follow Studio's
+[client IP policy](authentication-rate-limits.md). If the
 allowlist needs configuration, the entry guide shows the current connection
 IP when available. Refresh it after a network or VPN change. Requests outside
 a valid allowlist receive a not-found response before any credential form.

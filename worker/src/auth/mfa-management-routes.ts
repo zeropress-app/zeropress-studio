@@ -38,7 +38,7 @@ import {
   type WebAuthnAuthenticationResponse,
   type WebAuthnRegistrationResponse,
 } from '../../../contracts/webauthn';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, requireClientIp } from '../lib/http';
 import { StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import {
@@ -154,10 +154,11 @@ async function readJsonBody(
 async function applyNativeMfaRateLimit(
   c: Context<StudioHonoEnvironment>,
 ): Promise<Response | null> {
+  const clientIp = requireClientIp(c);
   let rateLimit: { success: boolean };
   try {
     rateLimit = await c.env.AUTH_ROUTE_RATE_LIMITER.limit({
-      key: getClientIp(c),
+      key: clientIp,
     });
   } catch (error) {
     throw new StudioOperationalError(

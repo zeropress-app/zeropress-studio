@@ -26,7 +26,7 @@ import {
   readBearerToken,
   secretTokensMatch,
 } from '../lib/bearer-token';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, requireClientIp } from '../lib/http';
 import {
   logOperationalFailure,
   StudioOperationalError,
@@ -77,10 +77,11 @@ function isSameOriginRequest(c: Context<StudioHonoEnvironment>): boolean {
 async function rejectInstallAuthenticationAttempt(
   c: Context<StudioHonoEnvironment>,
 ): Promise<Response> {
+  const clientIp = requireClientIp(c);
   let rateLimit: { success: boolean };
   try {
     rateLimit = await c.env.AUTH_ROUTE_RATE_LIMITER.limit({
-      key: `install:${getClientIp(c)}`,
+      key: `install:${clientIp}`,
     });
   } catch (error) {
     throw new StudioOperationalError(

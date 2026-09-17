@@ -1,3 +1,4 @@
+import { normalizeIpAddress, resolveTrustedClientIp } from '../lib/client-ip';
 import type { Env } from '../types';
 import type { OperationsSetupConfiguration } from '../../../contracts/system';
 import {
@@ -29,48 +30,6 @@ export type OperationsConfiguration =
       allowedIps: string[];
       token: string;
     };
-
-function normalizeIpv4(value: string): string | null {
-  const segments = value.split('.');
-  if (segments.length !== 4) return null;
-
-  const normalized: string[] = [];
-  for (const segment of segments) {
-    if (
-      !/^(?:0|[1-9]\d{0,2})$/u.test(segment)
-      || Number(segment) > 255
-    ) {
-      return null;
-    }
-    normalized.push(String(Number(segment)));
-  }
-  return normalized.join('.');
-}
-
-export function normalizeIpAddress(value: string): string | null {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return null;
-
-  const ipv4 = normalizeIpv4(trimmed);
-  if (ipv4) return ipv4;
-  if (!trimmed.includes(':')) return null;
-
-  try {
-    const parsed = new URL(`http://[${trimmed}]/`);
-    if (
-      parsed.username
-      || parsed.password
-      || parsed.port
-      || !parsed.hostname.startsWith('[')
-      || !parsed.hostname.endsWith(']')
-    ) {
-      return null;
-    }
-    return parsed.hostname.slice(1, -1).toLowerCase();
-  } catch {
-    return null;
-  }
-}
 
 function parseAllowedIps(value: string | undefined):
   | { ok: true; ips: string[] }
@@ -125,28 +84,6 @@ export function resolveOperationsConfiguration(
   };
 }
 
-export function resolveTrustedOperationsClientIp(
-  request: Request,
-): string | null {
-  const cloudflareIp = request.headers.get('CF-Connecting-IP');
-  if (cloudflareIp !== null) {
-    return normalizeIpAddress(cloudflareIp);
-  }
-
-  const hostname = new URL(request.url).hostname.toLowerCase();
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return '127.0.0.1';
-  }
-  if (hostname === '[::1]') {
-    return '::1';
-  }
-
-  // X-Forwarded-For is deliberately ignored. Cloudflare supplies
-  // CF-Connecting-IP in deployed Workers, while local development is limited
-  // to an actual loopback URL.
-  return null;
-}
-
 export function isOperationsIpAllowed(
   configuration: { allowedIps: readonly string[] | null },
   clientIp: string | null,
@@ -172,7 +109,7 @@ export function resolveOperationsRequestBoundary(
   if (origin !== null && origin !== new URL(request.url).origin) {
     return { state: 'not_found' };
   }
-  const clientIp = resolveTrustedOperationsClientIp(request);
+  const clientIp = resolveTrustedClientIp(request);
   if (configuration.state === 'disabled') {
     return {
       state: 'setup_required',

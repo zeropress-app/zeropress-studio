@@ -117,7 +117,12 @@ To build and preview Studio locally:
 npm run preview
 ```
 
-`npm run preview:wrangler` is available for Wrangler-specific local runtime
+`npm run dev -- --host 0.0.0.0` and `npm run preview -- --host 0.0.0.0`
+allow LAN access and identify clients by their socket IP.
+In Vite dev or preview, press `t + Enter` to open or close a Quick Tunnel.
+Studio preserves its visitor IPs; see the supported
+[client IP policy](docs/authentication-rate-limits.md).
+`npm run preview:wrangler` is restricted to `127.0.0.1` for Wrangler-specific
 diagnosis. Do not run development or preview commands concurrently against the
 same local persistence directory.
 

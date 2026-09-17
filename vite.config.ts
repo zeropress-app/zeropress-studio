@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { unstable_readConfig } from 'wrangler';
+import { developmentClientIp } from './scripts/development-client-ip.ts';
 import {
   applyDevelopmentBindingAvailability,
   defaultDevelopmentBindingOverrides,
@@ -62,6 +63,7 @@ export default defineConfig(({ command, mode }) => {
     root: 'client',
     publicDir: 'public',
     cacheDir: '../node_modules/.vite',
+    preview: { allowedHosts: ['.trycloudflare.com'] },
     resolve: {
       alias: {
         stream: fileURLToPath(new URL('./client/src/shims/sax-stream.ts', import.meta.url)),
@@ -73,6 +75,7 @@ export default defineConfig(({ command, mode }) => {
       chunkSizeWarningLimit: 3000,
     },
     plugins: [
+      developmentClientIp(),
       react(),
       cloudflare({
         configPath: wranglerConfigPath,

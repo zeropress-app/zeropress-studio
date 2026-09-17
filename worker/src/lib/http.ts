@@ -2,6 +2,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { Context, Env as HonoEnvironment } from 'hono';
 import type { ApiErrorCode, ApiErrorResponse } from '../../../contracts/api';
 import type { Env } from '../types';
+import { resolveTrustedClientIp } from './client-ip';
+import { StudioOperationalError } from './operational-error';
 
 export function errorResponse<E extends HonoEnvironment & { Bindings: Env }>(
   c: Context<E>,
@@ -16,12 +18,18 @@ export function errorResponse<E extends HonoEnvironment & { Bindings: Env }>(
 
 export function getClientIp<E extends HonoEnvironment & { Bindings: Env }>(
   c: Context<E>,
+): string | null {
+  return resolveTrustedClientIp(c.req.raw);
+}
+
+export function requireClientIp<E extends HonoEnvironment & { Bindings: Env }>(
+  c: Context<E>,
 ): string {
-  const cloudflareIp = c.req.header('CF-Connecting-IP')?.trim();
-  if (cloudflareIp) return cloudflareIp;
-
-  const forwardedIp = c.req.header('X-Forwarded-For')?.split(',')[0]?.trim();
-  if (forwardedIp) return forwardedIp;
-
-  return '127.0.0.1';
+  const clientIp = getClientIp(c);
+  if (clientIp === null) {
+    throw new StudioOperationalError('CLIENT_IP_NOT_AVAILABLE', {
+      metadata: { component: 'request', action: 'resolve_client_ip' },
+    });
+  }
+  return clientIp;
 }

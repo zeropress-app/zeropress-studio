@@ -173,6 +173,17 @@ site mode was changed automatically.
 - Expected context: `resource=DB`,
   `action=authenticate_credentials`
 
+## `CLIENT_IP_NOT_AVAILABLE`
+
+- Level: `error`
+- Message: `Studio client IP is unavailable`
+- Guidance: `Verify that Cloudflare supplies a valid CF-Connecting-IP header. For local connections, use Studio dev or preview with socket IP forwarding.`
+- Expected context: `component=request`, `action=resolve_client_ip`,
+  `method`, `pathname`
+
+IP-based request limiting stops with `503 SYSTEM_NOT_AVAILABLE` when the
+client IP cannot be determined. Header values are not recorded.
+
 ## `AUTH_ROUTE_RATE_LIMITER_NOT_AVAILABLE`
 
 - Level: `error`

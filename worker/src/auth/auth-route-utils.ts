@@ -4,7 +4,7 @@ import {
   authenticatedSuccessSchema,
   type AuthenticatedSuccess,
 } from '../../../contracts/auth';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, getClientIp, requireClientIp } from '../lib/http';
 import { StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import { isConfiguredAuthSecret } from './mfa-crypto';
@@ -34,7 +34,7 @@ export async function finishAuthentication(input: {
     db: input.c.env.DB,
     userId: input.userId,
     authRevision: input.authRevision,
-    ipAddress: getClientIp(input.c),
+    ipAddress: getClientIp(input.c) ?? 'unavailable',
     userAgent: input.c.req.header('User-Agent'),
     networkMetadata: input.c.get('sessionNetworkMetadata')
       ?? readSessionNetworkMetadata(input.c.req.raw),
@@ -64,10 +64,11 @@ export async function applyNativeAuthRateLimit(
     | 'limit_mfa_route'
     | 'limit_passkey_sign_in_route',
 ): Promise<Response | null> {
+  const clientIp = requireClientIp(c);
   let rateLimit: { success: boolean };
   try {
     rateLimit = await c.env.AUTH_ROUTE_RATE_LIMITER.limit({
-      key: getClientIp(c),
+      key: clientIp,
     });
   } catch (error) {
     throw new StudioOperationalError(

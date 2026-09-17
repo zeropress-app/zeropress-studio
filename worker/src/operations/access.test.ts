@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   isOperationsIpAllowed,
-  normalizeIpAddress,
   resolveOperationsConfiguration,
-  resolveTrustedOperationsClientIp,
   synchronizeOperationsConfigurationIncident,
 } from './access';
 import { resetSystemIncidentDeduplicationForTests } from '../system/system-incident';
@@ -38,12 +36,6 @@ describe('Maintenance and Recovery access configuration', () => {
   });
 
   it('normalizes and deduplicates exact IPv4 and IPv6 entries', () => {
-    expect(normalizeIpAddress('127.0.0.1')).toBe('127.0.0.1');
-    expect(normalizeIpAddress('2001:0DB8:0:0::1')).toBe('2001:db8::1');
-    expect(normalizeIpAddress('127.000.0.1')).toBeNull();
-    expect(normalizeIpAddress('192.0.2.999')).toBeNull();
-    expect(normalizeIpAddress('not-an-ip')).toBeNull();
-
     expect(resolveOperationsConfiguration(env({
       STUDIO_OPERATIONS_ALLOWED_IPS:
         '127.0.0.1, 2001:0DB8::1,2001:db8::1',
@@ -97,21 +89,6 @@ describe('Maintenance and Recovery access configuration', () => {
     expect(resolveOperationsConfiguration(env({
       STUDIO_OPERATIONS_TOKEN: 'x'.repeat(256),
     }))).toMatchObject({ state: 'ready' });
-  });
-
-  it('trusts Cloudflare client IP and local loopback, never X-Forwarded-For', () => {
-    expect(resolveTrustedOperationsClientIp(new Request(
-      'https://studio.example/api/system/operations/status',
-      { headers: { 'CF-Connecting-IP': '2001:0DB8::1' } },
-    ))).toBe('2001:db8::1');
-    expect(resolveTrustedOperationsClientIp(new Request(
-      'http://localhost:5173/api/system/operations/status',
-      { headers: { 'X-Forwarded-For': '203.0.113.10' } },
-    ))).toBe('127.0.0.1');
-    expect(resolveTrustedOperationsClientIp(new Request(
-      'https://studio.example/api/system/operations/status',
-      { headers: { 'X-Forwarded-For': '127.0.0.1' } },
-    ))).toBeNull();
   });
 
   it('matches only a normalized exact address', () => {

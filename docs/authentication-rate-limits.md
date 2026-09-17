@@ -9,6 +9,16 @@ work, then uses Studio D1 for authoritative fixed-window attempt budgets:
 | Sign-in IP | 20 attempts per 15 minutes | Password sign-in and passwordless Passkey options |
 | Enrolled TOTP verification | 10 attempts per 5 minutes | User ID across sign-in and protected account changes |
 
+Studio uses the validated, normalized `CF-Connecting-IP` address and ignores
+`X-Forwarded-For`. Vite dev and preview use the socket peer address for direct
+connections. Loopback requests to `<name>.trycloudflare.com` preserve a single
+valid `CF-Connecting-IP` from Quick Tunnel instead. This assumes trusted local
+processes; Named Tunnels and other reverse proxies are not supported by this policy.
+Quick Tunnel requests with a missing or invalid IP header are rejected rather
+than assigned the relay's loopback address.
+If a required client IP is missing or invalid, requests stop with
+`503 SYSTEM_NOT_AVAILABLE` and log `CLIENT_IP_NOT_AVAILABLE`.
+
 A window starts with the first reservation. Each D1 UPSERT returns its own
 updated count; password sign-in reserves both budgets in one atomic batch.
 Both budgets are consumed even when one rejects the request. Counters saturate

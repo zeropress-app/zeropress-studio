@@ -87,6 +87,7 @@ function mutationRequest(path: string, body: unknown) {
     headers: {
       Origin: 'https://studio.local',
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
       'X-ZeroPress-CSRF': csrfToken,
     },
     body: JSON.stringify(body),

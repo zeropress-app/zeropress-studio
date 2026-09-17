@@ -19,7 +19,7 @@ import {
   revokeSessionSuccessSchema,
   sessionListSuccessSchema,
 } from '../../../contracts/session';
-import { errorResponse, getClientIp } from '../lib/http';
+import { errorResponse, requireClientIp } from '../lib/http';
 import { StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import { authenticateCredentials } from './authenticate';
@@ -153,7 +153,7 @@ export function createAuthRoutes(
       return errorResponse(c, 400, 'VALIDATION_ERROR');
     }
 
-    const ip = getClientIp(c);
+    const ip = requireClientIp(c);
     const authSecret = readAuthSecret(c);
     if (authSecret instanceof Response) return authSecret;
     const rateLimit = await consumeLoginRateLimits({

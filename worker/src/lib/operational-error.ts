@@ -92,6 +92,11 @@ export const OPERATIONAL_LOG_DEFINITIONS = {
     message: 'Studio authentication database query failed',
     guidance: 'Verify the DB binding targets the Studio database. If the database is uninstalled, set STUDIO_SITE_MODE to initial and complete installation; otherwise verify its schema lifecycle state.',
   },
+  CLIENT_IP_NOT_AVAILABLE: {
+    level: 'error',
+    message: 'Studio client IP is unavailable',
+    guidance: 'Verify that Cloudflare supplies a valid CF-Connecting-IP header. For local connections, use Studio dev or preview with socket IP forwarding.',
+  },
   AUTH_ROUTE_RATE_LIMITER_NOT_AVAILABLE: {
     level: 'error',
     message: 'Authentication route rate limiter is unavailable',

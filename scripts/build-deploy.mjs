@@ -119,14 +119,26 @@ function deploy(args) {
   run('wrangler/bin/wrangler.js', ['deploy', '--config', outputConfig, ...args]);
 }
 
+function previewWrangler(args) {
+  if (args.some((arg) => arg === '--ip' || arg.startsWith('--ip='))) {
+    throw new Error('Wrangler preview listens on 127.0.0.1. For LAN access, run npm run preview -- --host 0.0.0.0.');
+  }
+  build(['--mode', 'local-preview']);
+  run('wrangler/bin/wrangler.js', [
+    'dev', '--config', outputConfig, '--local',
+    '--persist-to', 'client/.wrangler/state', ...args, '--ip', '127.0.0.1',
+  ]);
+}
+
 try {
   const [command, ...args] = process.argv.slice(2);
   if (command === 'build') build(args);
   else if (command === 'deploy') deploy(args);
+  else if (command === 'preview-wrangler') previewWrangler(args);
   else if (command === 'dry-run' && args.length === 0) {
     build([]);
     deploy(['--dry-run']);
-  } else throw new Error('Usage: build-deploy.mjs build [--mode local-preview] | deploy [--dry-run] | dry-run');
+  } else throw new Error('Usage: build-deploy.mjs build [--mode local-preview] | deploy [--dry-run] | dry-run | preview-wrangler [wrangler options]');
 } catch (error) {
   const needsRebuild = error.message.endsWith(rebuildMessage);
   const heading = needsRebuild ? error.message.slice(0, -rebuildMessage.length).trimEnd() : error.message;
