@@ -133,6 +133,7 @@ Run the package checks locally:
 ```bash
 npm test
 npm run typecheck
+npm run format:wrangler:check
 npm run build
 npm run test:e2e
 ```
@@ -148,6 +149,9 @@ Review the Worker name and D1, KV, R2, Queue, and rate-limit identifiers in
 `wrangler.jsonc`. `MAIL_QUEUE` must have both a producer and a consumer using
 the same Queue name.
 
+After editing `wrangler.jsonc`, run `npm run format:wrangler` to match Wrangler's
+formatting.
+
 Manage runtime variables and Secrets in the Worker Dashboard. The source
 configuration declares no `vars` and keeps `keep_vars: true` to preserve
 Dashboard variables during code deployments.
@@ -161,10 +165,15 @@ npm run deploy:dry-run # build once, then validate deployment without uploading
 For Cloudflare Workers Builds, use the default build command `npm run build`
 and deploy command `npm run deploy`.
 
-Deployment requires a successful ordinary build. Missing, failed, or
-local-preview builds stop deployment and require `npm run build`. The public
-configuration builds without installation credentials. Ordinary builds exclude
-local `.dev.vars` values; development and local preview may consume them.
+Deployment requires a successful ordinary build matching the current
+`wrangler.jsonc`. The deploy command displays the target Worker and stops if
+configuration values changed, the build failed, or the output is missing or from
+local preview. Run `npm run build` again after configuration changes, including
+resource IDs written to `wrangler.jsonc` by Wrangler during provisioning.
+Formatting, comments, and object property order do not require a rebuild.
+The public configuration builds without installation credentials. Ordinary
+builds exclude local `.dev.vars` values; development and local preview may
+consume them.
 
 ## Operations and security
 

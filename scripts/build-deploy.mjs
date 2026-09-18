@@ -7,8 +7,11 @@ import {
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { styleText } from 'node:util';
+import { experimental_readRawConfig, unstable_readConfig } from 'wrangler';
+import { serializeWranglerConfig } from './wrangler-config.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const sourceConfig = join(root, 'wrangler.jsonc');
 const workerDirectory = join(root, 'dist/zeropress_studio');
 const outputConfig = join(workerDirectory, 'wrangler.json');
 const markerPath = join(workerDirectory, '.deployable.json');
@@ -37,7 +40,8 @@ function readArtifact() {
     const contents = readFileSync(outputConfig);
     const config = JSON.parse(contents);
     if (
-      !config.main || !statSync(resolve(workerDirectory, config.main)).isFile()
+      typeof config.name !== 'string' || !config.name
+      || !config.main || !statSync(resolve(workerDirectory, config.main)).isFile()
       || !config.assets?.directory
       || !statSync(resolve(workerDirectory, config.assets.directory, 'index.html')).isFile()
       || readdirSync(workerDirectory).some((name) => name.startsWith('.dev.vars'))
@@ -49,9 +53,66 @@ function readArtifact() {
     if (bindings.some((binding) => binding && Object.hasOwn(binding, 'remote'))) {
       throw new Error('Development bindings in production output.');
     }
-    return { version: 1, mode: 'production', configHash: createHash('sha256').update(contents).digest('hex') };
+    return {
+      version: 3, mode: 'production', workerName: config.name,
+      configHash: createHash('sha256').update(contents).digest('hex'),
+    };
   } catch {
     throw new Error(`The production build artifact is missing or invalid. ${rebuildMessage}`);
+  }
+}
+
+function stripMigrationMetadata() {
+  const config = JSON.parse(readFileSync(outputConfig, 'utf8'));
+  let changed = false;
+  // Studio manages its database lifecycle. Vite's migration metadata must not
+  // be written back to wrangler.jsonc during resource provisioning.
+  for (const database of config.d1_databases ?? []) {
+    for (const field of ['migrations_dir', 'migrations_pattern', 'migrations_table']) {
+      if (Object.hasOwn(database, field)) {
+        delete database[field];
+        changed = true;
+      }
+    }
+  }
+  if (changed) writeJson(outputConfig, config);
+}
+
+function readSourceConfig() {
+  try {
+    const contents = serializeWranglerConfig(readFileSync(sourceConfig, 'utf8'));
+    const config = unstable_readConfig({ config: sourceConfig }, { hideWarnings: true });
+    if (typeof config.name !== 'string' || !config.name) throw new Error('Missing Worker name.');
+    return {
+      workerName: config.name,
+      sourceConfigHash: createHash('sha256').update(contents)
+        .update('\0').update(process.env.CLOUDFLARE_ENV ?? '').digest('hex'),
+    };
+  } catch {
+    throw new Error(`Cannot read a valid Worker configuration from wrangler.jsonc. ${rebuildMessage}`);
+  }
+}
+
+function assertWorkerName(source, artifact) {
+  if (source.workerName !== artifact.workerName) {
+    throw new Error(
+      `The build targets Worker ${JSON.stringify(artifact.workerName)}, but wrangler.jsonc selects ${JSON.stringify(source.workerName)}. ${rebuildMessage}`,
+    );
+  }
+}
+
+function assertDeploymentRedirect() {
+  try {
+    const config = experimental_readRawConfig(
+      { script: join(root, 'package.json') },
+      { useRedirectIfAvailable: true },
+    );
+    if (config.configPath !== outputConfig || config.userConfigPath !== sourceConfig
+      || config.deployConfigPath !== rootRedirect) {
+      throw new Error('Unexpected deployment configuration.');
+    }
+  } catch {
+    throw new Error(`The Wrangler deployment configuration does not point to the verified build and wrangler.jsonc. ${rebuildMessage}`);
   }
 }
 
@@ -91,11 +152,18 @@ function build(args) {
     throw new Error('Build supports only --mode production or --mode local-preview.');
   }
   try {
+    const source = mode === 'production' ? readSourceConfig() : null;
     run('vite/bin/vite.js', ['build', ...args]);
+    stripMigrationMetadata();
     if (mode === 'production') {
-      const marker = readArtifact();
+      const artifact = readArtifact();
+      if (source.sourceConfigHash !== readSourceConfig().sourceConfigHash) {
+        throw new Error(`wrangler.jsonc changed during the build. ${rebuildMessage}`);
+      }
+      assertWorkerName(source, artifact);
       publishRootRedirect();
-      writeJson(markerPath, marker);
+      assertDeploymentRedirect();
+      writeJson(markerPath, { ...artifact, sourceConfigHash: source.sourceConfigHash });
     }
   } catch (error) {
     invalidateDeployment();
@@ -107,16 +175,32 @@ function deploy(args) {
   if (args.some((arg) => arg !== '--dry-run')) {
     throw new Error('Deploy supports only --dry-run as an optional argument.');
   }
+  let marker;
+  let artifact;
   try {
-    const marker = JSON.parse(readFileSync(markerPath, 'utf8'));
-    const artifact = readArtifact();
+    marker = JSON.parse(readFileSync(markerPath, 'utf8'));
+    artifact = readArtifact();
     if (marker.version !== artifact.version || marker.mode !== artifact.mode || marker.configHash !== artifact.configHash) {
       throw new Error('Build marker does not match the artifact.');
     }
   } catch {
     throw new Error(`No successful production build is available. ${rebuildMessage}`);
   }
-  run('wrangler/bin/wrangler.js', ['deploy', '--config', outputConfig, ...args]);
+  const source = readSourceConfig();
+  assertWorkerName(source, artifact);
+  if (marker.sourceConfigHash !== source.sourceConfigHash) {
+    throw new Error(`wrangler.jsonc or the selected environment changed since the production build. ${rebuildMessage}`);
+  }
+  assertDeploymentRedirect();
+  const ciWorkerName = process.env.WRANGLER_CI_OVERRIDE_NAME;
+  if (ciWorkerName !== undefined && ciWorkerName !== artifact.workerName) {
+    throw new Error(
+      `Cloudflare Builds selects Worker ${JSON.stringify(ciWorkerName)}, but the build targets ${JSON.stringify(artifact.workerName)}. Match the Worker name in wrangler.jsonc and Cloudflare Builds. ${rebuildMessage}`,
+    );
+  }
+  console.log(`${args.includes('--dry-run') ? 'Validating deployment for' : 'Deploying'} Worker ${styleText('cyan', artifact.workerName)}.`);
+  // Keep the source path available so Wrangler writes provisioned resource IDs to wrangler.jsonc.
+  run('wrangler/bin/wrangler.js', ['deploy', ...args]);
 }
 
 function previewWrangler(args) {
