@@ -108,6 +108,7 @@ export const systemStatusDataSchema = z.object({
 
 // Request-scoped discovery only. "available" does not authenticate a token or
 // grant a Studio session; protected Operations requests recheck every boundary.
+// In operational mode, setup details require an active administrator session.
 export const operationsSetupConfigurationSchema = z.discriminatedUnion('allowed_ips', [
   z.object({
     allowed_ips: z.enum(['missing', 'invalid']),

@@ -421,6 +421,36 @@ describe('Maintenance and Recovery dashboard', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('shows server-authorized operational setup and hides it when the session ends', async () => {
+    vi.mocked(requestSystemStatus)
+      .mockResolvedValueOnce({
+        ...operationalSystemStatus,
+        data: {
+          ...operationalSystemStatus.data,
+          operations: {
+            state: 'setup_required',
+            configuration: { allowed_ips: 'missing', token: 'missing', client_ip: '203.0.113.10' },
+          },
+        },
+      })
+      .mockResolvedValue({
+        ...operationalSystemStatus,
+        data: { ...operationalSystemStatus.data, operations: { state: 'not_found' } },
+      });
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Set up Operations access' }))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Check configuration again' }));
+    expect(await screen.findByRole('heading', { name: 'Page not found' }, {
+      timeout: INITIAL_CHECKING_MIN_VISIBLE_MS + 500,
+    })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current connection IP')).not.toBeInTheDocument();
+    expect(requestCurrentSession).not.toHaveBeenCalled();
+  });
+
   it('hosts IP copy feedback, refreshes the IP on public retry, and removes it when denied', async () => {
     const setupResponse = (client_ip: string): SystemStatusResponse => ({
       ...maintenanceSystemStatus,

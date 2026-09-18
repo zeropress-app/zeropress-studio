@@ -371,7 +371,11 @@ async function authorizeOperationsBoundary(
 > {
   const configuration = resolveOperationsConfiguration(c.env);
   synchronizeOperationsConfigurationIncident(configuration);
-  const boundary = resolveOperationsRequestBoundary(c.req.raw, configuration);
+  const boundary = await resolveOperationsRequestBoundary({
+    context: c,
+    configuration,
+    resolveSession,
+  });
 
   if (boundary.state === 'not_found') {
     return {

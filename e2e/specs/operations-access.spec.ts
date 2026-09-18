@@ -153,7 +153,6 @@ for (const studioProfile of [
 
 for (const studioProfile of [
   'initial-no-operations',
-  'operational-no-operations',
   'recovery-no-operations',
   'operations-allowlist-empty',
   'operations-allowlist-invalid',
@@ -261,6 +260,41 @@ for (const studioProfile of [
     });
   });
 }
+
+test.describe('operational Operations setup', () => {
+  test.use({ studioProfile: 'operational-no-operations' });
+
+  test('reveals setup only to a signed-in administrator without prompting visitors to sign in', async ({
+    page,
+    studioRuntime,
+  }) => {
+    const publicStatus = page.waitForResponse((response) => (
+      new URL(response.url()).pathname === '/api/system/status'
+    ));
+    await page.goto('/system/operations/access');
+    expect((await (await publicStatus).json()).data.operations).toEqual({ state: 'not_found' });
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCount(0);
+    const protectedResponse = await page.request.get(operationsStatusPath);
+    expect(protectedResponse.status()).toBe(404);
+
+    await signInAsAdministrator(page, studioRuntime);
+    await page.goto('/system/operations/access');
+    await expect(page.getByRole('heading', { name: 'Set up Operations access' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'STUDIO_OPERATIONS_ALLOWED_IPS' }))
+      .toContainText('Not set');
+    await expect(page.getByRole('region', { name: 'STUDIO_OPERATIONS_TOKEN' }))
+      .toContainText('Not set');
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Set up Operations access' })).toBeVisible();
+
+    await page.context().clearCookies();
+    await page.getByRole('button', { name: 'Check configuration again' }).click();
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Current connection IP')).toHaveCount(0);
+  });
+});
 
 test.describe('operational administrator control plane', () => {
   test.use({ studioProfile: 'operational' });

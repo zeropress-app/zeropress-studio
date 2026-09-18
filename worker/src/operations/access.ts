@@ -1,5 +1,17 @@
+import type { Context } from 'hono';
+import { hasStudioCapability } from '../../../contracts/authorization';
+import { readSessionCookie } from '../auth/session-http';
+import {
+  resolveUserSession,
+  type ResolveUserSession,
+} from '../auth/session-repository';
 import { normalizeIpAddress, resolveTrustedClientIp } from '../lib/client-ip';
-import type { Env } from '../types';
+import {
+  logOperationalFailure,
+  logStudioOperationalError,
+  StudioOperationalError,
+} from '../lib/operational-error';
+import type { Env, StudioHonoEnvironment } from '../types';
 import type { OperationsSetupConfiguration } from '../../../contracts/system';
 import {
   isValidStudioWorkerSecret,
@@ -100,8 +112,7 @@ export type OperationsRequestBoundary =
       clientIp: string;
     };
 
-/** Shared pre-authentication boundary; never verifies or consumes a token. */
-export function resolveOperationsRequestBoundary(
+function resolveOperationsConfigurationBoundary(
   request: Request,
   configuration: OperationsConfiguration,
 ): OperationsRequestBoundary {
@@ -142,6 +153,38 @@ export function resolveOperationsRequestBoundary(
     };
   }
   return { state: 'available', configuration, clientIp };
+}
+
+/** Entry discovery never verifies or consumes an Operations token. */
+export async function resolveOperationsRequestBoundary(input: {
+  context: Context<StudioHonoEnvironment>;
+  configuration: OperationsConfiguration;
+  resolveSession?: ResolveUserSession;
+}): Promise<OperationsRequestBoundary> {
+  const { context, configuration } = input;
+  const boundary = resolveOperationsConfigurationBoundary(context.req.raw, configuration);
+  if (boundary.state !== 'setup_required' || context.env.STUDIO_SITE_MODE !== 'operational') {
+    return boundary;
+  }
+
+  try {
+    const session = await (input.resolveSession ?? resolveUserSession)({
+      db: context.env.DB,
+      cookieValue: readSessionCookie(context),
+    });
+    if (session && hasStudioCapability(session.user.roles, 'settings.manage')) {
+      return boundary;
+    }
+  } catch (error) {
+    // A broken session store must not expose setup or interrupt public status.
+    const metadata = { method: context.req.method, pathname: context.req.path };
+    if (error instanceof StudioOperationalError) {
+      logStudioOperationalError(error, metadata);
+    } else {
+      logOperationalFailure('UNHANDLED_STUDIO_API_ERROR', { cause: error, metadata });
+    }
+  }
+  return { state: 'not_found' };
 }
 
 function configurationIncident(

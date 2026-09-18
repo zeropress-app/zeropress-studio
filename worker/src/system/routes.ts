@@ -15,6 +15,7 @@ import {
   synchronizeOperationsConfigurationIncident,
 } from '../operations/access';
 import { hashPassword } from '../auth/password';
+import type { ResolveUserSession } from '../auth/session-repository';
 import {
   createMfaEnrollment,
   encryptTotpSecret,
@@ -178,6 +179,7 @@ async function authorizeInstallRequest(
 }
 
 export function createSystemRoutes(dependencies: {
+  resolveSession?: ResolveUserSession;
   installDatabase?: InstallDatabase;
   hashInstallPassword?: InstallPasswordHasher;
   readInterfaceSettings?: typeof readStudioInterfaceSettings;
@@ -195,7 +197,11 @@ export function createSystemRoutes(dependencies: {
   system.get('/status', async (c) => {
     const configuration = resolveOperationsConfiguration(c.env);
     synchronizeOperationsConfigurationIncident(configuration);
-    const operations = resolveOperationsRequestBoundary(c.req.raw, configuration);
+    const operations = await resolveOperationsRequestBoundary({
+      context: c,
+      configuration,
+      resolveSession: dependencies.resolveSession,
+    });
     const response: SystemStatusResponse = {
       success: true,
       data: {
@@ -206,7 +212,7 @@ export function createSystemRoutes(dependencies: {
       },
     };
 
-    // Availability is specific to the current request's trusted IP and Origin.
+    // Entry discovery depends on the request's IP, Origin, and Studio session.
     c.header('Cache-Control', 'no-store');
     return c.json(response);
   });

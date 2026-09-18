@@ -244,6 +244,7 @@ export function createApp(dependencies?: {
     dependencies?.cloudflareAccess,
   ));
   app.route('/api/system', createSystemRoutes({
+    resolveSession: dependencies?.resolveSession,
     installDatabase: dependencies?.installDatabase,
     hashInstallPassword: dependencies?.hashInstallPassword,
     checkPasswordBreach: dependencies?.checkPasswordBreach,

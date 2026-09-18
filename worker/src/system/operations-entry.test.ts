@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { systemStatusResponseSchema, type OperationsSetupConfiguration } from '../../../contracts/system';
+import {
+  systemStatusResponseSchema,
+  type OperationsSetupConfiguration,
+  type SystemStatusResponse,
+} from '../../../contracts/system';
 import { createApp } from '../index';
+import type { ResolvedSession } from '../auth/session-repository';
+import { StudioOperationalError } from '../lib/operational-error';
 import { createFakeD1 } from '../test-helpers/fake-d1';
 import type { Env } from '../types';
 import { resetSystemIncidentDeduplicationForTests } from './system-incident';
@@ -8,6 +14,9 @@ import { resetSystemIncidentDeduplicationForTests } from './system-incident';
 const allowedIp = '203.0.113.10';
 const operationsToken = 'test-operations-token-never-expose-000000';
 const authSecret = 'test-auth-secret-never-expose-00000000000';
+const administratorSession = {
+  user: { id: '1'.repeat(32), email: 'owner@example.com', name: 'Owner', roles: ['admin'] },
+} as ResolvedSession;
 
 afterEach(() => {
   resetSystemIncidentDeduplicationForTests();
@@ -244,5 +253,151 @@ describe('public Operations entry discovery', () => {
       success: false, error: { code: 'INVALID_OPERATIONS_TOKEN' },
     });
     expect(limit).toHaveBeenCalledOnce();
+  });
+});
+
+const setupConfigurations: { name: string; overrides: Partial<Env> }[] = [
+  {
+    name: 'missing Operations variables',
+    overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: undefined, STUDIO_OPERATIONS_TOKEN: undefined },
+  },
+  { name: 'empty allowlist', overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: '' } },
+  { name: 'invalid allowlist', overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: 'not-an-ip' } },
+  { name: 'missing token', overrides: { STUDIO_OPERATIONS_TOKEN: undefined } },
+  { name: 'invalid token', overrides: { STUDIO_OPERATIONS_TOKEN: 'too-short' } },
+];
+
+function operationalEnvironment(overrides: Partial<Env> = {}): Env {
+  return {
+    DB: createFakeD1().database,
+    KV: {} as KVNamespace,
+    AUTH_ROUTE_RATE_LIMITER: { limit: vi.fn() },
+    STUDIO_SITE_MODE: 'operational',
+    STUDIO_AUTH_SECRET: authSecret,
+    STUDIO_OPERATIONS_ALLOWED_IPS: allowedIp,
+    STUDIO_OPERATIONS_TOKEN: operationsToken,
+    ...overrides,
+  };
+}
+
+function entryRequest(path: string, headers: Record<string, string> = {}) {
+  return new Request(`https://studio.example.com${path}`, {
+    headers: {
+      'CF-Connecting-IP': allowedIp,
+      Cookie: '__Host-zp_session=session-cookie',
+      Authorization: `Bearer ${operationsToken}`,
+      ...headers,
+    },
+  });
+}
+
+describe.each(setupConfigurations)('operational setup visibility: $name', ({ overrides }) => {
+  it.each([
+    { name: 'administrator', roles: ['admin'], authorized: true },
+    { name: 'editor', roles: ['editor'], authorized: false },
+    { name: 'author', roles: ['author'], authorized: false },
+    { name: 'missing or expired session', roles: null, authorized: false },
+  ])('checks the $name session before disclosing configuration', async ({ roles, authorized }) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const resolveSession = vi.fn().mockResolvedValue(roles ? {
+      ...administratorSession,
+      user: { ...administratorSession.user, roles },
+    } : null);
+    const app = createApp({ resolveSession });
+    const env = operationalEnvironment(overrides);
+    const response = await app.fetch(entryRequest('/api/system/status'), env);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    const { data } = systemStatusResponseSchema.parse(await response.json());
+    expect(data.access.state).toBe('operational');
+    expect(data.operations).toEqual(authorized
+      ? { state: 'setup_required', configuration: expect.any(Object) }
+      : { state: 'not_found' });
+    expect(resolveSession).toHaveBeenCalledWith({
+      db: env.DB, cookieValue: 'session-cookie',
+    });
+
+    const protectedResponse = await app.fetch(entryRequest('/api/system/operations/status'), env);
+    const reportsConfigurationError = authorized && env.STUDIO_OPERATIONS_ALLOWED_IPS !== undefined;
+    expect(protectedResponse.status).toBe(reportsConfigurationError ? 503 : 404);
+    expect(await protectedResponse.json()).toEqual({
+      success: false,
+      error: { code: reportsConfigurationError ? 'OPERATIONS_CONFIGURATION_ERROR' : 'NOT_FOUND' },
+    });
+    expect(env.AUTH_ROUTE_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+});
+
+describe('Operations setup session boundary', () => {
+  it.each(['initial', 'maintenance', 'recovery', undefined, 'invalid'])(
+    'allows setup without consulting Studio sessions in site mode %s', async (mode) => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const resolveSession = vi.fn();
+      const env = operationalEnvironment({
+        STUDIO_SITE_MODE: mode,
+        STUDIO_OPERATIONS_ALLOWED_IPS: undefined,
+        STUDIO_OPERATIONS_TOKEN: undefined,
+      });
+      const response = await createApp({ resolveSession }).fetch(entryRequest('/api/system/status'), env);
+      const { data } = systemStatusResponseSchema.parse(await response.json());
+      expect(data.operations).toEqual({
+        state: 'setup_required',
+        configuration: { allowed_ips: 'missing', token: 'missing', client_ip: allowedIp },
+      });
+      expect(resolveSession).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { 'CF-Connecting-IP': '198.51.100.20' },
+    { Origin: 'https://other.example.com' },
+  ] as Record<string, string>[])('enforces the IP and Origin boundary before administrator access', async (headers) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const resolveSession = vi.fn().mockResolvedValue(administratorSession);
+    const env = operationalEnvironment({ STUDIO_OPERATIONS_TOKEN: undefined });
+    const app = createApp({ resolveSession });
+    const response = await app.fetch(entryRequest('/api/system/status', headers), env);
+    expect((await response.json() as SystemStatusResponse).data.operations)
+      .toEqual({ state: 'not_found' });
+    const protectedResponse = await app.fetch(entryRequest('/api/system/operations/status', headers), env);
+    expect(protectedResponse.status).toBe(404);
+    expect(resolveSession).not.toHaveBeenCalled();
+  });
+
+  it('keeps operational setup private when database state blocks Studio access', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const env = operationalEnvironment({
+      DB: createFakeD1({ tables: [] }).database,
+      STUDIO_OPERATIONS_ALLOWED_IPS: undefined,
+    });
+    const resolveSession = vi.fn().mockResolvedValue(null);
+    const response = await createApp({ resolveSession }).fetch(entryRequest('/api/system/status'), env);
+    const { data } = systemStatusResponseSchema.parse(await response.json());
+    expect(data.access).toEqual({ state: 'blocked', reason: 'DATABASE_UNINSTALLED' });
+    expect(data.operations).toEqual({ state: 'not_found' });
+    expect(resolveSession).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    new StudioOperationalError('AUTH_SESSION_DATABASE_QUERY_FAILED'),
+    new Error('session lookup failed'),
+  ])('keeps public status available when session verification fails', async (error) => {
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const env = operationalEnvironment({ STUDIO_OPERATIONS_ALLOWED_IPS: undefined });
+    const resolveSession = vi.fn().mockRejectedValue(error);
+    const app = createApp({ resolveSession });
+    const response = await app.fetch(entryRequest('/api/system/status'), env);
+    expect(response.status).toBe(200);
+    expect((await response.json() as SystemStatusResponse).data.operations)
+      .toEqual({ state: 'not_found' });
+    const protectedResponse = await app.fetch(entryRequest('/api/system/operations/status'), env);
+    expect(protectedResponse.status).toBe(404);
+    expect(errorLog).toHaveBeenCalledWith(expect.objectContaining({
+      $zeropress: expect.objectContaining({
+        code: error instanceof StudioOperationalError ? error.code : 'UNHANDLED_STUDIO_API_ERROR',
+        pathname: '/api/system/status',
+      }),
+    }));
   });
 });

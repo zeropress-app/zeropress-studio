@@ -20,6 +20,11 @@ allowlist needs configuration, the entry guide shows the current connection
 IP when available. Refresh it after a network or VPN change. Requests outside
 a valid allowlist receive a not-found response before any credential form.
 
+In `operational` mode, sign in to Studio as an administrator before opening
+the setup guide. Without an active administrator session, unconfigured
+Operations shows a not-found page without prompting for sign-in. Other site
+modes allow setup guidance without a Studio session.
+
 Use an operations token independent of the install token, for example:
 
 ```bash
