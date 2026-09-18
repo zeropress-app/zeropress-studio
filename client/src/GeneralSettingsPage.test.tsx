@@ -221,7 +221,8 @@ describe('GeneralSettingsPage', () => {
 
     expect(await screen.findByText('Stored as en-US · American English'))
       .toBeInTheDocument();
-    expect(screen.getByText(/^Stored as UTC · GMT · now /u))
+    // ICU versions may display a zero offset as GMT or GMT+00:00.
+    expect(screen.getByText(/^Stored as UTC · GMT(?:\+00:00)? · now /u))
       .toBeInTheDocument();
   });
 

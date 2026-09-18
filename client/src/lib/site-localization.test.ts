@@ -60,6 +60,17 @@ describe('describeSiteLocale', () => {
 });
 
 describe('describeSiteTimezone', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function mockBrowserTimezone(timeZone: string) {
+    const DateTimeFormat = Intl.DateTimeFormat;
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function (locales, options) {
+      return new DateTimeFormat(locales, { timeZone, ...options });
+    });
+  }
+
   it('separates UTC, IANA names, and fixed offsets', () => {
     expect(describeSiteTimezone('UTC', 'en', WINTER).kind).toBe('utc');
     expect(describeSiteTimezone('Asia/Seoul', 'en', WINTER).kind).toBe('iana');
@@ -122,20 +133,33 @@ describe('describeSiteTimezone', () => {
       .toBeNull();
   });
 
-  it('suggests the runtime zone only when its offset matches the fixed offset', () => {
-    const runtimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const runtimeOffset = describeSiteTimezone(runtimeZone, 'en', WINTER)
-      .offsetLabel;
-    expect(runtimeOffset).toMatch(/^GMT[+-]\d{2}:\d{2}$/u);
+  it.each([
+    { zone: 'Asia/Seoul', at: WINTER, matching: '+09:00', mismatched: '+08:00', dst: false },
+    { zone: 'Europe/Berlin', at: WINTER, matching: '+01:00', mismatched: '+02:00', dst: true },
+    { zone: 'Europe/Berlin', at: SUMMER, matching: '+02:00', mismatched: '+01:00', dst: true },
+  ])('suggests $zone only for its matching offset $matching', ({ zone, at, matching, mismatched, dst }) => {
+    mockBrowserTimezone(zone);
 
-    const matching = `${runtimeOffset?.slice(3)}`;
-    expect(describeSiteTimezone(matching, 'en', WINTER).suggestedZone)
-      .toBe(runtimeZone);
+    expect(describeSiteTimezone(matching, 'en', at)).toMatchObject({
+      suggestedZone: zone,
+      suggestedZoneObservesDaylightSaving: dst,
+    });
+    expect(describeSiteTimezone(mismatched, 'en', at)).toMatchObject({
+      suggestedZone: null,
+      suggestedZoneObservesDaylightSaving: false,
+    });
+  });
 
-    // Do not suggest a region when its offset does not match.
-    const mismatched = matching === '+05:45' ? '+06:45' : '+05:45';
-    expect(describeSiteTimezone(mismatched, 'en', WINTER).suggestedZone)
-      .toBeNull();
+  it.each(['+00:00', '-00:00'])('normalizes %s to UTC without suggesting a replacement in a UTC browser', (offset) => {
+    mockBrowserTimezone('UTC');
+
+    expect(describeSiteTimezone(offset, 'en', WINTER)).toMatchObject({
+      canonical: 'UTC',
+      kind: 'utc',
+      normalized: true,
+      suggestedZone: null,
+      suggestedZoneObservesDaylightSaving: false,
+    });
   });
 });
 
