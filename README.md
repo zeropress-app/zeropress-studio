@@ -175,6 +175,11 @@ The public configuration builds without installation credentials. Ordinary
 builds exclude local `.dev.vars` values; development and local preview may
 consume them.
 
+To recreate a Worker with existing KV namespaces, set their `id` values in
+`wrangler.jsonc`, then rebuild and deploy. Find the IDs in the Cloudflare
+Dashboard or with `npx wrangler kv namespace list`. Git-connected builds do not
+write provisioned IDs back to the repository.
+
 ## Operations and security
 
 Studio fails closed when its site mode, required Secrets, or database lifecycle
