@@ -54,6 +54,7 @@ import {
   openMfaManagementGrant,
   verifyMfaEnrollmentProof,
 } from './mfa-crypto';
+import { resolveMfaIssuer } from './mfa-issuer';
 import {
   getMfaManagementStatus,
   replaceManagedTotp,
@@ -580,6 +581,10 @@ export function createMfaManagementRoutes(
     let enrollment;
     try {
       enrollment = await createMfaEnrollment({
+        issuer: resolveMfaIssuer({
+          requestUrl: c.req.url,
+          siteTitle: authorized.session.siteTitle,
+        }),
         authSecret: authorized.authSecret,
         subject: { type: 'user', id: authorized.session.user.id },
         accountName: authorized.session.user.email,

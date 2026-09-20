@@ -43,6 +43,8 @@ export const common = {
     authenticatorDescription: '인증 앱으로 QR 코드를 스캔하거나 설정 키를 직접 입력하세요.',
     qrAlt: '인증 앱 설정 QR 코드',
     qrUnavailable: 'QR 코드를 생성하지 못했습니다. 수동 설정 키를 사용해 주세요.',
+    serviceName: '서비스 이름',
+    account: '계정',
     manualKey: '수동 설정 키',
     manualKeyHint: '이 키는 향후 인증 코드를 생성할 수 있으므로 비공개로 보관하세요.',
     totpCode: '현재 인증 앱의 6자리 코드',

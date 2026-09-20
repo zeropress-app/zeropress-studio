@@ -14,6 +14,8 @@ export const mfaEnrollmentTokenSchema = z.string()
 
 export const mfaEnrollmentSetupDataSchema = z.object({
   method: z.literal('totp'),
+  issuer: z.string().min(1).regex(/^[^:\p{Cc}]+$/u),
+  account_name: z.email().max(254),
   secret: z.string().regex(/^[A-Z2-7]{32}$/u),
   otpauth_uri: z.url().startsWith('otpauth://totp/'),
   enrollment_token: mfaEnrollmentTokenSchema,

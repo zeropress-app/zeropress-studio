@@ -264,7 +264,9 @@ describe('LoginPage', () => {
         data: {
           method: 'totp',
           secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-          otpauth_uri: 'otpauth://totp/ZeroPress%20Studio%3Aadmin%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+          issuer: 'Margin · Studio',
+          account_name: 'admin@example.com',
+          otpauth_uri: 'otpauth://totp/Margin%20%C2%B7%20Studio%3Aadmin%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Margin%20%C2%B7%20Studio&algorithm=SHA1&digits=6&period=30',
           enrollment_token: enrollmentToken,
           expires_at_iso: '2026-07-30T12:15:00.000Z',
         },
@@ -282,6 +284,8 @@ describe('LoginPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Protect this account' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Margin · Studio')).toBeInTheDocument();
+    expect(screen.getByText('admin@example.com')).toBeInTheDocument();
     await user.type(
       screen.getByLabelText('Current 6-digit authenticator code'),
       '654321',

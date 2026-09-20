@@ -79,7 +79,6 @@ export const install = {
   },
   continueToMfa: 'MFA 설정으로 계속',
   mfaPreparing: 'MFA 준비 중…',
-  mfaAccount: 'MFA 계정',
   backToLicense: '라이선스로 돌아가기',
   backToAdministrator: '관리자 설정으로 돌아가기',
   submit: 'ZeroPress Studio 설치',

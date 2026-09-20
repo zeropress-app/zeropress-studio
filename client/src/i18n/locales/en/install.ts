@@ -79,7 +79,6 @@ export const install = {
   },
   continueToMfa: 'Continue to MFA setup',
   mfaPreparing: 'Preparing MFA…',
-  mfaAccount: 'MFA account',
   backToLicense: 'Back to license',
   backToAdministrator: 'Back to administrator setup',
   submit: 'Install ZeroPress Studio',

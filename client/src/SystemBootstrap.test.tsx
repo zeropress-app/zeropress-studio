@@ -631,7 +631,9 @@ describe('SystemBootstrap', () => {
         data: {
           method: 'totp',
           secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-          otpauth_uri: 'otpauth://totp/ZeroPress%20Studio%3Aowner%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+          issuer: 'studio.example.com · Studio',
+          account_name: 'owner@example.com',
+          otpauth_uri: 'otpauth://totp/studio.example.com%20%C2%B7%20Studio%3Aowner%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=studio.example.com%20%C2%B7%20Studio&algorithm=SHA1&digits=6&period=30',
           enrollment_token: 'e'.repeat(64),
           expires_at_iso: '2026-07-30T12:15:00.000Z',
         },
@@ -692,15 +694,16 @@ describe('SystemBootstrap', () => {
     expect(
       await screen.findByLabelText('Current 6-digit authenticator code'),
     ).toBeInTheDocument();
-    const mfaAccount = screen.getByText('MFA account')
+    const mfaAccount = screen.getByText('Service name')
       .closest('.auth-enrollment-account');
     expect(mfaAccount?.tagName).toBe('DL');
     expect(within(mfaAccount as HTMLElement).getByText('owner@example.com'))
       .toBeInTheDocument();
+    expect(within(mfaAccount as HTMLElement).getByText('studio.example.com · Studio'))
+      .toBeInTheDocument();
     expect(mfaAccount?.parentElement).toHaveClass('auth-enrollment-details');
     expect(mfaAccount?.parentElement?.querySelector('.auth-manual-key'))
       .not.toBeNull();
-    expect(document.querySelector('.setup-account-summary')).toBeNull();
     expect(screen.getByRole('button', { name: 'Back to administrator setup' }))
       .toHaveClass('studio-button-lg');
     expect(screen.getByRole('button', { name: 'Back to administrator setup' })

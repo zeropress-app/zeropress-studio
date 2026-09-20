@@ -2281,7 +2281,9 @@ describe('Maintenance and Recovery dashboard', () => {
         data: {
           method: 'totp',
           secret: 'ABCDEFGHIJKLMNOP234567ABCDEFGHIJ',
-          otpauth_uri: 'otpauth://totp/ZeroPress%20Studio%3Anew-owner%40example.com?secret=ABCDEFGHIJKLMNOP234567ABCDEFGHIJ&issuer=ZeroPress+Studio&algorithm=SHA1&digits=6&period=30',
+          issuer: 'Margin · Studio',
+          account_name: 'new-owner@example.com',
+          otpauth_uri: 'otpauth://totp/Margin%20%C2%B7%20Studio%3Anew-owner%40example.com?secret=ABCDEFGHIJKLMNOP234567ABCDEFGHIJ&issuer=Margin%20%C2%B7%20Studio&algorithm=SHA1&digits=6&period=30',
           enrollment_token: 'a'.repeat(64),
           expires_at_iso: '2026-08-13T01:00:00.000Z',
         },

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { mfaEnrollmentSetupDataSchema } from '../../../contracts/mfa';
 import {
   createMfaManagementGrant,
   createMfaContinuation,
@@ -70,12 +71,13 @@ describe('Studio MFA cryptography', () => {
       authSecret,
       subject: { type: 'install', id: 'owner@example.com' },
       accountName: 'owner@example.com',
+      issuer: 'studio.example.com · Studio',
       now,
     });
 
     expect(setup.secret).toMatch(/^[A-Z2-7]{32}$/u);
     expect(setup.otpauth_uri).toContain(
-      'otpauth://totp/ZeroPress%20Studio%3Aowner%40example.com',
+      'otpauth://totp/studio.example.com%20%C2%B7%20Studio%3Aowner%40example.com',
     );
     expect(setup.enrollment_token).not.toContain(setup.secret);
 
@@ -118,6 +120,7 @@ describe('Studio MFA cryptography', () => {
         authRevision,
       },
       accountName: 'author@example.com',
+      issuer: 'Margin · Studio',
       now,
     });
 
@@ -132,6 +135,38 @@ describe('Studio MFA cryptography', () => {
       setup_nonce: 'b'.repeat(32),
       auth_revision: authRevision,
     });
+  });
+
+  it('encodes matching issuer and account metadata for scanning and manual setup', async () => {
+    const issuer = 'Margin + Notes & Ideas · Studio';
+    const accountName = 'owner+studio@example.com';
+    const setup = await createMfaEnrollment({
+      authSecret,
+      subject: { type: 'user', id: userId },
+      issuer,
+      accountName,
+    });
+    expect(mfaEnrollmentSetupDataSchema.parse(setup)).toMatchObject({
+      issuer,
+      account_name: accountName,
+    });
+    const uri = new URL(setup.otpauth_uri);
+    expect(decodeURIComponent(uri.pathname.slice(1)))
+      .toBe(`${issuer}:${accountName}`);
+    expect(Object.fromEntries(uri.searchParams)).toEqual({
+      secret: setup.secret,
+      issuer,
+      algorithm: 'SHA1',
+      digits: '6',
+      period: '30',
+    });
+    expect(uri.search).toContain(`issuer=${encodeURIComponent(issuer)}`);
+    const now = new Date('2026-09-20T12:00:00.000Z');
+    await expect(verifyTotpCode({
+      secret: setup.secret,
+      code: await createTotpCode({ secret: uri.searchParams.get('secret')!, now }),
+      now,
+    })).resolves.toBe(Math.floor(now.getTime() / 30_000));
   });
 
   it('binds short-lived continuations to purpose, user, revision, and expiry', async () => {

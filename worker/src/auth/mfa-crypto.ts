@@ -248,6 +248,7 @@ export async function createMfaEnrollment(input: {
       authRevision: string;
     };
   accountName: string;
+  issuer: string;
   now?: Date;
 }): Promise<MfaEnrollmentSetupData> {
   const now = input.now ?? new Date();
@@ -270,7 +271,7 @@ export async function createMfaEnrollment(input: {
     totp_secret: totpSecret,
     expires_at_ms: expiresAt.getTime(),
   } as const;
-  const issuer = 'ZeroPress Studio';
+  const issuer = input.issuer;
   const label = `${issuer}:${input.accountName}`;
   const query = new URLSearchParams({
     secret: totpSecret,
@@ -278,10 +279,12 @@ export async function createMfaEnrollment(input: {
     algorithm: 'SHA1',
     digits: String(TOTP_DIGITS),
     period: String(TOTP_PERIOD_SECONDS),
-  });
+  }).toString().replaceAll('+', '%20');
 
   return {
     method: 'totp',
+    issuer,
+    account_name: input.accountName,
     secret: totpSecret,
     otpauth_uri: `otpauth://totp/${encodeURIComponent(label)}?${query}`,
     enrollment_token: await sealJson(

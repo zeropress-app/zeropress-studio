@@ -272,7 +272,6 @@ export const operations = {
       backupAcknowledgementHint: '새 계정은 기존 데이터베이스에 추가됩니다. 이 확인 항목이 백업을 자동 생성하지는 않습니다.',
       continueToMfa: '필수 MFA 설정으로 계속',
       preparingMfa: 'MFA 준비 중…',
-      mfaAccount: 'MFA 계정',
       review: '관리자 생성 내용 검토',
       confirmTitle: '최종 관리자 생성 확인',
       confirmDescription: '{{email}} 이메일로 새 관리자 계정을 생성하며 아래 동작을 수행합니다.',

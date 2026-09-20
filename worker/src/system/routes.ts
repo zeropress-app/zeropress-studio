@@ -23,6 +23,7 @@ import {
   openMfaEnrollment,
   verifyMfaEnrollmentProof,
 } from '../auth/mfa-crypto';
+import { resolveMfaIssuer } from '../auth/mfa-issuer';
 import {
   readBearerToken,
   secretTokensMatch,
@@ -268,6 +269,7 @@ export function createSystemRoutes(dependencies: {
     let enrollment;
     try {
       enrollment = await createMfaEnrollment({
+        issuer: resolveMfaIssuer({ requestUrl: c.req.url }),
         authSecret: c.env.STUDIO_AUTH_SECRET,
         subject: {
           type: 'install',

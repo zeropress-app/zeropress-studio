@@ -18,6 +18,7 @@ import {
   openMfaEnrollment,
   verifyMfaEnrollmentProof,
 } from '../auth/mfa-crypto';
+import { readMfaIssuer } from '../auth/mfa-issuer';
 import { hashPassword } from '../auth/password';
 import { isSameOriginMutation } from '../auth/session-http';
 import { errorResponse } from '../lib/http';
@@ -193,6 +194,7 @@ export function createAccountSetupRoutes(
     let enrollment;
     try {
       enrollment = await createMfaEnrollment({
+        issuer: await readMfaIssuer({ db: c.env.DB, requestUrl: c.req.url }),
         authSecret,
         subject: {
           type: 'account_setup',

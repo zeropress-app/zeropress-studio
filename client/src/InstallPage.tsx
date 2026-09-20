@@ -529,10 +529,6 @@ export function InstallPage({
             <MfaEnrollmentPanel
               enrollment={mfaEnrollment}
               totpCode={totpCode}
-              account={{
-                label: t('mfaAccount'),
-                value: pendingAdministrator.admin_email,
-              }}
               disabled={submitting}
               onTotpCodeChange={setTotpCode}
             />

@@ -56,6 +56,7 @@ import {
   openMfaEnrollment,
   verifyMfaEnrollmentProof,
 } from '../auth/mfa-crypto';
+import { readMfaIssuer } from '../auth/mfa-issuer';
 import { resolveSiteMode } from '../system/site-mode';
 import { resolveSystemStatus } from '../system/resolve-system-status';
 import {
@@ -3467,6 +3468,7 @@ export function createOperationsRoutes(
     let enrollment;
     try {
       enrollment = await createMfaEnrollment({
+        issuer: await readMfaIssuer({ db: c.env.DB, requestUrl: c.req.url }),
         authSecret: c.env.STUDIO_AUTH_SECRET,
         subject: {
           type: 'recovery_bootstrap',

@@ -95,6 +95,11 @@ test('installs Studio through token, administrator, and MFA steps', async ({
   })).toBeVisible();
   await expect(page.getByText(setupPayload.data.secret, { exact: true }))
     .toBeVisible();
+  const enrollment = page.locator('.auth-enrollment-account');
+  await expect(enrollment).toContainText(`${new URL(page.url()).hostname} · Studio`);
+  await expect(enrollment).toContainText(studioRuntime.credentials.admin.email);
+  await expect(page.getByRole('img', { name: 'Authenticator setup QR code' }))
+    .toBeVisible();
   await page.getByLabel('Current 6-digit authenticator code')
     .fill(createTotpCode(setupPayload.data.secret));
 

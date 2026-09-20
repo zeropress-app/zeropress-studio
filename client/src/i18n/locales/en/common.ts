@@ -44,6 +44,8 @@ export const common = {
     authenticatorDescription: 'Scan the QR code with an authenticator app, or enter the setup key manually.',
     qrAlt: 'Authenticator setup QR code',
     qrUnavailable: 'The QR code could not be generated. Use the manual setup key.',
+    serviceName: 'Service name',
+    account: 'Account',
     manualKey: 'Manual setup key',
     manualKeyHint: 'Keep this key private. It grants access to future verification codes.',
     totpCode: 'Current 6-digit authenticator code',

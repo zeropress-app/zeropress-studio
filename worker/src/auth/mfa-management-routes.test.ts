@@ -653,7 +653,10 @@ describe('MFA management routes', () => {
       revokedSessions: 2,
     });
     const routes = createMfaManagementRoutes({
-      resolveSession: vi.fn().mockResolvedValue(resolvedSession),
+      resolveSession: vi.fn().mockResolvedValue({
+        ...resolvedSession,
+        siteTitle: 'Editorial Magazine',
+      }),
       verifyPassword: vi.fn().mockResolvedValue(true),
       replaceTotp,
       now: () => now,
@@ -685,6 +688,10 @@ describe('MFA management routes', () => {
         enrollment_token: string;
       };
     };
+    expect(setup.data).toMatchObject({
+      issuer: 'Editorial Magazine · Studio',
+      account_name: 'owner@example.com',
+    });
 
     const response = await routes.fetch(
       mutationRequest('/totp/complete', {

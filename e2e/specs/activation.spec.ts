@@ -96,6 +96,11 @@ test('activates an invited account without persisting its bearer token', async (
 
   await expect(page.getByText(setup.data.secret, { exact: true }))
     .toBeVisible();
+  const enrollment = page.locator('.auth-enrollment-account');
+  await expect(enrollment).toContainText(`${new URL(page.url()).hostname} · Studio`);
+  await expect(enrollment).toContainText(invitation.email);
+  await expect(page.getByRole('img', { name: 'Authenticator setup QR code' }))
+    .toBeVisible();
   await expect(page.getByText('MFA setup').locator('..'))
     .toHaveAttribute('aria-current', 'step');
   await page.getByLabel('Current 6-digit authenticator code')

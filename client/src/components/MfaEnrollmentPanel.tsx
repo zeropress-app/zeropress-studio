@@ -7,10 +7,6 @@ import { Field, StudioIcon } from './primitives';
 export function MfaEnrollmentPanel(input: {
   enrollment: MfaEnrollmentSetupData;
   totpCode: string;
-  account?: {
-    label: string;
-    value: string;
-  };
   disabled?: boolean;
   headingLevel?: 'h2' | 'h3';
   onTotpCodeChange: (value: string) => void;
@@ -58,12 +54,12 @@ export function MfaEnrollmentPanel(input: {
             )}
           </div>
           <div className="auth-enrollment-details">
-            {input.account ? (
-              <dl className="auth-enrollment-account">
-                <dt>{input.account.label}</dt>
-                <dd>{input.account.value}</dd>
-              </dl>
-            ) : null}
+            <dl className="auth-enrollment-account">
+              <dt>{t('mfa.serviceName')}</dt>
+              <dd>{input.enrollment.issuer}</dd>
+              <dt>{t('mfa.account')}</dt>
+              <dd>{input.enrollment.account_name}</dd>
+            </dl>
             <div className="auth-manual-key">
               <span>{t('mfa.manualKey')}</span>
               <code>{input.enrollment.secret}</code>

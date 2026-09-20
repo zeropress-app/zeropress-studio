@@ -468,10 +468,6 @@ export function RecoveryAdministratorBootstrap(input: {
           onSubmit={reviewBootstrap}
           noValidate
         >
-          <p className="setup-account-summary">
-            <span>{t('recovery.bootstrap.mfaAccount')}</span>
-            <strong className="setup-account-summary-value">{email}</strong>
-          </p>
           <MfaEnrollmentPanel
             enrollment={enrollment}
             totpCode={totpCode}

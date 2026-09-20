@@ -2708,6 +2708,10 @@ describe('Maintenance and Recovery routes', () => {
         enrollment_token: string;
       };
     };
+    expect(setup.data).toMatchObject({
+      issuer: 'studio.local · Studio',
+      account_name: 'new-owner@example.com',
+    });
     const totpCode = await createTotpCode({ secret: setup.data.secret });
 
     const response = await app.fetch(request(

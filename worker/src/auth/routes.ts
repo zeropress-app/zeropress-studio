@@ -40,6 +40,7 @@ import {
   openMfaEnrollment,
   verifyMfaEnrollmentProof,
 } from './mfa-crypto';
+import { readMfaIssuer } from './mfa-issuer';
 import {
   completeMfaEnrollment,
   getMfaEnrollmentAccount,
@@ -334,6 +335,7 @@ export function createAuthRoutes(
     let enrollment: Awaited<ReturnType<typeof createMfaEnrollment>>;
     try {
       enrollment = await createMfaEnrollment({
+        issuer: await readMfaIssuer({ db: c.env.DB, requestUrl: c.req.url }),
         authSecret,
         subject: { type: 'user', id: continuation.userId },
         accountName: account.email,

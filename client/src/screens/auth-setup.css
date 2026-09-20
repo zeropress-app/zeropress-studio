@@ -331,30 +331,7 @@
   line-height: 1.55;
 }
 
-/* Account summary and activation target. */
-
-.setup-account-summary {
-  display: flex;
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 12px 15px;
-  border: 1px solid var(--studio-border);
-  border-radius: var(--studio-radius-md);
-  background: var(--studio-surface-subtle);
-  color: var(--studio-text-muted);
-  font-size: 0.75rem;
-}
-
-.setup-account-summary-value {
-  overflow: hidden;
-  color: var(--studio-text);
-  font-size: 0.8125rem;
-  font-weight: var(--studio-weight-semibold);
-  text-overflow: ellipsis;
-}
+/* Activation target. */
 
 .setup-activation-stage {
   display: flex;
@@ -473,8 +450,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .setup-field-wide,
-  .setup-account-summary {
+  .setup-field-wide {
     grid-column: auto;
   }
 

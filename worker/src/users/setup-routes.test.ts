@@ -101,6 +101,10 @@ describe('User account setup routes', () => {
         enrollment_token: string;
       };
     };
+    expect(setup.data).toMatchObject({
+      issuer: 'studio.local · Studio',
+      account_name: 'author@example.com',
+    });
     expect(prepareSetup).toHaveBeenCalledWith(expect.objectContaining({
       setupTokenId: material.id,
       secretDigest: parsedToken?.secretDigest,

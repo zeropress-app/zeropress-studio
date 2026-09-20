@@ -237,6 +237,9 @@ describe('MFA authentication routes', () => {
     let enrollmentWrites = 0;
     const database = {
       prepare(sql: string) {
+        if (sql.includes('FROM site_settings')) {
+          return dynamicStatement({ first: () => ({ value: 'Editorial Magazine' }) });
+        }
         if (sql.includes('factor_count')) {
           return dynamicStatement({
             first: () => ({
@@ -285,6 +288,10 @@ describe('MFA authentication routes', () => {
         enrollment_token: string;
       };
     };
+    expect(setupBody.data).toMatchObject({
+      issuer: 'Editorial Magazine · Studio',
+      account_name: 'owner@example.com',
+    });
     const totpCode = await createTotpCode({
       secret: setupBody.data.secret,
     });

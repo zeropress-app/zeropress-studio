@@ -272,7 +272,6 @@ export const operations = {
       backupAcknowledgementHint: 'The new account is added to the existing database. This acknowledgement does not create a backup automatically.',
       continueToMfa: 'Continue to mandatory MFA',
       preparingMfa: 'Preparing MFA…',
-      mfaAccount: 'MFA account',
       review: 'Review administrator creation',
       confirmTitle: 'Final administrator creation confirmation',
       confirmDescription: 'A new administrator account for {{email}} will be created with the effects below.',

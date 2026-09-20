@@ -73,7 +73,9 @@ describe('MfaManagementPage', () => {
         data: {
           method: 'totp',
           secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-          otpauth_uri: 'otpauth://totp/ZeroPress%20Studio%3Aowner%40example.com?secret=JBSWY3DPEHPK3PXP',
+          issuer: 'Margin · Studio',
+          account_name: 'owner@example.com',
+          otpauth_uri: 'otpauth://totp/Margin%20%C2%B7%20Studio%3Aowner%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Margin%20%C2%B7%20Studio&algorithm=SHA1&digits=6&period=30',
           enrollment_token: 'e'.repeat(64),
           expires_at_iso: '2026-07-31T12:15:00.000Z',
         },
@@ -101,6 +103,8 @@ describe('MfaManagementPage', () => {
     expect(await screen.findByRole('heading', {
       name: 'Register the replacement authenticator',
     })).toBeInTheDocument();
+    expect(screen.getByText('Margin · Studio')).toBeInTheDocument();
+    expect(screen.getByText('owner@example.com')).toBeInTheDocument();
     expect(screen.getByText('JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'))
       .toBeInTheDocument();
   });

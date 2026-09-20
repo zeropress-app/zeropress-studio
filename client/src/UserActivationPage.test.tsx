@@ -54,7 +54,9 @@ describe('UserActivationPage', () => {
         data: {
           method: 'totp',
           secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-          otpauth_uri: 'otpauth://totp/ZeroPress%20Studio%3Aauthor%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=ZeroPress%20Studio',
+          issuer: 'Margin · Studio',
+          account_name: 'author@example.com',
+          otpauth_uri: 'otpauth://totp/Margin%20%C2%B7%20Studio%3Aauthor%40example.com?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Margin%20%C2%B7%20Studio&algorithm=SHA1&digits=6&period=30',
           enrollment_token: 'e'.repeat(64),
           expires_at_iso: '2026-07-31T12:10:00.000Z',
         },
