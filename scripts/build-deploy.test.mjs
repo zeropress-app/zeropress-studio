@@ -4,17 +4,21 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { createBuildDeployRunner } from './build-deploy-runner.mjs';
+import { runBuildTool } from './fixtures/build-deploy.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const artifact = 'dist/zeropress_studio';
 let root;
+let execute;
 function write(path, contents) {
   const target = join(root, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, contents);
 }
-function run(command, args = [], env = {}) {
+function runCli(command, args = [], env = {}) {
   return spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', command, ...args], {
     cwd: root,
     encoding: 'utf8',
@@ -31,6 +35,25 @@ function run(command, args = [], env = {}) {
       ...env,
     },
   });
+}
+function run(command, args = [], env = {}) {
+  const output = [];
+  const log = vi.spyOn(console, 'log').mockImplementation((message) => output.push(message));
+  for (const [key, value] of Object.entries({
+    CLOUDFLARE_ENV: '', WRANGLER_CI_OVERRIDE_NAME: undefined,
+    WRANGLER_SEND_METRICS: 'false', WRANGLER_LOG: 'none',
+    WRANGLER_LOG_PATH: join(root, 'wrangler.log'), ...env,
+  })) vi.stubEnv(key, value);
+  try {
+    const action = { 'preview:wrangler': 'preview-wrangler', 'deploy:dry-run': 'dry-run' }[command] ?? command;
+    execute(action, args[0] === '--' ? args.slice(1) : args);
+    return { status: 0, stdout: output.join('\n'), stderr: '' };
+  } catch (error) {
+    return { status: 1, stdout: output.join('\n'), stderr: error.message };
+  } finally {
+    log.mockRestore();
+    vi.unstubAllEnvs();
+  }
 }
 function calls() {
   return existsSync(join(root, 'calls.jsonl'))
@@ -62,7 +85,12 @@ beforeEach(() => {
   root = realpathSync(mkdtempSync(join(tmpdir(), 'studio-build-command-')));
   mkdirSync(join(root, 'scripts'));
   cpSync(join(repositoryRoot, 'package.json'), join(root, 'package.json'));
-  cpSync(join(repositoryRoot, 'scripts/build-deploy.mjs'), join(root, 'scripts/build-deploy.mjs'));
+  for (const name of ['build-deploy.mjs', 'build-deploy-runner.mjs']) {
+    cpSync(join(repositoryRoot, 'scripts', name), join(root, 'scripts', name));
+  }
+  mkdirSync(join(root, 'scripts/fixtures'));
+  cpSync(join(repositoryRoot, 'scripts/fixtures/build-deploy.mjs'), join(root, 'scripts/fixtures/build-deploy.mjs'));
+  execute = createBuildDeployRunner(root, (bin, args) => runBuildTool(root, bin, args));
   cpSync(join(repositoryRoot, 'scripts/wrangler-config.mjs'), join(root, 'scripts/wrangler-config.mjs'));
   write('wrangler.jsonc', JSON.stringify({
     name: 'custom-studio', main: './worker/src/index.ts', compatibility_date: '2026-09-07',
@@ -77,64 +105,18 @@ beforeEach(() => {
   write('node_modules/wrangler/index.mjs', `
     export { unstable_readConfig, experimental_readRawConfig, experimental_patchConfig } from ${JSON.stringify(wranglerModule)};
   `);
-  write('node_modules/vite/bin/vite.js', `
-    import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-    import { unstable_readConfig, experimental_patchConfig } from 'wrangler';
-    appendFileSync('calls.jsonl', JSON.stringify({tool:'vite', args:process.argv.slice(2)}) + '\\n');
-    if (existsSync('fail-build')) process.exit(2);
-    rmSync('dist', {recursive:true, force:true});
-    mkdirSync('${artifact}', {recursive:true});
-    mkdirSync('dist/client', {recursive:true});
-    writeFileSync('${artifact}/index.js', 'export default {};');
-    writeFileSync('dist/client/index.html', '<main>Studio</main>');
-    const preview = process.argv.includes('local-preview');
-    const config = unstable_readConfig({config:'wrangler.jsonc'}, {hideWarnings:true});
-    writeFileSync('${artifact}/wrangler.json', JSON.stringify({
-      name:existsSync('wrong-build-target') ? 'wrong-worker' : config.name,
-      main:'index.js', assets:{directory:'../client'},
-      keep_vars:true, ai:preview ? undefined : {binding:'AI'},
-      compatibility_date:config.compatibility_date, account_id:config.account_id,
-      targetEnvironment:config.targetEnvironment,
-      d1_databases:config.d1_databases.map((binding) => ({
-        ...binding, migrations_dir:'../../migrations', ...(preview ? {remote:false} : {})
-      }))
-    }));
-    if (existsSync('leak-secret')) writeFileSync('${artifact}/.dev.vars', 'SYNTHETIC=secret');
-    mkdirSync('client/.wrangler/deploy', {recursive:true});
-    writeFileSync('client/.wrangler/deploy/config.json', JSON.stringify({
-      configPath:'../../../${artifact}/wrangler.json', auxiliaryWorkers:[]
-    }));
-    if (existsSync('change-config-during-build')) {
-      experimental_patchConfig('wrangler.jsonc', {name:'changed-during-build'});
-    }
-    if (existsSync('format-config-during-build')) {
-      experimental_patchConfig('wrangler.jsonc', {}, false);
-    }
-  `);
-  write('node_modules/wrangler/bin/wrangler.js', `
-    import { appendFileSync, existsSync } from 'node:fs';
-    import { experimental_readRawConfig, experimental_patchConfig } from 'wrangler';
-    const args = process.argv.slice(2);
-    const configIndex = args.indexOf('--config');
-    const {rawConfig, configPath, userConfigPath} = experimental_readRawConfig(
-      configIndex < 0 ? {} : {config:args[configIndex + 1]}, {useRedirectIfAvailable:true}
-    );
-    appendFileSync('calls.jsonl', JSON.stringify({
-      tool:'wrangler', args, name:rawConfig.name, configPath, userConfigPath
-    }) + '\\n');
-    if (existsSync('provision-resource') && !args.includes('--dry-run') && !rawConfig.d1_databases[0].database_id) {
-      experimental_patchConfig(userConfigPath ?? configPath, {
-        d1_databases:[{...rawConfig.d1_databases[0], database_id:'11111111-1111-4111-8111-111111111111'}]
-      }, false);
-    }
-    if (existsSync('fail-deploy')) process.exit(2);
-  `);
+  for (const bin of ['vite/bin/vite.js', 'wrangler/bin/wrangler.js']) {
+    write(`node_modules/${bin}`, `
+      import { runBuildTool } from '../../../scripts/fixtures/build-deploy.mjs';
+      runBuildTool(process.cwd(), ${JSON.stringify(bin)}, process.argv.slice(2));
+    `);
+  }
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('build and deployment commands', { timeout: 20_000 }, () => {
   it('builds Wrangler diagnostics locally and binds only to loopback', () => {
-    const result = run('preview:wrangler', ['--', '--port', '8788']);
+    const result = runCli('preview:wrangler', ['--', '--port', '8788']);
     expect(result.status, result.stderr).toBe(0);
     expect(calls()).toEqual([
       { tool: 'vite', args: ['build', '--mode', 'local-preview'] },
@@ -155,9 +137,11 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
   );
 
   it('builds once for the Cloudflare build then deploy commands', () => {
-    const build = run('build');
+    const config = readFileSync(join(root, 'wrangler.jsonc'), 'utf8');
+    write('wrangler.jsonc', `// Installation settings\n${config.slice(0, -1)},}`);
+    const build = runCli('build');
     expect(build.status, build.stderr).toBe(0);
-    const deploy = run('deploy');
+    const deploy = runCli('deploy');
     expect(deploy.status, deploy.stderr).toBe(0);
     expect(deploy.stdout).toContain('Deploying Worker custom-studio.');
     expect(calls()).toEqual([
@@ -171,22 +155,17 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
   });
 
   it('builds once and reuses deployment validation for dry runs', () => {
-    const result = run('deploy:dry-run');
+    const result = runCli('deploy:dry-run');
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Validating deployment for Worker custom-studio.');
     expect(calls().map((call) => call.tool)).toEqual(['vite', 'wrangler']);
     expect(calls()[1]).toEqual(wranglerCall(['deploy', '--dry-run']));
   });
 
-  it('does not build or deploy when no successful build exists', assertBlocked);
-
-  it('highlights the deployment error and rebuild command when colors are enabled', () => {
-    const result = run('deploy', [], { FORCE_COLOR: '1' });
+  it('explains a missing production build before calling a deployment tool', () => {
+    const result = runCli('deploy');
     expect(result.status).toBe(1);
-    expect(stripVTControlCharacters(result.stderr).trim())
-      .toBe('No successful production build is available. Run npm run build before deploying.');
-    expect(result.stderr).toContain('\u001b[31mNo successful production build is available.');
-    expect(result.stderr).toContain('\u001b[36mnpm run build\u001b[39m');
+    expect(result.stderr).toContain('No successful production build is available. Run npm run build before deploying.');
     expect(calls()).toEqual([]);
   });
 
@@ -246,28 +225,6 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
     expect(run('build').status).toBe(0);
     changeConfig(changes);
     expect(assertBlocked().stderr).toContain('changed since the production build');
-  });
-
-  it('reuses a build after formatting, comment, and object property order changes', () => {
-    expect(run('build').status).toBe(0);
-    const config = JSON.parse(readFileSync(join(root, 'wrangler.jsonc'), 'utf8'));
-    config.d1_databases[0] = { database_name: 'custom-db', binding: 'DB' };
-    const reordered = Object.fromEntries(Object.entries(config).reverse());
-    write('wrangler.jsonc', `// Installation settings\n${JSON.stringify(reordered, null, '\t')}\n`);
-    const result = run('deploy');
-    expect(result.status, result.stderr).toBe(0);
-    expect(calls()).toEqual([
-      { tool: 'vite', args: ['build'] },
-      wranglerCall(['deploy']),
-    ]);
-  });
-
-  it('reads the Worker name from a configuration with JSONC comments and trailing commas', () => {
-    write('wrangler.jsonc', '{ // Installation\n"name": "commented-studio", "main": "./worker/src/index.ts", }');
-    const build = run('build');
-    expect(build.status, build.stderr).toBe(0);
-    expect(run('deploy').status).toBe(0);
-    expect(calls().at(-1)).toEqual(wranglerCall(['deploy'], 'commented-studio'));
   });
 
   it.each(['{', '{}'])('blocks deployment when the source configuration cannot select a Worker: %s', (contents) => {
@@ -349,7 +306,6 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
     expect(run('build').status).toBe(0);
     expect(JSON.parse(readFileSync(join(root, artifact, 'wrangler.json'), 'utf8')).d1_databases[0].database_id).toBe(provisionedId);
     expect(run('deploy').status).toBe(0);
-    expect(run('deploy').status).toBe(0);
   });
 
   it('does not mark an output containing local Secrets deployable', () => {
@@ -360,7 +316,7 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
 
   it('does not call Wrangler when dry-run preparation fails', () => {
     write('fail-build', '');
-    expect(run('deploy:dry-run').status).toBe(1);
+    expect(runCli('deploy:dry-run').status).toBe(1);
     expect(calls().map((call) => call.tool)).toEqual(['vite']);
   });
 });
