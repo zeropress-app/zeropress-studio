@@ -1,11 +1,9 @@
 # ZeroPress Studio
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/zeropress-app/zeropress-studio/tree/latest)
+
 Self-hosted content management and publishing control for ZeroPress, built for
 Cloudflare Workers.
-
-> [!IMPORTANT]
-> ZeroPress Studio is beta software. Review release notes, database changes,
-> and deployment guidance before updating an installation.
 
 ZeroPress Studio brings content, media, site configuration, user access, and
 operational tools together in one private administration application. It
@@ -40,21 +38,20 @@ Newsletters.
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
   administrator["Administrator browser"] --> studio["ZeroPress Studio Worker<br/>React SPA + Hono API"]
+
+  studio --> preview["Preview Data"]
+  preview --> build["@zeropress/build<br/>+ theme"]
+  build --> site["Static public site"]
+  site -. optional public features .-> edge["ZeroPress Edge Worker"]
+  edge --> edgeData["Edge D1 / KV / Queue"]
 
   studio --> studioDb[(Studio D1)]
   studio --> studioKv[(Studio KV)]
   studio --> media[(Media R2)]
   studio --> ai[Workers AI]
-
-  studio --> preview["Preview Data"]
-  preview --> build["@zeropress/build + theme"]
-  build --> site["Static public site"]
-
-  studio --> edgeData["Edge D1 / KV / Queue"]
-  site -. optional public features .-> edge["ZeroPress Edge Worker"]
-  edge --> edgeData
+  studio --> edgeData
 ```
 
 ## Requirements
