@@ -188,7 +188,12 @@ export const wxrImport = {
     description: '콘텐츠를 {{chunks}}단계로 가져온 뒤 선택한 사이트 설정과 주소 구조를 적용합니다. 완료될 때까지 이 페이지를 열어 두세요.',
     label: '범위, 사이트 설정과 고유주소 구조를 검토했으며 일치하는 기존 가져오기 콘텐츠, 메뉴, 댓글과 선택한 설정이 갱신될 수 있음을 이해했습니다.',
   },
+  stopped: {
+    title: 'WordPress 가져오기 중단',
+    description: '저장된 항목은 유지됩니다. 사이트 설정은 적용하지 않았습니다.',
+  },
   progress: {
+    stoppingDescription: '현재 묶음 처리가 끝나면 중단합니다.',
     label: 'WordPress 가져오기 진행률',
     title: 'WordPress 데이터를 가져오는 중',
     description: '{{phase}} · {{total}}단계 중 {{completed}}단계 완료',
@@ -222,11 +227,14 @@ export const wxrImport = {
     REVISION_CONFLICT: '가져오기가 갱신하는 동안 레코드가 변경되었습니다.',
   },
   actions: {
+    stop: '가져오기 중단',
+    stopping: '중단 중…',
     import: 'WordPress 데이터 가져오기',
     retry: '사전 점검으로 돌아가기',
     reviewAgain: '검토 후 다시 실행',
   },
   errors: {
+    sessionExpired: '세션이 만료되었습니다. 다시 로그인한 뒤 가져오기를 검토하고 재실행하세요.',
     title: 'Studio가 가져오기를 준비하지 못했습니다',
     interrupted: '가져오기가 중단되었습니다',
     forbidden: '현재 계정은 가져오기를 관리할 수 없습니다.',

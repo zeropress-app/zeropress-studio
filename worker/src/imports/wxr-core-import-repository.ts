@@ -109,187 +109,252 @@ function sameStrings(left: readonly string[], right: readonly string[]) {
     && left.every((value, index) => value === right[index]);
 }
 
-async function importAuthor(input: {
-  db: D1Database;
-  row: WxrImportAuthorRow;
-  nowIso: string;
-  createRevision?: () => string;
-}): Promise<RowResult> {
-  let current: { display_name: unknown } | null;
-  try {
-    current = await input.db.prepare(`
-      SELECT display_name FROM authors WHERE id = ? LIMIT 1
-    `).bind(input.row.id).first<{ display_name: unknown }>();
-  } catch (error) {
-    throw queryFailure(error, 'read_wxr_author');
+type MetadataRequest = Extract<WxrCoreImportChunkRequest, {
+  phase: 'authors' | 'categories' | 'tags' | 'media';
+}>;
+
+type PreparedImportRow = RowResult | {
+  kind: 'write';
+  statements: D1PreparedStatement[];
+  summarize: (results: D1Result<unknown>[]) => RowResult;
+};
+
+type ImportedAuthorState = { id: string; display_name: string };
+type ImportedTermState = { slug: string; name: string; description: string };
+type ImportedMediaState = {
+  id: string;
+  external_id: number | null;
+  kind: string;
+  filename: string;
+  mime_type: string;
+  storage_type: string;
+  storage_key: string | null;
+  external_url: string | null;
+  size_bytes: number | null;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  alt: string;
+  revision: string;
+};
+
+const IN_QUERY_MAX_PARAMETERS = 100;
+
+function selectIn(
+  db: D1Database,
+  query: string,
+  values: readonly (string | number)[],
+): D1PreparedStatement[] {
+  const uniqueValues = [...new Set(values)];
+  const statements = [];
+  for (let offset = 0; offset < uniqueValues.length; offset += IN_QUERY_MAX_PARAMETERS) {
+    const chunk = uniqueValues.slice(offset, offset + IN_QUERY_MAX_PARAMETERS);
+    statements.push(db.prepare(`${query} IN (${chunk.map(() => '?').join(', ')})`)
+      .bind(...chunk));
   }
-  if (current && current.display_name === input.row.display_name) {
-    return { kind: 'unchanged' };
-  }
+  return statements;
+}
+
+async function readMetadata<T>(
+  db: D1Database,
+  statements: D1PreparedStatement[],
+  action: string,
+): Promise<T[]> {
   try {
-    if (!current) {
-      const result = await input.db.prepare(`
-        INSERT OR IGNORE INTO authors (
-          id, user_id, display_name, revision, created_at_iso, updated_at_iso
-        ) VALUES (?, NULL, ?, ?, ?, ?)
-      `).bind(
-        input.row.id,
-        input.row.display_name,
-        createRevision(input.createRevision),
-        input.nowIso,
-        input.nowIso,
-      ).run();
-      if (readChanges(result) === 1) return { kind: 'created' };
-    }
-    const result = await input.db.prepare(`
-      UPDATE authors
-      SET display_name = ?, revision = ?, updated_at_iso = ?
-      WHERE id = ? AND display_name != ?
-    `).bind(
-      input.row.display_name,
-      createRevision(input.createRevision),
-      input.nowIso,
-      input.row.id,
-      input.row.display_name,
-    ).run();
-    return { kind: readChanges(result) === 1 ? 'updated' : 'unchanged' };
+    const results = await db.batch<T>(statements);
+    return results.flatMap((result) => result.results ?? []);
   } catch (error) {
-    throw writeFailure(error, 'upsert_wxr_author');
+    throw queryFailure(error, action);
   }
 }
 
-async function importTaxonomy(input: {
+function isMediaIdentityConflict(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:idx_media_(?:external_id|external_url|storage_key)_unique|unique constraint failed:\s*media\.(?:external_id|external_url|storage_key))/iu.test(message);
+}
+
+async function writeMetadata(
+  db: D1Database,
+  rows: PreparedImportRow[],
+  action: string,
+): Promise<RowResult[]> {
+  const statements = rows.flatMap((row) => row.kind === 'write' ? row.statements : []);
+  if (statements.length === 0) return rows as RowResult[];
+  try {
+    const results = await db.batch(statements);
+    let offset = 0;
+    return rows.map((row) => {
+      if (row.kind !== 'write') return row;
+      const result = row.summarize(results.slice(offset, offset + row.statements.length));
+      offset += row.statements.length;
+      return result;
+    });
+  } catch (error) {
+    if (action !== 'upsert_wxr_media' || !isMediaIdentityConflict(error)) {
+      throw writeFailure(error, action);
+    }
+    // A constraint failure rolls back the whole D1 batch. Retry only this
+    // known rollback case, keeping revision guards and per-row conflicts.
+    const results: RowResult[] = [];
+    for (const row of rows) {
+      if (row.kind !== 'write') {
+        results.push(row);
+        continue;
+      }
+      try {
+        results.push(row.summarize(await db.batch(row.statements)));
+      } catch (rowError) {
+        if (!isMediaIdentityConflict(rowError)) throw writeFailure(rowError, action);
+        results.push({ kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' });
+      }
+    }
+    return results;
+  }
+}
+
+function prepareAuthor(input: {
+  db: D1Database;
+  row: WxrImportAuthorRow;
+  current: ImportedAuthorState | undefined;
+  nowIso: string;
+  createRevision?: () => string;
+}): PreparedImportRow {
+  if (input.current?.display_name === input.row.display_name) {
+    return { kind: 'unchanged' };
+  }
+  const statements = [];
+  if (!input.current) {
+    statements.push(input.db.prepare(`
+      INSERT OR IGNORE INTO authors (
+        id, user_id, display_name, revision, created_at_iso, updated_at_iso
+      ) VALUES (?, NULL, ?, ?, ?, ?)
+    `).bind(
+      input.row.id,
+      input.row.display_name,
+      createRevision(input.createRevision),
+      input.nowIso,
+      input.nowIso,
+    ));
+  }
+  // Also handles an author inserted concurrently after the chunk lookup.
+  statements.push(input.db.prepare(`
+    UPDATE authors
+    SET display_name = ?, revision = ?, updated_at_iso = ?
+    WHERE id = ? AND display_name != ?
+  `).bind(
+    input.row.display_name,
+    createRevision(input.createRevision),
+    input.nowIso,
+    input.row.id,
+    input.row.display_name,
+  ));
+  return {
+    kind: 'write',
+    statements,
+    summarize: (results) => ({
+      kind: !input.current && readChanges(results[0]) === 1
+        ? 'created'
+        : readChanges(results.at(-1)) === 1 ? 'updated' : 'unchanged',
+    }),
+  };
+}
+
+function prepareTaxonomy(input: {
   db: D1Database;
   table: 'categories' | 'tags';
   row: WxrImportCategoryRow | WxrImportTagRow;
+  current: ImportedTermState | undefined;
   nowIso: string;
   createId?: () => string;
   createRevision?: () => string;
-}): Promise<RowResult> {
-  let current: { id: unknown; name: unknown; description: unknown } | null;
-  try {
-    current = await input.db.prepare(`
-      SELECT id, name, description
-      FROM ${input.table}
-      WHERE slug = ?
-      LIMIT 1
-    `).bind(input.row.slug).first<{
-      id: unknown;
-      name: unknown;
-      description: unknown;
-    }>();
-  } catch (error) {
-    throw queryFailure(error, `read_wxr_${input.table}`);
-  }
+}): PreparedImportRow {
   if (
-    current
-    && current.name === input.row.name
-    && current.description === input.row.description
+    input.current?.name === input.row.name
+    && input.current.description === input.row.description
   ) return { kind: 'unchanged' };
-
-  try {
-    if (!current) {
-      const result = await input.db.prepare(`
-        INSERT OR IGNORE INTO ${input.table} (
-          id, name, slug, description, revision, created_at_iso, updated_at_iso
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        (input.createId ?? createHexId)(),
-        input.row.name,
-        input.row.slug,
-        input.row.description,
-        createRevision(input.createRevision),
-        input.nowIso,
-        input.nowIso,
-      ).run();
-      if (readChanges(result) === 1) return { kind: 'created' };
-    }
-    const result = await input.db.prepare(`
-      UPDATE ${input.table}
-      SET name = ?, description = ?, revision = ?, updated_at_iso = ?
-      WHERE slug = ? AND (name != ? OR description != ?)
+  const statements = [];
+  if (!input.current) {
+    statements.push(input.db.prepare(`
+      INSERT OR IGNORE INTO ${input.table} (
+        id, name, slug, description, revision, created_at_iso, updated_at_iso
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
+      (input.createId ?? createHexId)(),
       input.row.name,
+      input.row.slug,
       input.row.description,
       createRevision(input.createRevision),
       input.nowIso,
-      input.row.slug,
-      input.row.name,
-      input.row.description,
-    ).run();
-    return { kind: readChanges(result) === 1 ? 'updated' : 'unchanged' };
-  } catch (error) {
-    throw writeFailure(error, `upsert_wxr_${input.table}`);
+      input.nowIso,
+    ));
   }
+  statements.push(input.db.prepare(`
+    UPDATE ${input.table}
+    SET name = ?, description = ?, revision = ?, updated_at_iso = ?
+    WHERE slug = ? AND (name != ? OR description != ?)
+  `).bind(
+    input.row.name,
+    input.row.description,
+    createRevision(input.createRevision),
+    input.nowIso,
+    input.row.slug,
+    input.row.name,
+    input.row.description,
+  ));
+  return {
+    kind: 'write',
+    statements,
+    summarize: (results) => ({
+      kind: !input.current && readChanges(results[0]) === 1
+        ? 'created'
+        : readChanges(results.at(-1)) === 1 ? 'updated' : 'unchanged',
+    }),
+  };
 }
 
-async function importMedia(input: {
+async function readMedia(db: D1Database, rows: readonly WxrImportMediaRow[]) {
+  const select = `
+    SELECT id, external_id, kind, filename, mime_type, storage_type,
+      storage_key, external_url, size_bytes, width, height, duration_ms,
+      alt, revision
+    FROM media WHERE
+  `;
+  const matches = await readMetadata<ImportedMediaState>(db, [
+    ...selectIn(db, `${select} external_id`, rows.map((row) => row.external_id)),
+    ...selectIn(db, `${select} storage_type = 'external' AND external_url`,
+      rows.flatMap((row) => row.location.type === 'external' ? [row.location.url] : [])),
+    ...selectIn(db, `${select} storage_type = 'r2' AND storage_key`,
+      rows.flatMap((row) => row.location.type === 'r2' ? [row.location.key] : [])),
+  ], 'read_wxr_media');
+  return [...new Map(matches.map((row) => [row.id, row])).values()];
+}
+
+function mediaOwners(row: WxrImportMediaRow, current: readonly ImportedMediaState[]) {
+  return current.filter((value) => value.external_id === row.external_id
+    || (row.location.type === 'external'
+      ? value.storage_type === 'external' && value.external_url === row.location.url
+      : value.storage_type === 'r2' && value.storage_key === row.location.key));
+}
+
+function prepareMedia(input: {
   db: D1Database;
   row: WxrImportMediaRow;
+  owners: readonly ImportedMediaState[];
   nowIso: string;
   createId?: () => string;
   createRevision?: () => string;
-}): Promise<RowResult> {
-  type ImportedMediaState = {
-    id: unknown;
-    external_id: unknown;
-    kind: unknown;
-    filename: unknown;
-    mime_type: unknown;
-    storage_type: unknown;
-    storage_key: unknown;
-    external_url: unknown;
-    size_bytes: unknown;
-    width: unknown;
-    height: unknown;
-    duration_ms: unknown;
-    alt: unknown;
-    revision: unknown;
-  };
+}): PreparedImportRow {
   const storageType = input.row.location.type;
-  const storageKey = input.row.location.type === 'r2'
-    ? input.row.location.key
-    : null;
-  const externalUrl = input.row.location.type === 'external'
-    ? input.row.location.url
-    : null;
-  let identityOwner: ImportedMediaState | null = null;
-  let locationOwner: ImportedMediaState | null = null;
-  try {
-    const result = await input.db.prepare(`
-      SELECT id, external_id, kind, filename, mime_type, storage_type,
-        storage_key, external_url, size_bytes, width, height, duration_ms,
-        alt, revision
-      FROM media
-      WHERE external_id = ?
-         OR (storage_type = 'external' AND external_url = ?)
-         OR (storage_type = 'r2' AND storage_key = ?)
-      LIMIT 2
-    `).bind(
-      input.row.external_id,
-      externalUrl,
-      storageKey,
-    ).all<ImportedMediaState>();
-    const rows = result.results ?? [];
-    identityOwner = rows.find((row) => (
-      row.external_id === input.row.external_id
-    )) ?? null;
-    locationOwner = rows.find((row) => (
-      (row.storage_type === 'external' && row.external_url === externalUrl)
-      || (row.storage_type === 'r2' && row.storage_key === storageKey)
-    )) ?? null;
-  } catch (error) {
-    throw queryFailure(error, 'read_wxr_media');
-  }
+  const storageKey = input.row.location.type === 'r2' ? input.row.location.key : null;
+  const externalUrl = input.row.location.type === 'external' ? input.row.location.url : null;
+  const identityOwner = input.owners.find((row) => row.external_id === input.row.external_id);
+  const locationOwner = input.owners.find((row) => (
+    (row.storage_type === 'external' && row.external_url === externalUrl)
+    || (row.storage_type === 'r2' && row.storage_key === storageKey)
+  ));
   if (
-    identityOwner
-    && locationOwner
-    && identityOwner.id !== locationOwner.id
-  ) return { kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' };
-  if (
-    !identityOwner
-    && locationOwner
-    && locationOwner.external_id !== null
+    (identityOwner && locationOwner && identityOwner.id !== locationOwner.id)
+    || (!identityOwner && locationOwner && locationOwner.external_id !== null)
   ) return { kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' };
   const current = identityOwner ?? locationOwner;
   if (
@@ -308,47 +373,15 @@ async function importMedia(input: {
     && current.alt === input.row.alt
   ) return { kind: 'unchanged' };
 
-  try {
-    if (!current) {
-      const result = await input.db.prepare(`
-        INSERT OR IGNORE INTO media (
-          id, external_id, kind, filename, mime_type, storage_type, storage_key,
-          external_url, size_bytes, width, height, duration_ms, alt,
-          revision, created_at_iso, updated_at_iso
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        (input.createId ?? createHexId)(),
-        input.row.external_id,
-        input.row.kind,
-        input.row.filename,
-        input.row.mime_type,
-        storageType,
-        storageKey,
-        externalUrl,
-        input.row.size_bytes,
-        input.row.width,
-        input.row.height,
-        input.row.duration_ms,
-        input.row.alt,
-        createRevision(input.createRevision),
-        input.nowIso,
-        input.nowIso,
-      ).run();
-      if (readChanges(result) === 1) return { kind: 'created' };
-      return { kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' };
-    }
-    const revision = createRevision(input.createRevision);
-    if (revision === current.revision) {
-      throw new TypeError('Imported Media revision must advance.');
-    }
-    const result = await input.db.prepare(`
-      UPDATE media
-      SET external_id = ?, kind = ?, filename = ?, mime_type = ?,
-        storage_type = ?, storage_key = ?, external_url = ?, size_bytes = ?,
-        width = ?, height = ?, duration_ms = ?, alt = ?, revision = ?,
-        updated_at_iso = ?
-      WHERE id = ? AND revision = ?
+  if (!current) {
+    const statement = input.db.prepare(`
+      INSERT OR IGNORE INTO media (
+        id, external_id, kind, filename, mime_type, storage_type, storage_key,
+        external_url, size_bytes, width, height, duration_ms, alt,
+        revision, created_at_iso, updated_at_iso
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
+      (input.createId ?? createHexId)(),
       input.row.external_id,
       input.row.kind,
       input.row.filename,
@@ -361,21 +394,113 @@ async function importMedia(input: {
       input.row.height,
       input.row.duration_ms,
       input.row.alt,
-      revision,
+      createRevision(input.createRevision),
       input.nowIso,
-      current.id,
-      current.revision,
-    ).run();
-    return readChanges(result) === 1
-      ? { kind: 'updated' }
-      : { kind: 'failed', code: 'REVISION_CONFLICT' };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (/(?:idx_media_(?:external_id|external_url|storage_key)_unique|unique constraint failed:\s*media\.(?:external_id|external_url|storage_key))/iu.test(message)) {
-      return { kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' };
-    }
-    throw writeFailure(error, 'upsert_wxr_media');
+      input.nowIso,
+    );
+    return {
+      kind: 'write',
+      statements: [statement],
+      summarize: ([result]) => readChanges(result) === 1
+        ? { kind: 'created' }
+        : { kind: 'failed', code: 'MEDIA_EXTERNAL_ID_CONFLICT' },
+    };
   }
+  const revision = createRevision(input.createRevision);
+  if (revision === current.revision) {
+    throw writeFailure(new TypeError('Imported Media revision must advance.'), 'upsert_wxr_media');
+  }
+  const statement = input.db.prepare(`
+    UPDATE media
+    SET external_id = ?, kind = ?, filename = ?, mime_type = ?,
+      storage_type = ?, storage_key = ?, external_url = ?, size_bytes = ?,
+      width = ?, height = ?, duration_ms = ?, alt = ?, revision = ?,
+      updated_at_iso = ?
+    WHERE id = ? AND revision = ?
+  `).bind(
+    input.row.external_id,
+    input.row.kind,
+    input.row.filename,
+    input.row.mime_type,
+    storageType,
+    storageKey,
+    externalUrl,
+    input.row.size_bytes,
+    input.row.width,
+    input.row.height,
+    input.row.duration_ms,
+    input.row.alt,
+    revision,
+    input.nowIso,
+    current.id,
+    current.revision,
+  );
+  return {
+    kind: 'write',
+    statements: [statement],
+    summarize: ([result]) => readChanges(result) === 1
+      ? { kind: 'updated' }
+      : { kind: 'failed', code: 'REVISION_CONFLICT' },
+  };
+}
+
+async function importMetadataChunk(input: {
+  db: D1Database;
+  request: MetadataRequest;
+  nowIso: string;
+  createId?: () => string;
+  createRevision?: () => string;
+}): Promise<RowResult[]> {
+  const { db, request } = input;
+  const keys = request.rows.map((row) => rowKey(request.phase, row));
+  if (new Set(keys).size !== keys.length) {
+    // Repeated identities must observe earlier writes in source order.
+    const results: RowResult[] = [];
+    for (const row of request.rows) {
+      results.push(...await importMetadataChunk({
+        ...input, request: { phase: request.phase, rows: [row] } as MetadataRequest,
+      }));
+    }
+    return results;
+  }
+  if (request.phase === 'authors') {
+    const current = await readMetadata<ImportedAuthorState>(db,
+      selectIn(db, 'SELECT id, display_name FROM authors WHERE id', keys), 'read_wxr_author');
+    const byId = new Map(current.map((row) => [row.id, row]));
+    return writeMetadata(db, request.rows.map((row) => prepareAuthor({
+      ...input, row, current: byId.get(row.id),
+    })), 'upsert_wxr_author');
+  }
+  if (request.phase === 'categories' || request.phase === 'tags') {
+    const current = await readMetadata<ImportedTermState>(db,
+      selectIn(db, `SELECT slug, name, description FROM ${request.phase} WHERE slug`, keys),
+      `read_wxr_${request.phase}`);
+    const bySlug = new Map(current.map((row) => [row.slug, row]));
+    return writeMetadata(db, request.rows.map((row) => prepareTaxonomy({
+      ...input, table: request.phase, row, current: bySlug.get(row.slug),
+    })), `upsert_wxr_${request.phase}`);
+  }
+  const current = await readMedia(db, request.rows);
+  const owners = request.rows.map((row) => mediaOwners(row, current));
+  const touchedIds = owners.flatMap((matches) => matches.map((row) => row.id));
+  const locations = request.rows.map((row) => mediaLocationIdentity(row.location));
+  if (
+    new Set(touchedIds).size !== touchedIds.length
+    || new Set(locations).size !== locations.length
+  ) {
+    // A relocation can free or claim another row's location. Refresh after
+    // each write so these uncommon dependencies retain source-order behavior.
+    const results: RowResult[] = [];
+    for (const row of request.rows) {
+      results.push(...await writeMetadata(db, [prepareMedia({
+        ...input, row, owners: await readMedia(db, [row]),
+      })], 'upsert_wxr_media'));
+    }
+    return results;
+  }
+  return writeMetadata(db, request.rows.map((row, index) => prepareMedia({
+    ...input, row, owners: owners[index]!,
+  })), 'upsert_wxr_media');
 }
 
 type PostState = {
@@ -1437,41 +1562,14 @@ export async function importWxrCoreChunk(input: {
     failed: 0,
     failures: [],
   };
+  const metadataResults = (
+    input.request.phase === 'authors' || input.request.phase === 'categories'
+    || input.request.phase === 'tags' || input.request.phase === 'media'
+  ) ? await importMetadataChunk({ ...input, request: input.request, nowIso }) : null;
   for (const [rowIndex, row] of input.request.rows.entries()) {
     let result: RowResult;
-    if (input.request.phase === 'authors') {
-      result = await importAuthor({
-        db: input.db,
-        row: row as WxrImportAuthorRow,
-        nowIso,
-        createRevision: input.createRevision,
-      });
-    } else if (input.request.phase === 'categories') {
-      result = await importTaxonomy({
-        db: input.db,
-        table: 'categories',
-        row: row as WxrImportCategoryRow,
-        nowIso,
-        createId: input.createId,
-        createRevision: input.createRevision,
-      });
-    } else if (input.request.phase === 'tags') {
-      result = await importTaxonomy({
-        db: input.db,
-        table: 'tags',
-        row: row as WxrImportTagRow,
-        nowIso,
-        createId: input.createId,
-        createRevision: input.createRevision,
-      });
-    } else if (input.request.phase === 'media') {
-      result = await importMedia({
-        db: input.db,
-        row: row as WxrImportMediaRow,
-        nowIso,
-        createId: input.createId,
-        createRevision: input.createRevision,
-      });
+    if (metadataResults) {
+      result = metadataResults[rowIndex]!;
     } else if (input.request.phase === 'posts') {
       result = await importPost({
         db: input.db,

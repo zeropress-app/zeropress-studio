@@ -506,6 +506,13 @@
   transition: width 180ms ease;
 }
 
+.wxr-progress-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .wxr-progress-percent {
   color: var(--studio-text-muted);
   font-size: 0.8125rem;

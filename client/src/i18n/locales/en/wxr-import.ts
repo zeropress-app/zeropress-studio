@@ -188,7 +188,12 @@ export const wxrImport = {
     description: 'Content will be imported in {{chunks}} steps, followed by the selected site and URL settings. Keep this page open until it finishes.',
     label: 'I reviewed the scope, site settings, and permalink structure, and understand that matching imported content, Menus, comments, and selected settings can be updated.',
   },
+  stopped: {
+    title: 'WordPress import stopped',
+    description: 'Saved items are kept. Site settings were not applied.',
+  },
   progress: {
+    stoppingDescription: 'Finishing the current batch before stopping.',
     label: 'WordPress import progress',
     title: 'Importing WordPress data',
     description: '{{phase}} · completed {{completed}} of {{total}} steps',
@@ -222,11 +227,14 @@ export const wxrImport = {
     REVISION_CONFLICT: 'The record changed while the import was updating it.',
   },
   actions: {
+    stop: 'Stop import',
+    stopping: 'Stopping…',
     import: 'Import WordPress data',
     retry: 'Return to preflight',
     reviewAgain: 'Review and run again',
   },
   errors: {
+    sessionExpired: 'Your session expired. Sign in again, then review and rerun the import.',
     title: 'Studio could not prepare this import',
     interrupted: 'The import was interrupted',
     forbidden: 'Your account cannot manage imports.',

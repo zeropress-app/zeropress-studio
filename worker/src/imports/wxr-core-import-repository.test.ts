@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MENU_MAX_COUNT } from '../../../contracts/menus';
-import type { WxrCoreImportChunkRequest } from '../../../contracts/wxr-import';
+import type { WxrCoreImportChunkRequest, WxrImportMediaRow } from '../../../contracts/wxr-import';
 import { importWxrCoreChunk } from './wxr-core-import-repository';
 
 type SqliteRunResult = { changes: number | bigint };
@@ -14,13 +14,15 @@ class SqliteD1Statement {
     readonly database: DatabaseSync,
     readonly sql: string,
     readonly params: unknown[] = [],
+    readonly onExecute?: (statement: SqliteD1Statement) => void,
   ) {}
 
   bind(...params: unknown[]) {
-    return new SqliteD1Statement(this.database, this.sql, params);
+    return new SqliteD1Statement(this.database, this.sql, params, this.onExecute);
   }
 
   async run(): Promise<D1Result<unknown>> {
+    this.onExecute?.(this);
     const before = this.database.prepare(`
       SELECT total_changes() AS changes
     `).get() as SqliteChangeCountRow;
@@ -39,6 +41,7 @@ class SqliteD1Statement {
   }
 
   async all<T>(): Promise<D1Result<T>> {
+    this.onExecute?.(this);
     const results = (
       this.database.prepare(this.sql).all as (...params: unknown[]) => T[]
     )(...this.params);
@@ -46,6 +49,7 @@ class SqliteD1Statement {
   }
 
   async first<T>(): Promise<T | null> {
+    this.onExecute?.(this);
     const result = (
       this.database.prepare(this.sql).get as (...params: unknown[]) => T | undefined
     )(...this.params);
@@ -66,11 +70,17 @@ function createTestDatabase() {
     new URL('../../../database/install/001_baseline.sql', import.meta.url),
     'utf8',
   ));
+  const calls: SqliteD1Statement[][] = [];
+  let batching = false;
   const d1 = {
     prepare(sql: string) {
-      return new SqliteD1Statement(database, sql);
+      return new SqliteD1Statement(database, sql, [], (statement) => {
+        if (!batching) calls.push([statement]);
+      });
     },
     async batch(statements: SqliteD1Statement[]) {
+      calls.push(statements);
+      batching = true;
       database.exec('BEGIN IMMEDIATE');
       try {
         const results = [];
@@ -80,10 +90,12 @@ function createTestDatabase() {
       } catch (error) {
         database.exec('ROLLBACK');
         throw error;
+      } finally {
+        batching = false;
       }
     },
   } as unknown as D1Database;
-  return { database, d1 };
+  return { database, d1, calls };
 }
 
 const NOW = new Date('2026-08-02T08:00:00.000Z');
@@ -232,7 +244,185 @@ async function importAll(db: D1Database, values = requests()) {
   return results;
 }
 
+function mediaRow(id: number, location: WxrImportMediaRow['location'] = {
+  type: 'external', url: `https://example.com/uploads/${id}.jpg`,
+}): WxrImportMediaRow {
+  return {
+    external_id: id,
+    kind: 'image', filename: `${id}.jpg`, mime_type: 'image/jpeg', location,
+    size_bytes: null, width: 800, height: 600, duration_ms: null, alt: `Image ${id}`,
+  };
+}
+
+function beforeNextWrite(db: D1Database, write: () => void): D1Database {
+  let pending = true;
+  return {
+    ...db,
+    async batch(statements: D1PreparedStatement[]) {
+      if (pending && (statements as unknown as SqliteD1Statement[])
+        .some((statement) => /^\s*(?:INSERT|UPDATE)/u.test(statement.sql))) {
+        pending = false;
+        write();
+      }
+      return db.batch(statements);
+    },
+  } as D1Database;
+}
+
 describe('WXR core import D1 repository', () => {
+  it('imports, updates, and repeats 100 Media rows with bounded D1 round trips', async () => {
+    const { database, d1, calls } = createTestDatabase();
+    const rows = Array.from({ length: 100 }, (_, index) => mediaRow(index + 1,
+      index % 2 ? { type: 'r2', key: `imported/${index + 1}.jpg` }
+        : { type: 'external', url: `https://example.com/${index + 1}.jpg` }));
+    for (const [requestRows, disposition] of [
+      [rows, 'created'],
+      [rows.map((row) => ({ ...row, alt: `Updated ${row.external_id}` })), 'updated'],
+      [rows.map((row) => ({ ...row, alt: `Updated ${row.external_id}` })), 'unchanged'],
+    ] as const) {
+      calls.length = 0;
+      const result = await importWxrCoreChunk({
+        db: d1, request: { phase: 'media', rows: [...requestRows] }, now: NOW,
+      });
+      expect(result.summary).toMatchObject({ processed: 100, [disposition]: 100, failed: 0 });
+      expect(calls.length).toBeLessThanOrEqual(disposition === 'unchanged' ? 1 : 2);
+      expect(calls.flat().every((statement) => statement.params.length <= 100)).toBe(true);
+    }
+    expect(database.prepare('SELECT COUNT(*) AS count FROM media').get()).toEqual({ count: 100 });
+    expect(database.prepare('SELECT alt FROM media WHERE external_id = 100').get())
+      .toEqual({ alt: 'Updated 100' });
+  });
+
+  it.each(['authors', 'categories', 'tags'] as const)(
+    'batches %s and keeps repeated imports unchanged',
+    async (phase) => {
+      const { d1, calls } = createTestDatabase();
+      const request = {
+        phase,
+        rows: Array.from({ length: 100 }, (_, index) => phase === 'authors'
+          ? { id: `author-${index}`, display_name: `Author ${index}` }
+          : { slug: `term-${index}`, name: `Term ${index}`, description: '' }),
+      } as WxrCoreImportChunkRequest;
+      const first = await importWxrCoreChunk({ db: d1, request, now: NOW });
+      expect(first.summary).toMatchObject({ created: 100, failed: 0 });
+      expect(calls.length).toBeLessThanOrEqual(2);
+      calls.length = 0;
+      const repeat = await importWxrCoreChunk({ db: d1, request, now: NOW });
+      expect(repeat.summary).toMatchObject({ unchanged: 100, failed: 0 });
+      expect(calls.length).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it.each(['authors', 'categories', 'tags'] as const)(
+    'preserves source order for repeated %s identities',
+    async (phase) => {
+      const { database, d1 } = createTestDatabase();
+      const request = {
+        phase,
+        rows: ['First', 'Last', 'Last'].map((name) => phase === 'authors'
+          ? { id: 'import-author', display_name: name }
+          : { slug: 'import-term', name, description: '' }),
+      } as WxrCoreImportChunkRequest;
+      const result = await importWxrCoreChunk({ db: d1, request, now: NOW });
+      expect(result.summary).toMatchObject({ created: 1, updated: 1, unchanged: 1, failed: 0 });
+      expect(database.prepare(`SELECT ${phase === 'authors' ? 'display_name' : 'name'} AS name FROM ${phase}`).all())
+        .toEqual([{ name: 'Last' }]);
+    },
+  );
+
+  it.each(['authors', 'categories', 'tags'] as const)(
+    'updates a concurrently inserted %s identity and counts it as updated',
+    async (phase) => {
+      const { database, d1 } = createTestDatabase();
+      const db = beforeNextWrite(d1, () => {
+        database.prepare(phase === 'authors'
+          ? `INSERT INTO authors (id, display_name, revision, created_at_iso, updated_at_iso)
+              VALUES ('import-author', 'Concurrent', ?, ?, ?)`
+          : `INSERT INTO ${phase} (id, slug, name, description, revision, created_at_iso, updated_at_iso)
+              VALUES ('${'a'.repeat(32)}', 'import-term', 'Concurrent', '', ?, ?, ?)`)
+          .run('a'.repeat(32), NOW.toISOString(), NOW.toISOString());
+      });
+      const request = {
+        phase, rows: [phase === 'authors'
+          ? { id: 'import-author', display_name: 'Imported' }
+          : { slug: 'import-term', name: 'Imported', description: '' }],
+      } as WxrCoreImportChunkRequest;
+      expect((await importWxrCoreChunk({ db, request, now: NOW })).summary)
+        .toMatchObject({ created: 0, updated: 1, failed: 0 });
+      expect(database.prepare(`SELECT ${phase === 'authors' ? 'display_name' : 'name'} AS name FROM ${phase}`).all())
+        .toEqual([{ name: 'Imported' }]);
+    },
+  );
+
+  it('preserves source order when a Media relocation frees the next row’s location', async () => {
+    const { database, d1 } = createTestDatabase();
+    const original = mediaRow(1);
+    await importWxrCoreChunk({ db: d1, request: { phase: 'media', rows: [original] } });
+    const result = await importWxrCoreChunk({ db: d1, request: { phase: 'media', rows: [
+      mediaRow(1, { type: 'r2', key: 'imported/moved.jpg' }),
+      mediaRow(2, original.location),
+    ] } });
+    expect(result.summary).toMatchObject({ created: 1, updated: 1, failed: 0 });
+    expect(database.prepare('SELECT external_id, storage_type FROM media ORDER BY external_id').all())
+      .toEqual([{ external_id: 1, storage_type: 'r2' }, { external_id: 2, storage_type: 'external' }]);
+  });
+
+  it('reports Media revision conflicts and saves independent rows in the same batch', async () => {
+    const { database, d1 } = createTestDatabase();
+    await importWxrCoreChunk({ db: d1, request: { phase: 'media', rows: [mediaRow(1)] } });
+    const db = beforeNextWrite(d1, () => {
+      database.prepare("UPDATE media SET alt = 'Concurrent', revision = ? WHERE external_id = 1")
+        .run('f'.repeat(32));
+    });
+    const result = await importWxrCoreChunk({ db, request: { phase: 'media', rows: [
+      { ...mediaRow(1), alt: 'Imported update' }, mediaRow(2),
+    ] } });
+    expect(result.summary).toMatchObject({
+      created: 1, updated: 0, failed: 1,
+      failures: [{ row_index: 0, key: '1', code: 'REVISION_CONFLICT' }],
+    });
+    expect(database.prepare('SELECT alt FROM media WHERE external_id = 1').get())
+      .toEqual({ alt: 'Concurrent' });
+    expect(database.prepare('SELECT alt FROM media WHERE external_id = 2').get())
+      .toEqual({ alt: 'Image 2' });
+  });
+
+  it('isolates a concurrent Media location conflict after the batch rolls back', async () => {
+    const { database, d1 } = createTestDatabase();
+    await importWxrCoreChunk({ db: d1, request: { phase: 'media', rows: [mediaRow(1), mediaRow(9)] } });
+    const db = beforeNextWrite(d1, () => {
+      database.prepare("UPDATE media SET external_url = 'https://example.com/claimed.jpg' WHERE external_id = 9").run();
+    });
+    const result = await importWxrCoreChunk({ db, request: { phase: 'media', rows: [
+      mediaRow(2),
+      mediaRow(1, { type: 'external', url: 'https://example.com/claimed.jpg' }),
+      mediaRow(3),
+    ] } });
+    expect(result.summary).toMatchObject({
+      created: 2, updated: 0, failed: 1,
+      failures: [{ row_index: 1, key: '1', code: 'MEDIA_EXTERNAL_ID_CONFLICT' }],
+    });
+    expect(database.prepare('SELECT external_id FROM media ORDER BY external_id').all())
+      .toEqual([{ external_id: 1 }, { external_id: 2 }, { external_id: 3 }, { external_id: 9 }]);
+    expect(database.prepare('SELECT external_url FROM media WHERE external_id = 1').get())
+      .toEqual({ external_url: 'https://example.com/uploads/1.jpg' });
+  });
+
+  it('surfaces an unavailable D1 batch without retrying uncertain writes', async () => {
+    const { d1 } = createTestDatabase();
+    const realBatch = d1.batch.bind(d1);
+    const batch = vi.spyOn(d1, 'batch').mockImplementation(async (statements) => {
+      if ((statements as unknown as SqliteD1Statement[])
+        .some((statement) => /^\s*INSERT/u.test(statement.sql))) {
+        throw new Error('D1 unavailable');
+      }
+      return realBatch(statements);
+    });
+    await expect(importWxrCoreChunk({ db: d1, request: { phase: 'media', rows: [mediaRow(1)] } }))
+      .rejects.toMatchObject({ code: 'WXR_IMPORT_DATABASE_WRITE_FAILED' });
+    expect(batch).toHaveBeenCalledTimes(2);
+  });
+
   it('imports dependencies, ordered relations, and Page hierarchy', async () => {
     const { database, d1 } = createTestDatabase();
     const results = await importAll(d1);

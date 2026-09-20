@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
@@ -12,6 +12,7 @@ import {
 import {
   requestWxrCoreImportChunk,
   requestWxrImportSettingsFinalize,
+  WxrImportClientError,
 } from './lib/wxr-import-client';
 import { requestRoutingSettings } from './lib/routing-settings-client';
 import { WxrImportPage } from './WxrImportPage';
@@ -146,7 +147,143 @@ beforeEach(async () => {
   );
 });
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+async function startImport(importPlan = plan) {
+  vi.mocked(parseWxrCoreImportFile).mockResolvedValue(importPlan);
+  const user = userEvent.setup();
+  const onSessionEnded = vi.fn();
+  const view = render(
+    <MemoryRouter initialEntries={['/import/wordpress']}>
+      <WxrImportPage data={{ csrf_token: 'c'.repeat(43) }} onSessionEnded={onSessionEnded} />
+    </MemoryRouter>,
+  );
+  await user.upload(
+    screen.getByLabelText('Choose WordPress WXR XML file'),
+    new File(['<rss />'], 'export.xml', { type: 'application/xml' }),
+  );
+  const heading = await screen.findByRole('heading', { name: 'Ready to import' });
+  const confirmation = within(heading.closest('section')!);
+  await user.click(confirmation.getByRole('checkbox'));
+  await user.click(confirmation.getByRole('button', { name: 'Import WordPress data' }));
+  return { user, onSessionEnded, ...view };
+}
+
+function chunkSuccess(processed: number, created = processed) {
+  return {
+    success: true as const,
+    data: {
+      phase: 'authors' as const, processed, created, updated: 0,
+      unchanged: processed - created, failed: 0, failures: [],
+    },
+  };
+}
+
+function authorPlan(count: number): WxrCoreImportPlan {
+  return { ...plan, rows: { ...plan.rows, authors: Array.from({ length: count }, (_, index) => ({
+    id: `author-${index}`, display_name: `Author ${index}`,
+  })) } };
+}
+
 describe('WXR import page', () => {
+  it.each([1, 101])('stops after the current chunk of %i rows and can rerun the file', async (count) => {
+    const chunk = deferred<Awaited<ReturnType<typeof requestWxrCoreImportChunk>>>();
+    vi.mocked(requestWxrCoreImportChunk)
+      .mockImplementation(async ({ request }) => chunkSuccess(request.rows.length, 0))
+      .mockReturnValueOnce(chunk.promise);
+    const { user } = await startImport(authorPlan(count));
+    const signal = vi.mocked(requestWxrCoreImportChunk).mock.calls[0]![0].signal!;
+    await user.click(screen.getByRole('button', { name: 'Stop import' }));
+    expect(screen.getByRole('button', { name: 'Stopping…' })).toBeDisabled();
+    expect(screen.getByText('Finishing the current batch before stopping.')).toBeVisible();
+    expect(signal.aborted).toBe(false);
+    const leaving = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(leaving);
+    expect(leaving.defaultPrevented).toBe(true);
+
+    const processed = Math.min(count, 100);
+    await act(async () => chunk.resolve({
+      success: true,
+      data: {
+        phase: 'authors', processed, created: processed - 1, updated: 0,
+        unchanged: 0, failed: 1,
+        failures: [{ row_index: 0, key: 'author-0', code: 'REVISION_CONFLICT' }],
+      },
+    }));
+    expect(await screen.findByRole('heading', { name: 'WordPress import stopped' })).toBeVisible();
+    expect(requestWxrCoreImportChunk).toHaveBeenCalledTimes(1);
+    expect(requestWxrImportSettingsFinalize).not.toHaveBeenCalled();
+    expect(signal.aborted).toBe(false);
+    const table = screen.getByRole('table', { name: 'Import results by phase' });
+    const authorRow = within(table).getByRole('row', { name: /^Authors /u });
+    expect(within(authorRow).getAllByRole('cell').map((cell) => cell.textContent))
+      .toEqual([String(processed - 1), '0', '0', '0', '1']);
+    await user.click(screen.getByText('1 row failures'));
+    expect(screen.getByText('The record changed while the import was updating it.')).toBeVisible();
+    const stoppedLeaving = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(stoppedLeaving);
+    expect(stoppedLeaving.defaultPrevented).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Review and run again' }));
+    await waitFor(() => expect(requestGeneralSettings).toHaveBeenCalledTimes(2));
+    const confirmation = within((await screen.findByRole('heading', { name: 'Ready to import' })).closest('section')!);
+    await user.click(confirmation.getByRole('checkbox'));
+    await user.click(confirmation.getByRole('button', { name: 'Import WordPress data' }));
+    expect(await screen.findByRole('heading', { name: 'WordPress import finished' })).toBeVisible();
+    expect(requestWxrCoreImportChunk).toHaveBeenCalledTimes(1 + Math.ceil(count / 100));
+    expect(requestWxrImportSettingsFinalize).toHaveBeenCalledOnce();
+    const completedRow = screen.getByRole('row', { name: /^Authors /u });
+    expect(within(completedRow).getAllByRole('cell').map((cell) => cell.textContent))
+      .toEqual(['0', '0', String(count), '0', '0']);
+  });
+
+  it.each(['api', 'timeout', 'session'] as const)(
+    'reports a %s failure while stopping and keeps earlier chunk results', async (failure) => {
+      const chunk = deferred<Awaited<ReturnType<typeof requestWxrCoreImportChunk>>>();
+      vi.mocked(requestWxrCoreImportChunk)
+        .mockResolvedValueOnce(chunkSuccess(100))
+        .mockReturnValueOnce(chunk.promise);
+      const { user, onSessionEnded } = await startImport(authorPlan(101));
+      await waitFor(() => expect(requestWxrCoreImportChunk).toHaveBeenCalledTimes(2));
+      await user.click(screen.getByRole('button', { name: 'Stop import' }));
+      await act(async () => {
+        if (failure === 'session') chunk.resolve({ success: false, error: { code: 'AUTHENTICATION_REQUIRED' } });
+        else if (failure === 'api') chunk.resolve({ success: false, error: { code: 'SYSTEM_NOT_AVAILABLE' } });
+        else chunk.reject(new WxrImportClientError('TIMEOUT'));
+      });
+      expect(await screen.findByText('The import was interrupted')).toBeVisible();
+      if (failure === 'session') expect(onSessionEnded).toHaveBeenCalledOnce();
+      expect(screen.queryByRole('heading', { name: 'WordPress import stopped' })).not.toBeInTheDocument();
+      expect(requestWxrImportSettingsFinalize).not.toHaveBeenCalled();
+      const authorRow = screen.getByRole('row', { name: /^Authors /u });
+      expect(within(authorRow).getAllByRole('cell').map((cell) => cell.textContent))
+        .toEqual(['100', '0', '0', '0', '0']);
+      expect(screen.getByRole('button', { name: 'Return to preflight' })).toBeEnabled();
+    },
+  );
+
+  it('finishes settings already being saved instead of offering a misleading stop action', async () => {
+    vi.mocked(requestWxrCoreImportChunk).mockResolvedValue(chunkSuccess(1));
+    const finalize = deferred<Awaited<ReturnType<typeof requestWxrImportSettingsFinalize>>>();
+    const save = vi.mocked(requestWxrImportSettingsFinalize).getMockImplementation()!;
+    vi.mocked(requestWxrImportSettingsFinalize).mockReturnValueOnce(finalize.promise);
+    await startImport();
+    await waitFor(() => expect(requestWxrImportSettingsFinalize).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('button', { name: 'Stop import' })).not.toBeInTheDocument();
+    const args = vi.mocked(requestWxrImportSettingsFinalize).mock.calls[0]![0];
+    await act(async () => finalize.resolve(await save(args)));
+    expect(await screen.findByRole('heading', { name: 'WordPress import finished' })).toBeVisible();
+    expect(screen.getByRole('row', { name: /^Site settings /u })).toHaveTextContent('1');
+  });
+
   it('preflights locally and applies selected site settings after content chunks', async () => {
     vi.mocked(parseWxrCoreImportFile).mockResolvedValue(plan);
     vi.mocked(requestWxrCoreImportChunk).mockResolvedValue({

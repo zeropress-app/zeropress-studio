@@ -304,6 +304,7 @@ export function WxrImportPage(input: {
   const confirmationId = useId();
   const parseGeneration = useRef(0);
   const importController = useRef<AbortController | null>(null);
+  const stopRequested = useRef(false);
   const [file, setFile] = useState<File | null>(null);
   const [mediaStrategy, setMediaStrategy] = useState<WxrMediaStrategy>('external');
   const [mediaFrom, setMediaFrom] = useState('');
@@ -327,8 +328,13 @@ export function WxrImportPage(input: {
   const [confirmed, setConfirmed] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
-  const [completed, setCompleted] = useState(false);
-  const importing = progress !== null && !completed && failure === null;
+  const [importState, setImportState] = useState<
+    'idle' | 'running' | 'stopping' | 'stopped' | 'completed'
+  >('idle');
+  const completed = importState === 'completed';
+  const stopped = importState === 'stopped';
+  const importing = (importState === 'running' || importState === 'stopping')
+    && failure === null;
 
   useStudioDocumentTitle(t('documentTitle'));
 
@@ -469,7 +475,7 @@ export function WxrImportPage(input: {
     setPlan(null);
     setFailure(null);
     setProgress(null);
-    setCompleted(false);
+    setImportState('idle');
     setConfirmed(false);
     if (!selected) {
       setParsing(false);
@@ -515,12 +521,14 @@ export function WxrImportPage(input: {
       !plan
       || !confirmed
       || importing
+      || importController.current !== null
       || settingsLoadState.kind !== 'ready'
       || !preparedSiteSettings?.valid
       || !preparedRoutingSettings
     ) return;
     const controller = new AbortController();
     importController.current = controller;
+    stopRequested.current = false;
     const generalDocument = settingsLoadState.generalDocument;
     const routingDocument = settingsLoadState.routingDocument;
     const totalSteps = chunks.length + 1;
@@ -535,7 +543,7 @@ export function WxrImportPage(input: {
       };
     }
     setFailure(null);
-    setCompleted(false);
+    setImportState('running');
     setProgress({
       stepsCompleted: 0,
       stepsTotal: totalSteps,
@@ -560,12 +568,10 @@ export function WxrImportPage(input: {
           request: chunk,
           signal: controller.signal,
         });
+        if (controller.signal.aborted) return;
         if (!response.success) {
-          if (response.error.code === 'AUTHENTICATION_REQUIRED') {
-            input.onSessionEnded();
-            return;
-          }
           setFailure({ kind: 'api', code: response.error.code });
+          if (response.error.code === 'AUTHENTICATION_REQUIRED') input.onSessionEnded();
           return;
         }
         results = addChunkResult(results, response.data, index + 1);
@@ -577,6 +583,10 @@ export function WxrImportPage(input: {
           siteSettingsResult: 'pending',
           routingSettingsResult: 'pending',
         });
+        if (stopRequested.current) {
+          setImportState('stopped');
+          return;
+        }
       }
       setProgress({
         stepsCompleted: chunks.length,
@@ -600,12 +610,10 @@ export function WxrImportPage(input: {
         },
         signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (!response.success) {
-        if (response.error.code === 'AUTHENTICATION_REQUIRED') {
-          input.onSessionEnded();
-          return;
-        }
         setFailure({ kind: 'api', code: response.error.code });
+        if (response.error.code === 'AUTHENTICATION_REQUIRED') input.onSessionEnded();
         return;
       }
       setSettingsLoadState({
@@ -627,7 +635,7 @@ export function WxrImportPage(input: {
         siteSettingsResult: response.data.general_settings.result,
         routingSettingsResult: response.data.routing_settings.result,
       });
-      setCompleted(true);
+      setImportState('completed');
     } catch (error) {
       if (!controller.signal.aborted) setFailure(parseFailure(error));
     } finally {
@@ -639,6 +647,7 @@ export function WxrImportPage(input: {
     if (value.kind === 'parse') return t(`errors.parse.${value.code}`);
     if (value.kind === 'client') return t(`errors.client.${value.code}`);
     if (value.kind === 'api') {
+      if (value.code === 'AUTHENTICATION_REQUIRED') return t('errors.sessionExpired');
       if (value.code === 'FORBIDDEN') return t('errors.forbidden');
       if (value.code === 'PAYLOAD_TOO_LARGE') return t('errors.payloadTooLarge');
       if (value.code === 'SETTINGS_REVISION_CONFLICT') {
@@ -1273,8 +1282,11 @@ export function WxrImportPage(input: {
 
         {progress ? (
           <Panel
-            title={completed ? t('result.title') : t('progress.title')}
-            description={completed
+            title={stopped ? t('stopped.title')
+              : completed ? t('result.title') : t('progress.title')}
+            description={stopped ? t('stopped.description')
+              : importing && importState === 'stopping' ? t('progress.stoppingDescription')
+              : completed
               ? t('result.description', { failures: totalFailures })
               : t('progress.description', {
                   phase: t(`phases.${progress.currentPhase}`),
@@ -1282,7 +1294,22 @@ export function WxrImportPage(input: {
                   total: progress.stepsTotal,
                 })}
             actions={(
-              <strong className="wxr-progress-percent">{progressPercent}%</strong>
+              <div className="wxr-progress-actions">
+                <strong className="wxr-progress-percent">{progressPercent}%</strong>
+                {importing && progress.currentPhase !== 'site_settings' ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={importState === 'stopping'}
+                    onClick={() => {
+                      stopRequested.current = true;
+                      setImportState('stopping');
+                    }}
+                  >
+                    {importState === 'stopping' ? t('actions.stopping') : t('actions.stop')}
+                  </Button>
+                ) : null}
+              </div>
             )}
           >
             <div
@@ -1343,7 +1370,7 @@ export function WxrImportPage(input: {
                   <td data-label={t('result.unchanged')}>
                     {progress.siteSettingsResult === 'unchanged' ? '1' : '0'}
                   </td>
-                  <td data-label={t('result.skipped')}>0</td>
+                  <td data-label={t('result.skipped')}>{stopped ? '1' : '0'}</td>
                   <td data-label={t('result.failed')}>0</td>
                 </tr>
                 <tr>
@@ -1355,7 +1382,7 @@ export function WxrImportPage(input: {
                   <td data-label={t('result.unchanged')}>
                     {progress.routingSettingsResult === 'unchanged' ? '1' : '0'}
                   </td>
-                  <td data-label={t('result.skipped')}>0</td>
+                  <td data-label={t('result.skipped')}>{stopped ? '1' : '0'}</td>
                   <td data-label={t('result.failed')}>0</td>
                 </tr>
               </tbody>
@@ -1372,7 +1399,7 @@ export function WxrImportPage(input: {
                       onClick={() => {
                         setProgress(null);
                         setFailure(null);
-                        setCompleted(false);
+                        setImportState('idle');
                         setSettingsLoadAttempt((value) => value + 1);
                       }}
                     >
@@ -1385,7 +1412,7 @@ export function WxrImportPage(input: {
               </div>
             ) : null}
 
-            {completed && totalFailures > 0 ? (
+            {(completed || stopped || failure) && totalFailures > 0 ? (
               <details className="wxr-failure-list">
                 <summary>
                   {t('result.failureDetails', { count: totalFailures })}
@@ -1406,14 +1433,15 @@ export function WxrImportPage(input: {
               </details>
             ) : null}
 
-            {completed ? (
+            {completed || stopped ? (
               <div className="wxr-result-actions">
                 <Button
                   type="button"
                   onClick={() => {
                     setProgress(null);
-                    setCompleted(false);
+                    setImportState('idle');
                     setConfirmed(false);
+                    if (stopped) setSettingsLoadAttempt((value) => value + 1);
                   }}
                 >
                   {t('actions.reviewAgain')}
