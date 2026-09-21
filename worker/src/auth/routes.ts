@@ -1,3 +1,4 @@
+import { recordAudit, userAuditActor, auditUserById } from '../audit/service';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -449,6 +450,7 @@ export function createAuthRoutes(
       return errorResponse(c, 409, 'MFA_ALREADY_CONFIGURED');
     }
 
+    if (c.get('audit')) recordAudit(c, { action: 'account_totp', actor: await auditUserById(c, continuation.userId) });
     return finishAuthentication({
       c,
       issueSession,
@@ -560,6 +562,8 @@ export function createAuthRoutes(
     if (currentSessionEnded) {
       clearSessionCookie(c);
     }
+    recordAudit(c, { action: 'account_revoke_sessions', actor: userAuditActor(session.user),
+      outcome: revoked ? 'success' : 'unchanged', metadata: { deleted: revoked ? 1 : 0 } });
     return c.json(revokeSessionSuccessSchema.parse({
       success: true,
       data: {
@@ -602,6 +606,8 @@ export function createAuthRoutes(
       userId: session.user.id,
       currentSessionId: session.session.id,
     });
+    recordAudit(c, { action: 'account_revoke_sessions', actor: userAuditActor(session.user),
+      outcome: revokedCount ? 'success' : 'unchanged', metadata: { deleted: revokedCount } });
     return c.json(revokeOtherSessionsSuccessSchema.parse({
       success: true,
       data: {
@@ -646,6 +652,7 @@ export function createAuthRoutes(
       userId: session.user.id,
       sessionId: session.session.id,
     });
+    recordAudit(c, { action: 'auth_logout', actor: userAuditActor(session.user) });
     clearSessionCookie(c);
     return c.json(logoutSuccessSchema.parse({
       success: true,

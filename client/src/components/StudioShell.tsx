@@ -12,6 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  ScrollText,
   ChartNoAxesCombined,
   ChevronDown,
   ClipboardList,
@@ -329,6 +330,7 @@ function SidebarTooltip(input: { controller: SidebarTooltipController }) {
 }
 
 const NAVIGATION_ICONS = {
+  auditLog: ScrollText,
   analytics: ChartNoAxesCombined,
   dashboard: LayoutDashboard,
   publish: PackageCheck,

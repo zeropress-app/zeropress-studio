@@ -12,6 +12,12 @@ type OperationalLogDefinition = {
 };
 
 export const OPERATIONAL_LOG_DEFINITIONS = {
+  AUDIT_WRITE_FAILED: { level: 'warn', message: 'Audit record could not be saved' },
+  AUDIT_IP_HASH_FAILED: { level: 'warn', message: 'Audit IP hashing failed; the raw IP was omitted' },
+  AUDIT_SNAPSHOT_FAILED: { level: 'warn', message: 'Audit actor snapshot could not be read' },
+  AUDIT_READ_FAILED: { level: 'warn', message: 'Audit records could not be read' },
+  AUDIT_RETENTION_FAILED: { level: 'warn', message: 'Audit retention cleanup failed' },
+
   SITE_MODE_CONFIGURATION_INVALID: {
     level: 'error',
     message: 'Studio site mode configuration is invalid',

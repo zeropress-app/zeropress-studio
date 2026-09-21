@@ -255,6 +255,7 @@ export function createPasskeySignInRoutes(
     });
     if (!status) return passkeySignInFailed(c);
     return finishAuthentication({
+      method: 'passkey',
       c,
       issueSession: dependencies.issueSession,
       userId: credential.userId,

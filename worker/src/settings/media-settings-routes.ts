@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -73,6 +74,7 @@ export function createMediaSettingsRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'media' } });
     const result = await updateSettings({
       db: c.env.DB,
       settings: parsed.data.settings,
@@ -84,6 +86,7 @@ export function createMediaSettingsRoutes(
     if (result.kind === 'revision_conflict') {
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     }
+    auditSettings(c, 'media', Object.keys(parsed.data.settings));
     return c.json(mediaSettingsSuccessSchema.parse({
       success: true,
       data: result.document,

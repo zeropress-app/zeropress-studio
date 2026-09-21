@@ -1,3 +1,4 @@
+import { recordAudit, auditBulk, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { generateAiImageRequestSchema } from '../../../contracts/ai-image';
@@ -503,6 +504,9 @@ export function createMediaRoutes(
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
     const availability = managedStorageAvailability(c);
+    if (parsed.data.operation === 'delete') {
+      beginAudit(c, { action: 'media_delete', target: { type: 'media' } });
+    }
     const result = await mutateMedia({
       db: c.env.DB,
       request: parsed.data,
@@ -510,6 +514,7 @@ export function createMediaRoutes(
       now: currentTime(),
       createRevision: dependencies.createRevision,
     });
+    if (parsed.data.operation === 'delete') auditBulk(c, 'media', result.summary);
     if (availability.available && result.cleanupKeys.length > 0) {
       c.executionCtx.waitUntil(Promise.all(result.cleanupKeys.map((storageKey) => (
         removeQueuedObject({
@@ -875,6 +880,7 @@ export function createMediaRoutes(
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
+    beginAudit(c, { action: 'media_delete', target: { type: 'media', id: id.data } });
     const result = await remove({
       db: c.env.DB,
       id: id.data,
@@ -908,6 +914,8 @@ export function createMediaRoutes(
         now: currentTime(),
       });
     }
+    recordAudit(c, { action: 'media_delete', target: { type: 'media', id: id.data, label: result.filename },
+      outcome: objectCleanup === 'pending' ? 'partial' : 'success', metadata: { deleted: 1 } });
     return c.json(mediaDeleteSuccessSchema.parse({
       success: true,
       data: {

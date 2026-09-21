@@ -1,3 +1,5 @@
+import { pruneAuditLogs } from '../audit/repository';
+import { logOperationalFailure } from '../lib/operational-error';
 import { inspectDatabaseStatus } from '../system/database-status';
 import { resolveSiteMode } from '../system/site-mode';
 import { StudioOperationalError } from '../lib/operational-error';
@@ -75,6 +77,8 @@ export async function runScheduledSessionMaintenance(
   }
 
   const now = dependencies.now ?? new Date();
+  try { await pruneAuditLogs(env.DB, now); }
+  catch { logOperationalFailure('AUDIT_RETENTION_FAILED', { metadata: { resource: 'DB' } }); }
   const collected = await (
     dependencies.collectExpiredSessions ?? garbageCollectExpiredSessions
   )({

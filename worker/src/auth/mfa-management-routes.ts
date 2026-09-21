@@ -1,3 +1,4 @@
+import { recordAudit, userAuditActor } from '../audit/service';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -427,6 +428,7 @@ export function createMfaManagementRoutes(
     } catch (error) {
       throw cryptoFailure(error, 'create_mfa_management_grant');
     }
+    recordAudit(c, { action: 'auth_reauthenticate', actor: userAuditActor(session.user), metadata: { method: parsed.data.verification ? 'totp' : 'password' } });
     return c.json(authorizeMfaManagementSuccessSchema.parse({
       success: true,
       data: {
@@ -544,6 +546,7 @@ export function createMfaManagementRoutes(
     if (result.kind === 'challenge_invalid') {
       return errorResponse(c, 401, 'MFA_MANAGEMENT_CHALLENGE_INVALID');
     }
+    recordAudit(c, { action: 'account_password', actor: userAuditActor(authorized.session.user), metadata: { deleted: result.revokedSessions } });
     clearSessionCookie(c);
     return c.json(changePasswordSuccessSchema.parse({
       success: true,
@@ -668,6 +671,7 @@ export function createMfaManagementRoutes(
     if (completion.kind === 'challenge_invalid') {
       return errorResponse(c, 401, 'MFA_MANAGEMENT_CHALLENGE_INVALID');
     }
+    recordAudit(c, { action: 'account_totp', actor: userAuditActor(authorized.session.user), metadata: { deleted: completion.revokedSessions } });
     return c.json(mfaManagementTotpCompleteSuccessSchema.parse({
       success: true,
       data: {
@@ -895,6 +899,7 @@ export function createMfaManagementRoutes(
     } catch (error) {
       throw cryptoFailure(error, 'create_webauthn_management_grant');
     }
+    recordAudit(c, { action: 'auth_reauthenticate', actor: userAuditActor(session.user), metadata: { method: 'passkey' } });
     return c.json(authorizeMfaManagementSuccessSchema.parse({
       success: true,
       data: {
@@ -1118,6 +1123,7 @@ export function createMfaManagementRoutes(
         'WEBAUTHN_CREDENTIAL_ALREADY_REGISTERED',
       );
     }
+    recordAudit(c, { action: 'account_passkey_add', actor: userAuditActor(authorized.session.user), target: { type: 'passkey', id: result.credential.id, label: result.credential.display_name } });
     return c.json(
       mfaManagementWebAuthnRegistrationCompleteSuccessSchema.parse({
         success: true,
@@ -1225,6 +1231,7 @@ export function createMfaManagementRoutes(
         'MFA_MANAGEMENT_CHALLENGE_INVALID',
       );
     }
+    recordAudit(c, { action: 'account_passkey_remove', actor: userAuditActor(authorized.session.user), target: { type: 'passkey', id: parsed.data.credential_id }, metadata: { deleted: result.revokedSessions } });
     return c.json(mfaManagementWebAuthnRemoveSuccessSchema.parse({
       success: true,
       data: {

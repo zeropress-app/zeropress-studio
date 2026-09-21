@@ -1,3 +1,4 @@
+import type { AuditContext } from './audit/service';
 import type { SystemStatusData } from '../../contracts/system';
 import type { DetectedCloudflareAccess } from '../../contracts/cloudflare-access';
 import type { SessionNetworkMetadata } from './auth/session-network-metadata';
@@ -25,6 +26,7 @@ export interface Env {
 }
 
 export interface StudioVariables {
+  audit?: AuditContext;
   systemStatus: SystemStatusData;
   sessionNetworkMetadata?: SessionNetworkMetadata;
   cloudflareAccessIdentity?: DetectedCloudflareAccess;

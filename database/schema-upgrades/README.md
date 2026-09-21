@@ -11,3 +11,7 @@ schema for a new installation.
 Use the [Studio DB upgrade flow](../../docs/maintenance-and-recovery.md#forward-only-studio-db-upgrade)
 to upgrade an existing database. These artifacts are not standalone SQL scripts
 or Wrangler D1 migrations.
+
+[`001_to_002_audit_logs.sql`](001_to_002_audit_logs.sql) adds audit storage
+without modifying existing application rows. The transition registry includes
+its SHA-256 checksum.

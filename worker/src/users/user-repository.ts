@@ -466,7 +466,7 @@ export async function inspectManagedUserDeletionImpact(input: {
 }
 
 export type DestructiveManagedUserMutationResult =
-  | { kind: 'completed' }
+  | { kind: 'completed'; deletedName?: string; deletedEmail?: string }
   | { kind: 'not_found' }
   | { kind: 'confirmation_mismatch' }
   | { kind: 'invitation_not_cancellable' }
@@ -557,7 +557,7 @@ async function deleteManagedUser(input: {
           AND ${input.operation === 'cancel_invitation'
             ? pendingInvitationPredicate('users')
             : inactiveAccountPredicate('users')}
-        RETURNING id AS deleted_user_id
+        RETURNING id AS deleted_user_id, name AS deleted_name, email AS deleted_email
       `).bind(
         input.userId,
         input.administratorId,
@@ -573,7 +573,12 @@ async function deleteManagedUser(input: {
     ) {
       throw new TypeError('D1 returned an invalid user-deletion batch result.');
     }
-    if (deletedUserIds.length === 1) return { kind: 'completed' };
+    if (deletedUserIds.length === 1) {
+      const deleted = results[2].results[0] as { deleted_name?: unknown; deleted_email?: unknown };
+      return { kind: 'completed',
+        deletedName: typeof deleted.deleted_name === 'string' ? deleted.deleted_name : undefined,
+        deletedEmail: typeof deleted.deleted_email === 'string' ? deleted.deleted_email : undefined };
+    }
     const current = await getManagedUser({
       db: input.db,
       userId: input.userId,
@@ -1358,7 +1363,7 @@ export async function updateManagedUserRole(input: {
   nextAuthRevision: string;
   now?: Date;
 }): Promise<
-  | { kind: 'completed'; user: ManagedUser; revokedSessions: number }
+  | { kind: 'completed'; user: ManagedUser; revokedSessions: number; changed?: boolean }
   | { kind: 'not_found' }
   | { kind: 'last_admin' }
   | { kind: 'state_conflict' }
@@ -1376,7 +1381,7 @@ export async function updateManagedUserRole(input: {
         now,
       });
       if (!user) return { kind: 'not_found' };
-      return { kind: 'completed', user, revokedSessions: 0 };
+      return { kind: 'completed', user, revokedSessions: 0, changed: false };
     }
     if (
       state.status === 'active'
@@ -1476,6 +1481,7 @@ export async function updateManagedUserRole(input: {
     return {
       kind: 'completed',
       user,
+      changed: true,
       revokedSessions: readChanges(results[3]),
     };
   } catch (error) {
@@ -1491,7 +1497,7 @@ export async function updateManagedUserStatus(input: {
   nextAuthRevision: string;
   now?: Date;
 }): Promise<
-  | { kind: 'completed'; user: ManagedUser; revokedSessions: number }
+  | { kind: 'completed'; user: ManagedUser; revokedSessions: number; changed?: boolean }
   | { kind: 'not_found' }
   | { kind: 'last_admin' }
   | { kind: 'setup_required' }
@@ -1510,7 +1516,7 @@ export async function updateManagedUserStatus(input: {
         now,
       });
       if (!user) return { kind: 'not_found' };
-      return { kind: 'completed', user, revokedSessions: 0 };
+      return { kind: 'completed', user, revokedSessions: 0, changed: false };
     }
     if (
       input.status === 'active'
@@ -1624,6 +1630,7 @@ export async function updateManagedUserStatus(input: {
     return {
       kind: 'completed',
       user,
+      changed: true,
       revokedSessions: readChanges(results[1]),
     };
   } catch (error) {

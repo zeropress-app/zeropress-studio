@@ -1,3 +1,4 @@
+import { STUDIO_SCHEMA_VERSION } from '../system/schema-version';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAuthDatabase } from '../test-helpers/auth-database';
 import { createAuthRoutes } from './routes';
@@ -20,8 +21,8 @@ async function setup() {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(now);
   const { db, sqlite } = createAuthDatabase();
-  sqlite.prepare("INSERT INTO zeropress_schema_state (id, schema_version, lifecycle_state, updated_at_iso) VALUES (1, 1, 'ready', ?)")
-    .run(now.toISOString());
+  sqlite.prepare("INSERT INTO zeropress_schema_state (id, schema_version, lifecycle_state, updated_at_iso) VALUES (1, ?, 'ready', ?)")
+    .run(STUDIO_SCHEMA_VERSION, now.toISOString());
   const encrypted = await mfaCrypto.encryptTotpSecret(authSecret, totpSecret);
   sqlite.prepare(`INSERT INTO users
     (id, email, password_hash, auth_revision, name, created_at_iso, updated_at_iso)

@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit, recordAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -155,6 +156,7 @@ export function createPublishingSettingsRoutes(
       }).resolveUrl(parsed.data.file_url);
       settings = { enabled: settings.enabled, ...resolved.file.target };
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'publishing' } });
     const result = await (
       dependencies.updateSettings ?? updatePublishingSettings
     )({
@@ -169,6 +171,7 @@ export function createPublishingSettingsRoutes(
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     if (result.kind === 'credential_missing')
       throw new PublishingFailure('PUBLISHING_CREDENTIAL_NOT_CONFIGURED');
+    auditSettings(c, 'publishing', Object.keys(parsed.data.settings), parsed.data.credential.action === 'replace' ? 'replaced' : parsed.data.credential.action === 'remove' ? 'removed' : 'retained');
     return c.json(
       publishingSettingsResponseSchema.parse({
         success: true,
@@ -270,6 +273,8 @@ export function createPublishingRoutes(
       !snapshot.token
     )
       throw new PublishingFailure('PUBLISHING_NOT_CONFIGURED');
+    beginAudit(c, { action: 'publishing_publish', target: { type: 'github_file', id: snapshot.document.settings.path,
+      label: `${snapshot.document.settings.owner}/${snapshot.document.settings.repo}` } });
     const result = await publishSite({
       target: targetFromSettings(snapshot.document.settings),
       token: snapshot.token,
@@ -279,6 +284,9 @@ export function createPublishingRoutes(
         (dependencies.prepareExport ?? preparePreviewDataExport)(c),
     });
     if (result instanceof Response) return result;
+    recordAudit(c, { action: 'publishing_publish', outcome: result.outcome === 'unchanged' ? 'unchanged' : 'success',
+      metadata: { commit_sha: result.file.commit.sha },
+      target: { type: 'github_file', id: snapshot.document.settings.path, label: `${snapshot.document.settings.owner}/${snapshot.document.settings.repo}` } });
     return c.json(
       publishingResultResponseSchema.parse({ success: true, data: result }),
     );

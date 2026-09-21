@@ -153,7 +153,7 @@ export type UpdateMediaResult =
   | { kind: 'source_conflict' };
 
 export type DeleteMediaResult =
-  | { kind: 'completed'; cleanupKey: string | null }
+  | { kind: 'completed'; cleanupKey: string | null; filename?: string }
   | { kind: 'not_found' }
   | { kind: 'revision_conflict' }
   | { kind: 'in_use' }
@@ -1281,7 +1281,7 @@ export async function deleteMedia(input: {
     const results = await input.db.batch(statements);
     const deletionResult = results[results.length - 1]!;
     if (readChanges(deletionResult) === 1) {
-      return { kind: 'completed', cleanupKey };
+      return { kind: 'completed', cleanupKey, filename: current.filename };
     }
     const latest = await readMedia(input.db, input.id);
     if (!latest) return { kind: 'not_found' };

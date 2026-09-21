@@ -1,3 +1,5 @@
+import { logAuditedOperation } from '../audit/operations';
+import { setAuditActor, userAuditActor, auditUserById, auditSettings, recordAudit, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -65,7 +67,6 @@ import {
 } from '../lib/bearer-token';
 import { errorResponse } from '../lib/http';
 import {
-  logOperationalFailure,
   logStudioOperationalError,
   StudioOperationalError,
 } from '../lib/operational-error';
@@ -442,6 +443,9 @@ async function authorizeOperationsBoundary(
     };
   }
 
+  setAuditActor(c, operationalSession ? userAuditActor(operationalSession.user)
+    : { kind: 'operations', id: null, name: 'Operations token', email: null });
+
   // The native limiter protects attempts to discover or guess the out-of-band
   // credential. Once that credential is verified, bounded multi-request
   // protocols such as SQL restore must not consume the authentication-attempt
@@ -714,6 +718,7 @@ async function authorizeOperationPayload(
     };
   }
 
+  if (c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
   return {
     authorized: true,
     administratorId: administrator.administratorId,
@@ -741,6 +746,7 @@ async function authorizeAdministratorCredentials(
     email: request.administrator_email,
     password: request.administrator_password,
   });
+  if (administrator.authorized && c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
   return administrator.authorized
     ? {
         authorized: true,
@@ -785,6 +791,7 @@ async function authorizeDatabaseTransferCredentials(
     email: request.administrator_email,
     password: request.administrator_password,
   });
+  if (administrator.authorized && c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
   return administrator.authorized
     ? {
         authorized: true,
@@ -900,6 +907,7 @@ async function authorizeEdgeLifecycleAdministrator(
     email: credentials.administrator_email,
     password: credentials.administrator_password,
   });
+  if (result.authorized && c.get('audit')) setAuditActor(c, await auditUserById(c, result.administratorId));
   return result.authorized
     ? {
         authorized: true,
@@ -1360,6 +1368,7 @@ export function createOperationsRoutes(
     if (updated.kind === 'revision_conflict') {
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     }
+    auditSettings(c, 'cloudflare-access', ['mode']);
     return c.json(cloudflareAccessSettingsSuccessSchema.parse({
       success: true,
       data: materializeCloudflareAccessSettingsDocument(
@@ -1637,6 +1646,7 @@ export function createOperationsRoutes(
       authorizeAdministrator,
     );
     if (!administrator.authorized) return administrator.response;
+    if (c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
     const initiator = authorizedAdministratorInitiator(administrator);
 
     if (parsed.data.mode === 'enabled') {
@@ -1711,7 +1721,7 @@ export function createOperationsRoutes(
       }
       throw error;
     }
-    logOperationalFailure('EDGE_INTEGRATION_MODE_CHANGED', {
+    logAuditedOperation(c, 'EDGE_INTEGRATION_MODE_CHANGED', {
       metadata: {
         resource: 'DB',
         action,
@@ -1776,7 +1786,7 @@ export function createOperationsRoutes(
   }), async (c) => {
     const authorization = await authorizeEdgeDatabaseUninstall(c);
     if (!authorization.authorized) return authorization.response;
-    logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+    logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
       metadata: {
         resource: 'EDGE_DB',
         action: 'uninstall_edge_database',
@@ -1787,7 +1797,7 @@ export function createOperationsRoutes(
       const result = await executeUninstallEdgeDatabase({
         edgeDb: authorization.edgeDb,
       });
-      logOperationalFailure('EDGE_DATABASE_UNINSTALL_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_DATABASE_UNINSTALL_COMPLETED', {
         metadata: {
           resource: 'EDGE_DB',
           action: 'uninstall_edge_database',
@@ -1856,7 +1866,7 @@ export function createOperationsRoutes(
     );
     if (!administrator.authorized) return administrator.response;
     try {
-      logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+      logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
         metadata: {
           resource: 'EDGE_DB',
           action: 'install_edge_database',
@@ -1879,7 +1889,7 @@ export function createOperationsRoutes(
         },
       });
     }
-    logOperationalFailure('EDGE_DATABASE_LIFECYCLE_COMPLETED', {
+    logAuditedOperation(c, 'EDGE_DATABASE_LIFECYCLE_COMPLETED', {
       metadata: {
         resource: 'EDGE_DB', action: 'install_edge_database',
         schema_version: EDGE_DATABASE_SCHEMA_VERSION,
@@ -1931,7 +1941,7 @@ export function createOperationsRoutes(
     );
     if (!administrator.authorized) return administrator.response;
     try {
-      logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+      logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
         metadata: {
           resource: 'EDGE_DB',
           action: 'adopt_edge_database',
@@ -1954,7 +1964,7 @@ export function createOperationsRoutes(
         },
       });
     }
-    logOperationalFailure('EDGE_DATABASE_LIFECYCLE_COMPLETED', {
+    logAuditedOperation(c, 'EDGE_DATABASE_LIFECYCLE_COMPLETED', {
       metadata: {
         resource: 'EDGE_DB', action: 'adopt_edge_database',
         schema_version: EDGE_DATABASE_SCHEMA_VERSION,
@@ -2012,7 +2022,7 @@ export function createOperationsRoutes(
         edgeDb: c.env.EDGE_DB,
         operationId: result.operationId,
       });
-      logOperationalFailure('EDGE_DATABASE_UPGRADE_STARTED', {
+      logAuditedOperation(c, 'EDGE_DATABASE_UPGRADE_STARTED', {
         metadata: {
           resource: 'EDGE_DB',
           action: 'upgrade_edge_database',
@@ -2079,7 +2089,7 @@ export function createOperationsRoutes(
         operationId: parsed.data.operation_id,
         stepId: parsed.data.step_id,
       });
-      logOperationalFailure('EDGE_DATABASE_LIFECYCLE_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_DATABASE_LIFECYCLE_COMPLETED', {
         metadata: {
           resource: 'EDGE_DB',
           action: result.completed
@@ -2157,7 +2167,7 @@ export function createOperationsRoutes(
         db: c.env.DB,
         initiator: administrator.initiator,
       });
-      logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+      logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
         metadata: {
           resource: 'DB',
           related_resource: 'EDGE_DB',
@@ -2213,7 +2223,7 @@ export function createOperationsRoutes(
         env: c.env,
         operationId: parsed.data.operation_id,
       });
-      logOperationalFailure('EDGE_TARGET_RECONCILIATION_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_TARGET_RECONCILIATION_COMPLETED', {
         metadata: {
           resource: 'DB',
           related_resource: 'EDGE_DB',
@@ -2305,7 +2315,7 @@ export function createOperationsRoutes(
         operationId: parsed.data.operation_id,
         targetIds: parsed.data.target_ids,
       });
-      logOperationalFailure('EDGE_TARGET_RECONCILIATION_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_TARGET_RECONCILIATION_COMPLETED', {
         metadata: {
           resource: 'EDGE_DB',
           related_resource: 'DB',
@@ -2313,6 +2323,14 @@ export function createOperationsRoutes(
           operation_id: parsed.data.operation_id,
           selected_target_count: parsed.data.target_ids.length,
           ...operationsInitiatorMetadata(initiator),
+        },
+      }, {
+        outcome: purgeResults.every((item) => item.result === 'deleted') ? 'success'
+          : purgeResults.some((item) => item.result === 'deleted') ? 'partial' : 'unchanged',
+        metadata: {
+          requested: purgeResults.length,
+          deleted: purgeResults.filter((item) => item.result === 'deleted').length,
+          skipped: purgeResults.filter((item) => item.result !== 'deleted').length,
         },
       });
       const reconciliation = await inspectEdgeReconciliation({
@@ -2367,7 +2385,7 @@ export function createOperationsRoutes(
         db: c.env.DB, edgeDb: c.env.EDGE_DB,
         operationId: parsed.data.operation_id,
       });
-      logOperationalFailure('EDGE_TARGET_RECONCILIATION_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_TARGET_RECONCILIATION_COMPLETED', {
         metadata: {
           resource: 'DB',
           related_resource: 'EDGE_DB',
@@ -2428,7 +2446,7 @@ export function createOperationsRoutes(
         db: c.env.DB,
         operationId: parsed.data.operation_id,
       });
-      logOperationalFailure('EDGE_TARGET_RECONCILIATION_COMPLETED', {
+      logAuditedOperation(c, 'EDGE_TARGET_RECONCILIATION_COMPLETED', {
         metadata: {
           resource: 'DB',
           action: 'cancel_edge_target_reconciliation',
@@ -2503,6 +2521,7 @@ export function createOperationsRoutes(
       authorizeAdministrator,
     );
     if (!administrator.authorized) return administrator.response;
+    if (c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
     const initiator = authorizedAdministratorInitiator(administrator);
     try {
       const contentSearchIndex =
@@ -2510,7 +2529,7 @@ export function createOperationsRoutes(
           db: c.env.DB,
           initiator,
         });
-      logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+      logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
         metadata: {
           resource: 'DB',
           action: 'rebuild_content_search_index',
@@ -2569,7 +2588,7 @@ export function createOperationsRoutes(
           request: parsed.data,
         });
       const completed = contentSearchIndex.state === 'ready';
-      logOperationalFailure(
+      logAuditedOperation(c,
         completed
           ? 'CONTENT_SEARCH_INDEX_REBUILD_COMPLETED'
           : 'MAINTENANCE_OPERATION_STARTED',
@@ -2650,6 +2669,7 @@ export function createOperationsRoutes(
     if (!administrator.authorized) {
       return errorResponse(c, 401, 'INVALID_OPERATIONS_CREDENTIALS');
     }
+    if (c.get('audit')) setAuditActor(c, await auditUserById(c, administrator.administratorId));
     const initiator = authorizedAdministratorInitiator(administrator);
     let result: Awaited<ReturnType<StartSchemaUpgrade>>;
     try {
@@ -2658,7 +2678,7 @@ export function createOperationsRoutes(
         request: parsed.data,
         initiator,
         beforeBatch(details) {
-          logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+          logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
             metadata: {
               resource: 'DB',
               action: 'upgrade_studio_database',
@@ -2692,6 +2712,8 @@ export function createOperationsRoutes(
         },
       });
     }
+    recordAudit(c, { action: 'operations_upgrade', target: { type: 'DB' },
+      metadata: { operation_id: result.operation_id, stage: 'started' } });
     const response: DatabaseUpgradeStartSuccess = {
       success: true,
       data: result,
@@ -2751,7 +2773,7 @@ export function createOperationsRoutes(
         },
       });
     }
-    logOperationalFailure(
+    logAuditedOperation(c,
       result.status === 'completed'
         ? 'DATABASE_UPGRADE_COMPLETED'
         : 'DATABASE_UPGRADE_STEP_COMPLETED',
@@ -2759,6 +2781,7 @@ export function createOperationsRoutes(
         metadata: {
           resource: 'DB',
           action: 'upgrade_studio_database',
+          operation_id: parsed.data.operation_id,
           step_id: result.applied_step.id,
           schema_version: result.current_schema_version,
           target_schema_version: result.target_schema_version,
@@ -2840,6 +2863,7 @@ export function createOperationsRoutes(
 
     let backup: Awaited<ReturnType<ExportDatabaseBackup>>;
     try {
+      beginAudit(c, { action: 'operations_backup', target: { type: parsed.data.database } });
       backup = await executeExportDatabaseBackup({
         db: database,
         database: parsed.data.database,
@@ -2866,7 +2890,7 @@ export function createOperationsRoutes(
         },
       });
     }
-    logOperationalFailure('DATABASE_BACKUP_EXPORT_COMPLETED', {
+    logAuditedOperation(c, 'DATABASE_BACKUP_EXPORT_COMPLETED', {
       metadata: {
         resource: parsed.data.database === 'studio' ? 'DB' : 'EDGE_DB',
         action: 'export_database_backup',
@@ -3003,7 +3027,7 @@ export function createOperationsRoutes(
           && !restartingInterruptedRestore,
         initiator,
         beforeBatch() {
-          logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+          logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
             metadata: {
               resource: parsed.data.database === 'studio' ? 'DB' : 'EDGE_DB',
               action: 'restore_database',
@@ -3032,6 +3056,8 @@ export function createOperationsRoutes(
         },
       });
     }
+    recordAudit(c, { action: 'operations_restore', target: { type: parsed.data.database },
+      metadata: { operation_id: result.restoreId, stage: 'started' } });
     const response: DatabaseRestoreStartSuccess = {
       success: true,
       data: {
@@ -3078,6 +3104,7 @@ export function createOperationsRoutes(
     let initiator: OperationsInitiator | null = null;
     try {
       initiator = await executeReadDatabaseRestoreInitiator(database);
+      beginAudit(c, { action: 'operations_restore', metadata: { operation_id: parsed.data.restore_id, stage: 'step' } });
       result = await executeApplyDatabaseRestoreChunk({
         db: database,
         database: parsed.data.database,
@@ -3101,6 +3128,9 @@ export function createOperationsRoutes(
         },
       });
     }
+    recordAudit(c, { action: 'operations_restore', outcome: result.replayed ? 'unchanged' : 'success',
+      target: { type: parsed.data.database }, metadata: { operation_id: result.restoreId, stage: 'step',
+        initiator: initiator ? { kind: 'user', id: initiator.userId, email: initiator.userEmail, name: null } : undefined } });
     const response: DatabaseRestoreChunkSuccess = {
       success: true,
       data: {
@@ -3169,13 +3199,14 @@ export function createOperationsRoutes(
         },
       });
     }
-    logOperationalFailure('DATABASE_RESTORE_COMPLETED', {
+    logAuditedOperation(c, 'DATABASE_RESTORE_COMPLETED', {
       metadata: {
         resource: parsed.data.database === 'studio' ? 'DB' : 'EDGE_DB',
         action: 'restore_database',
         database: parsed.data.database,
         mode: result.mode,
         table_count: result.restoredTables.length,
+        operation_id: parsed.data.restore_id,
         statement_count: result.restoredStatementCount,
         ...operationsInitiatorMetadata(result.initiator),
       },
@@ -3376,7 +3407,7 @@ export function createOperationsRoutes(
     }
 
     await executeRecoverCloudflareAccessDisabled({ db: c.env.DB });
-    logOperationalFailure('CLOUDFLARE_ACCESS_RECOVERY_COMPLETED', {
+    logAuditedOperation(c, 'CLOUDFLARE_ACCESS_RECOVERY_COMPLETED', {
       metadata: {
         resource: 'DB',
         action: 'disable_cloudflare_access_requirement',
@@ -3650,7 +3681,7 @@ export function createOperationsRoutes(
       );
     }
 
-    logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+    logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
       metadata: {
         resource: 'DB',
         action: 'bootstrap_recovery_administrator',
@@ -3676,7 +3707,7 @@ export function createOperationsRoutes(
       return errorResponse(c, 409, 'USER_EMAIL_CONFLICT');
     }
 
-    logOperationalFailure('ADMINISTRATOR_RECOVERY_COMPLETED', {
+    logAuditedOperation(c, 'ADMINISTRATOR_RECOVERY_COMPLETED', {
       metadata: {
         resource: 'DB',
         action: 'bootstrap_recovery_administrator',
@@ -3778,7 +3809,7 @@ export function createOperationsRoutes(
       );
     }
 
-    logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+    logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
       metadata: {
         resource: 'DB',
         action: 'recover_administrator',
@@ -3793,10 +3824,11 @@ export function createOperationsRoutes(
     if (!recovered) {
       return errorResponse(c, 404, 'ADMINISTRATOR_NOT_FOUND');
     }
-    logOperationalFailure('ADMINISTRATOR_RECOVERY_COMPLETED', {
+    logAuditedOperation(c, 'ADMINISTRATOR_RECOVERY_COMPLETED', {
       metadata: {
         resource: 'DB',
         action: 'recover_administrator',
+        target_id: administrator.id, target_label: administrator.name,
         mfa_reset: parsedBody.data.reset_mfa,
       },
     });
@@ -3925,7 +3957,7 @@ export function createOperationsRoutes(
         return administrator.response;
       }
 
-      logOperationalFailure('MAINTENANCE_OPERATION_STARTED', {
+      logAuditedOperation(c, 'MAINTENANCE_OPERATION_STARTED', {
         metadata: {
           resource: 'DB',
           action,
@@ -3974,7 +4006,7 @@ export function createOperationsRoutes(
         updated_rows: result.updatedRows,
       };
 
-      logOperationalFailure(completionCode, {
+      logAuditedOperation(c, completionCode, {
         metadata: {
           resource: 'DB',
           action,

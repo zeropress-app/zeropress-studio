@@ -7,6 +7,7 @@ export const studio = {
     visit: '사이트 방문',
   },
   navigation: {
+    auditLog: '감사 기록',
     analytics: '방문 통계',
     label: 'Studio 내비게이션',
     overview: '개요',

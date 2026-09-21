@@ -1,3 +1,4 @@
+import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -273,12 +274,14 @@ export function createPageRoutes(
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
+    beginAudit(c, { action: 'content_bulk', target: { type: 'page' } });
     const result = await bulkLifecycle({
       db: c.env.DB,
       request: parsed.data,
       now: currentTime(),
       createRevision: dependencies.createRevision,
     });
+    auditBulk(c, 'page', result.summary, result.target_status);
     if (result.summary.updated > 0) scheduleProjectionDrain(c);
     return c.json(pageBulkLifecycleSuccessSchema.parse({
       success: true,
@@ -474,6 +477,7 @@ export function createPageRoutes(
         expected_revision: restoreRequest.data.expected_revision,
       });
       const result = await update({
+      beforeStatusChange: (current, status) => beginContentAudit(c, 'page', current, status),
         db: c.env.DB,
         id: id.data,
         authored,
@@ -503,6 +507,7 @@ export function createPageRoutes(
         return parentFailureResponse(c, result.kind);
       }
       scheduleProjectionDrain(c);
+      auditContentChange(c, 'page', result.page, 'previousStatus' in result ? result.previousStatus : undefined);
       return c.json(pageMutationSuccessSchema.parse({
         success: true,
         data: result.page,
@@ -561,6 +566,7 @@ export function createPageRoutes(
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
     const result = await update({
+      beforeStatusChange: (current, status) => beginContentAudit(c, 'page', current, status),
       db: c.env.DB,
       id: id.data,
       authored: parsed.data,
@@ -590,6 +596,7 @@ export function createPageRoutes(
       return parentFailureResponse(c, result.kind);
     }
     scheduleProjectionDrain(c);
+    auditContentChange(c, 'page', result.page, 'previousStatus' in result ? result.previousStatus : undefined);
     return c.json(pageMutationSuccessSchema.parse({
       success: true,
       data: result.page,
@@ -605,6 +612,7 @@ export function createPageRoutes(
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
+    beginAudit(c, { action: 'content_delete', target: { type: 'page', id: id.data } });
     const result = await remove({
       db: c.env.DB,
       id: id.data,
@@ -626,6 +634,7 @@ export function createPageRoutes(
       return errorResponse(c, 409, 'PAGE_IS_FRONT_PAGE');
     }
     scheduleProjectionDrain(c);
+    recordAudit(c, { action: 'content_delete', target: { type: 'page', id: id.data, label: result.title } });
     return c.json(pageDeleteSuccessSchema.parse({
       success: true,
       data: { status: 'page_deleted', id: id.data },

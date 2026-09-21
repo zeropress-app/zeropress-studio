@@ -392,7 +392,7 @@ describe('Media D1 repository', () => {
       db: d1,
       id: FIRST_ID,
       expectedRevision: FIRST_REVISION,
-    })).resolves.toEqual({ kind: 'completed', cleanupKey: null });
+    })).resolves.toEqual({ kind: 'completed', cleanupKey: null, filename: 'hero.jpg' });
   });
 
   it('queues imported R2 objects for deletion and preserves them if R2 is unavailable', async () => {
@@ -430,7 +430,7 @@ describe('Media D1 repository', () => {
       id: FIRST_ID,
       expectedRevision: FIRST_REVISION,
       allowR2ObjectDeletion: true,
-    })).resolves.toEqual({ kind: 'completed', cleanupKey: storageKey });
+    })).resolves.toEqual({ kind: 'completed', cleanupKey: storageKey, filename: 'manual.pdf' });
     expect(database.prepare(`
       SELECT storage_key FROM media_object_deletions
     `).get()).toEqual({ storage_key: storageKey });

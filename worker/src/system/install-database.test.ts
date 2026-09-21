@@ -45,7 +45,6 @@ describe('Studio database installer', () => {
 
     expect(statements.length).toBeGreaterThan(5);
     expect(sql).toContain('CREATE TABLE zeropress_schema_state');
-    expect(STUDIO_SCHEMA_VERSION).toBe(1);
     expect(sql).toContain('CREATE TABLE auth_rate_limits');
     expect(sql).toContain('idx_auth_rate_limits_reset_at');
     expect(sql).toContain('CREATE TABLE users');
@@ -97,7 +96,7 @@ describe('Studio database installer', () => {
     `).get()).toEqual({ count: 21 });
   });
 
-  it('fresh-installs, uninstalls, and reinstalls schema one with working counter storage', async () => {
+  it('fresh-installs, uninstalls, and reinstalls the current schema with working counter storage', async () => {
     const sqlite = new DatabaseSync(':memory:');
     sqlite.exec('PRAGMA foreign_keys = ON');
     const db = sqliteD1(sqlite);
@@ -118,7 +117,7 @@ describe('Studio database installer', () => {
       for (let cycle = 0; cycle < 2; cycle += 1) {
         await install();
         expect(sqlite.prepare('SELECT schema_version FROM zeropress_schema_state').get())
-          .toEqual({ schema_version: 1 });
+          .toEqual({ schema_version: STUDIO_SCHEMA_VERSION });
         expect(sqlite.prepare('SELECT count(*) AS n FROM auth_rate_limits').get()?.n).toBe(0);
         expect(await consumeLoginRateLimits({
           db, authSecret: 'test-auth-secret-value-with-at-least-32-characters',

@@ -483,6 +483,7 @@ describe('Page routes', () => {
       },
       now: NOW,
       createRevision: expect.any(Function),
+      beforeStatusChange: expect.any(Function),
       autosaveUserId: editorSession.user.id,
     });
     expect(syncCommentTarget).toHaveBeenCalledOnce();

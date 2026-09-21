@@ -1,3 +1,4 @@
+import { recordAudit, auditUserById } from '../audit/service';
 import type { Context } from 'hono';
 import type { ApiErrorCode } from '../../../contracts/api';
 import {
@@ -29,6 +30,7 @@ export async function finishAuthentication(input: {
   userId: string;
   authRevision: string;
   accountChangedErrorCode?: ApiErrorCode;
+  method?: 'totp' | 'passkey';
 }): Promise<Response> {
   const issued = await input.issueSession({
     db: input.c.env.DB,
@@ -47,6 +49,10 @@ export async function finishAuthentication(input: {
     );
   }
 
+  if (input.c.get('audit')) recordAudit(input.c, {
+    action: 'auth_login', actor: await auditUserById(input.c, input.userId),
+    metadata: { method: input.method ?? 'totp' },
+  });
   setSessionCookie(input.c, issued.value.cookieValue);
   const response: AuthenticatedSuccess = {
     success: true,

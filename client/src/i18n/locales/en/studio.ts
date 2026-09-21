@@ -7,6 +7,7 @@ export const studio = {
     visit: 'Visit Site',
   },
   navigation: {
+    auditLog: 'Audit Log',
     analytics: 'Analytics',
     label: 'Studio navigation',
     overview: 'Overview',

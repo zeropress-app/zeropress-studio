@@ -10,6 +10,9 @@ operational tools together in one private administration application. It
 deploys a React interface and a Hono API as a single same-origin Cloudflare
 Worker, while keeping the public site on the static ZeroPress publishing path.
 
+Administrators can review major account, content, publishing and maintenance
+actions in [Audit Log](docs/audit-log.md).
+
 ## What Studio provides
 
 - Post and Page authoring with visual and source editing, autosave, and revision

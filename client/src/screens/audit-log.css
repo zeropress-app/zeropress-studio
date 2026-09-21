@@ -1,0 +1,12 @@
+.audit-log-page { display: grid; gap: 1.5rem; }
+.audit-log-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 1rem; align-items: end; }
+.audit-log-buttons { display: flex; flex-wrap: wrap; gap: .75rem; }
+.audit-log-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .75rem 1.25rem; margin-block: 1.5rem; }
+.audit-log-detail-row { display: contents; }
+.audit-log-details dt { font-weight: 600; }
+.audit-log-details dd { margin: 0; overflow-wrap: anywhere; }
+.audit-log-hash { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .audit-log-details { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  .audit-log-details dd { margin-bottom: .75rem; }
+}

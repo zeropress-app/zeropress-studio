@@ -1,3 +1,4 @@
+import { recordAudit, auditUserById } from '../audit/service';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -275,6 +276,7 @@ export function createAccountSetupRoutes(
     if (completed !== 'completed') {
       return errorResponse(c, 401, 'USER_SETUP_TOKEN_INVALID');
     }
+    if (c.get('audit')) recordAudit(c, { action: 'account_activate', actor: await auditUserById(c, enrollment.subject_id) });
     return c.json(completeUserSetupSuccessSchema.parse({
       success: true,
       data: { status: 'user_activated' },

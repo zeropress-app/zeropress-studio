@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -106,6 +107,7 @@ export function createEdgeSecuritySettingsRoutes(
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
 
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'edge-security' } });
     const result = await updateSettings({
       edgeDb: requireEdgeSecurityDatabase(c.env),
       settings: parsed.data.settings,
@@ -115,6 +117,7 @@ export function createEdgeSecuritySettingsRoutes(
     if (result.kind === 'revision_conflict') {
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     }
+    auditSettings(c, 'edge-security', Object.keys(parsed.data.settings));
     return c.json(edgeSecuritySettingsSuccessSchema.parse({
       success: true,
       data: result.document,

@@ -22,6 +22,7 @@ export const STUDIO_PATHS = {
   taxonomy: '/taxonomy',
   wxrImport: '/import/wordpress',
   users: '/users',
+  auditLog: '/audit-logs',
   generalSettings: '/settings/site/general',
   interfaceSettings: '/settings/site/interface',
   brandingSettings: '/settings/site/branding',
@@ -71,6 +72,7 @@ export type StudioNavigationSection =
   | 'utility'
   | 'account';
 export type StudioNavigationIcon =
+  | 'auditLog'
   | 'analytics'
   | 'dashboard'
   | 'publish'
@@ -95,6 +97,7 @@ export type StudioRouteDefinition = {
   navigationSection: StudioNavigationSection | null;
   requiredCapability: StudioCapability | null;
   labelKey:
+    | 'navigation.auditLog'
     | 'navigation.analytics'
     | 'navigation.dashboard'
     | 'navigation.publish'
@@ -308,6 +311,8 @@ export const STUDIO_ROUTE_DEFINITIONS = [
     icon: 'users',
     end: true,
   },
+  { id: 'auditLog', path: STUDIO_PATHS.auditLog, navigationSection: 'utility',
+    requiredCapability: 'audit.read', labelKey: 'navigation.auditLog', icon: 'auditLog', end: true },
   {
     id: 'generalSettings',
     path: STUDIO_PATHS.generalSettings,

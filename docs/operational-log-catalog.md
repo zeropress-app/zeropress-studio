@@ -15,6 +15,36 @@ token-only operations and failed credential checks omit both fields. No event
 uses `actor_type`, raw request email, passwords, tokens, MFA values, or
 confirmation input.
 
+## `AUDIT_WRITE_FAILED`
+
+- Level: `warn`
+- Message: `Audit record could not be saved`
+- Expected context: `resource=DB`
+
+## `AUDIT_IP_HASH_FAILED`
+
+- Level: `warn`
+- Message: `Audit IP hashing failed; the raw IP was omitted`
+- Expected context: `component=web_crypto`
+
+## `AUDIT_SNAPSHOT_FAILED`
+
+- Level: `warn`
+- Message: `Audit actor snapshot could not be read`
+- Expected context: `resource=DB`
+
+## `AUDIT_READ_FAILED`
+
+- Level: `warn`
+- Message: `Audit records could not be read`
+- Expected context: `resource=DB`
+
+## `AUDIT_RETENTION_FAILED`
+
+- Level: `warn`
+- Message: `Audit retention cleanup failed`
+- Expected context: `resource=DB`
+
 ## `SITE_MODE_CONFIGURATION_INVALID`
 
 - Level: `error`

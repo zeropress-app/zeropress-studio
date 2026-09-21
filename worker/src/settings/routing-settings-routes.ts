@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -114,6 +115,7 @@ export function createRoutingSettingsRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'routing' } });
     const result = await updateSettings({
       db: c.env.DB,
       settings: parsed.data.settings,
@@ -128,6 +130,7 @@ export function createRoutingSettingsRoutes(
     if (result.kind === 'front_page_not_found') {
       return errorResponse(c, 409, 'ROUTING_FRONT_PAGE_NOT_FOUND');
     }
+    auditSettings(c, 'routing', Object.keys(parsed.data.settings));
     return c.json(routingSettingsSuccessSchema.parse({
       success: true,
       data: result.document,
@@ -151,6 +154,7 @@ export function createRoutingSettingsRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'routing' } });
     const result = await repairSettings({
       db: c.env.DB,
       expectedRevision: parsed.data.expected_revision,
@@ -165,6 +169,7 @@ export function createRoutingSettingsRoutes(
     if (result.kind === 'front_page_not_found') {
       return errorResponse(c, 409, 'ROUTING_FRONT_PAGE_NOT_FOUND');
     }
+    auditSettings(c, 'routing', parsed.data.missing_fields);
     return c.json(routingSettingsSuccessSchema.parse({
       success: true,
       data: result.document,

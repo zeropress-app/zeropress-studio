@@ -391,6 +391,11 @@ To reinstall, configure `STUDIO_SITE_MODE=initial` and a new
 
 ## Logs and backup boundary
 
+[Audit records](audit-log.md) survive Clear Content and Reset Studio and are
+included in Studio SQL backups. A restore rewinds them to the backup; the restore
+completion is recorded afterward. Uninstall removes the audit table, so its
+completion is available only in Worker operational logs.
+
 Operations logs record the start and completion or failure of database work.
 Authenticated mutations include the verified initiating administrator's ID and
 email; token-only recovery operations do not. These logs remain available

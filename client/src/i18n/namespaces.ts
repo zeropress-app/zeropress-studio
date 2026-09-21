@@ -28,6 +28,7 @@ export const BOOT_NAMESPACES = [
 export const DEFERRED_NAMESPACES = [
   'accessSettings',
   'analytics',
+  'auditLog',
   'authors',
   'brandingSettings',
   'comments',

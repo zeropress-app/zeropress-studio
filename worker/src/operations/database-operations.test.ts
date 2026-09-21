@@ -169,6 +169,8 @@ function hierarchicalContentDatabase() {
     new URL('../../../database/install/001_baseline.sql', import.meta.url),
     'utf8',
   ));
+  sqlite.exec(`INSERT INTO audit_logs (id, occurred_at, action, category, outcome, actor_kind, actor_id, actor_name, actor_email, target_type, metadata_json)
+    VALUES ('audit-snapshot', '2026-07-29T12:00:00.000Z', 'account_delete', 'account', 'success', 'user', 'deleted-user', 'Former owner', 'former@example.test', 'user', '{}')`);
   sqlite.prepare('INSERT INTO auth_rate_limits VALUES (?, ?, ?, ?)')
     .run('login_account', 'a'.repeat(64), 3, 2_000_000_000);
   const administratorId = '0123456789abcdef0123456789abcdef';
@@ -474,6 +476,7 @@ describe('Maintenance database operations', () => {
     expect(clearFixture.sqlite.prepare('PRAGMA foreign_key_check').all())
       .toEqual([]);
     expect(clearFixture.sqlite.prepare('SELECT count(*) AS n FROM auth_rate_limits').get()?.n).toBe(1);
+    expect(clearFixture.sqlite.prepare('SELECT actor_name FROM audit_logs').get()).toEqual({ actor_name: 'Former owner' });
     clearFixture.sqlite.close();
 
     const resetFixture = hierarchicalContentDatabase();
@@ -505,6 +508,7 @@ describe('Maintenance database operations', () => {
     expect(resetFixture.sqlite.prepare('PRAGMA foreign_key_check').all())
       .toEqual([]);
     expect(resetFixture.sqlite.prepare('SELECT count(*) AS n FROM auth_rate_limits').get()?.n).toBe(0);
+    expect(resetFixture.sqlite.prepare('SELECT actor_name FROM audit_logs').get()).toEqual({ actor_name: 'Former owner' });
     resetFixture.sqlite.close();
   });
 

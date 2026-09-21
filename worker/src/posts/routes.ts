@@ -1,3 +1,4 @@
+import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -420,6 +421,7 @@ export function createPostRoutes(
     if (authorization.access.scope === 'unavailable') {
       return authorUnavailable(c);
     }
+    beginAudit(c, { action: 'content_bulk', target: { type: 'post' } });
     const result = await bulkLifecycle({
       db: c.env.DB,
       request: parsed.data,
@@ -432,6 +434,7 @@ export function createPostRoutes(
           ) }
         : {}),
     });
+    auditBulk(c, 'post', result.summary, result.target_status);
     if (result.summary.updated > 0) scheduleProjectionDrain(c);
     return c.json(postBulkLifecycleSuccessSchema.parse({
       success: true,
@@ -849,6 +852,7 @@ export function createPostRoutes(
         && authored.author_id !== authorization.access.author.id
       ) return errorResponse(c, 403, 'FORBIDDEN');
       const result = await update({
+      beforeStatusChange: (current, status) => beginContentAudit(c, 'post', current, status),
         db: c.env.DB,
         id: id.data,
         authored,
@@ -881,6 +885,7 @@ export function createPostRoutes(
         return referenceFailureResponse(c, result.kind);
       }
       scheduleProjectionDrain(c);
+      auditContentChange(c, 'post', result.post, 'previousStatus' in result ? result.previousStatus : undefined);
       return c.json(postMutationSuccessSchema.parse({
         success: true,
         data: result.post,
@@ -974,6 +979,7 @@ export function createPostRoutes(
       access: authorization.access,
     })) return errorResponse(c, 404, 'POST_NOT_FOUND');
     const result = await update({
+      beforeStatusChange: (current, status) => beginContentAudit(c, 'post', current, status),
       db: c.env.DB,
       id: id.data,
       authored: parsed.data,
@@ -1006,6 +1012,7 @@ export function createPostRoutes(
       return referenceFailureResponse(c, result.kind);
     }
     scheduleProjectionDrain(c);
+    auditContentChange(c, 'post', result.post, 'previousStatus' in result ? result.previousStatus : undefined);
     return c.json(postMutationSuccessSchema.parse({
       success: true,
       data: result.post,
@@ -1029,6 +1036,7 @@ export function createPostRoutes(
       id: id.data,
       access: authorization.access,
     })) return errorResponse(c, 404, 'POST_NOT_FOUND');
+    beginAudit(c, { action: 'content_delete', target: { type: 'post', id: id.data } });
     const result = await remove({
       db: c.env.DB,
       id: id.data,
@@ -1050,6 +1058,7 @@ export function createPostRoutes(
       return errorResponse(c, 409, 'POST_NOT_IN_TRASH');
     }
     scheduleProjectionDrain(c);
+    recordAudit(c, { action: 'content_delete', target: { type: 'post', id: id.data, label: result.title } });
     return c.json(postDeleteSuccessSchema.parse({
       success: true,
       data: { status: 'post_deleted', id: id.data },

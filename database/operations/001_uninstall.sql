@@ -1,3 +1,4 @@
+DROP TABLE audit_logs;
 -- ZeroPress Studio application-schema removal artifact.
 -- This drops Studio-owned objects, not the Cloudflare D1 resource itself.
 -- Keep zeropress_schema_state last so an all-or-nothing D1 batch is the only

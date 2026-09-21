@@ -256,6 +256,10 @@ const NewsletterSettingsPage = lazyScreen(
   ['newsletterSettings', 'settings'],
 );
 
+const AuditLogPage = lazyScreen(
+  async () => ({ default: (await import('./AuditLogPage')).AuditLogPage }),
+  ['auditLog'],
+);
 const AnalyticsPage = lazyScreen(
   async () => ({ default: (await import('./AnalyticsPage')).AnalyticsPage }),
   ['analytics'],
@@ -897,6 +901,18 @@ export function AuthenticatedApplication(input: {
                   data={input.data}
                   onSessionEnded={input.onSessionEnded}
                 />
+              ) : (
+                <StudioAccessDeniedPage />
+              )}
+            </DeferredRoute>
+          )}
+        />
+        <Route
+          path={STUDIO_PATHS.auditLog}
+          element={(
+            <DeferredRoute>
+              {hasStudioCapability(input.data.user.roles, 'audit.read') ? (
+                <AuditLogPage onSessionEnded={input.onSessionEnded} />
               ) : (
                 <StudioAccessDeniedPage />
               )}

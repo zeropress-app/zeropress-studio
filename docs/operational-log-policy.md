@@ -7,6 +7,10 @@ localized client response contract.
 Individual codes, messages, guidance, and metadata are described in the
 [operational log catalog](./operational-log-catalog.md).
 
+Audit storage diagnostics contain no actor, IP, request payload, or exception
+text. Recording failures leave the original operation unchanged; see
+[Audit Log](./audit-log.md) for coverage and retention.
+
 ## Envelope
 
 The shared logger writes one object with a human-readable top-level `message`

@@ -1,3 +1,5 @@
+import { auditMiddleware } from './audit/service';
+import { createAuditRoutes } from './audit/routes';
 import {
   createPublishingRoutes,
   createPublishingSettingsRoutes,
@@ -247,6 +249,7 @@ export function createApp(dependencies?: {
     c.header('Referrer-Policy', 'no-referrer');
   });
 
+  app.use('/api/*', auditMiddleware);
   app.use('/api/*', createSystemGate());
   app.use('/__zeropress_media__/*', createSystemGate());
   app.use('/api/*', createCloudflareAccessGate(
@@ -255,6 +258,7 @@ export function createApp(dependencies?: {
   app.use('/__zeropress_media__/*', createCloudflareAccessGate(
     dependencies?.cloudflareAccess,
   ));
+  app.route('/api/audit-logs', createAuditRoutes({ resolveSession: dependencies?.resolveSession }));
   app.route('/api/system', createSystemRoutes({
     resolveSession: dependencies?.resolveSession,
     installDatabase: dependencies?.installDatabase,

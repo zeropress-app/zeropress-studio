@@ -118,7 +118,7 @@ export type CreatePageResult =
   | { kind: PageReferenceFailure };
 
 export type UpdatePageResult =
-  | { kind: 'completed'; page: Page }
+  | { kind: 'completed'; page: Page; previousStatus?: Page['status'] }
   | { kind: 'not_found' }
   | { kind: 'revision_conflict' }
   | { kind: 'slug_conflict' }
@@ -128,7 +128,7 @@ export type UpdatePageResult =
   | { kind: PageReferenceFailure };
 
 export type DeletePageResult =
-  | { kind: 'completed'; publicId: number }
+  | { kind: 'completed'; publicId: number; title?: string }
   | { kind: 'not_found' }
   | { kind: 'revision_conflict' }
   | { kind: 'not_in_trash' }
@@ -1062,6 +1062,7 @@ export async function updatePage(input: {
   autosaveUserId?: string;
   now?: Date;
   createRevision?: () => string;
+  beforeStatusChange?: (current: Page, status: Page['status']) => void;
 }): Promise<UpdatePageResult> {
   try {
     const current = await getPage({ db: input.db, id: input.id });
@@ -1100,7 +1101,7 @@ export async function updatePage(input: {
           DELETE FROM page_autosaves WHERE user_id = ? AND page_id = ?
         `).bind(input.autosaveUserId, input.id).run();
       }
-      return { kind: 'completed', page: current };
+      return { kind: 'completed', page: current, previousStatus: current.status };
     }
     const archivedRevision = await preparePageRevision(current);
     const revision = settingsRevisionSchema.parse(
@@ -1148,6 +1149,7 @@ export async function updatePage(input: {
           )
       `).bind(input.autosaveUserId, input.id, input.id, revision));
     }
+    if (current.status !== input.authored.status) input.beforeStatusChange?.(current, input.authored.status);
     const results = await input.db.batch(statements);
     if (readChanges(results[0]) === 0) {
       const latest = await getPage({ db: input.db, id: input.id });
@@ -1180,7 +1182,7 @@ export async function updatePage(input: {
     }
     const page = await getPage({ db: input.db, id: input.id });
     if (!page) throw new TypeError('D1 did not return the updated Page.');
-    return { kind: 'completed', page };
+    return { kind: 'completed', page, previousStatus: current.status };
   } catch (error) {
     if (error instanceof StudioOperationalError) throw error;
     if (isSlugConstraint(error)) return { kind: 'slug_conflict' };
@@ -1349,11 +1351,11 @@ export async function deletePage(input: {
 }): Promise<DeletePageResult> {
   try {
     const identity = await input.db.prepare(`
-      SELECT public_id
+      SELECT public_id, title
       FROM pages
       WHERE id = ?
       LIMIT 1
-    `).bind(input.id).first<{ public_id?: unknown }>();
+    `).bind(input.id).first<{ public_id?: unknown; title?: unknown }>();
     if (!identity) return { kind: 'not_found' };
     const publicId = Number(identity.public_id);
     if (!Number.isInteger(publicId) || publicId <= 0) {
@@ -1387,7 +1389,7 @@ export async function deletePage(input: {
       input.id,
       input.id,
     ).run();
-    if (readChanges(result) > 0) return { kind: 'completed', publicId };
+    if (readChanges(result) > 0) return { kind: 'completed', publicId, title: typeof identity.title === 'string' ? identity.title : undefined };
     const current = await getPage({ db: input.db, id: input.id });
     if (!current) return { kind: 'not_found' };
     if (current.revision !== input.expectedRevision) {

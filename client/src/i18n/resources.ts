@@ -1,3 +1,4 @@
+import type { auditLog } from './locales/en/audit-log';
 import type { publishing } from './locales/en/publishing';
 import type { analytics } from './locales/en/analytics';
 import { FALLBACK_LOCALE } from './locale';
@@ -81,6 +82,7 @@ export type StudioResourceContract = {
   install: typeof enInstall;
   interfaceSettings: typeof interfaceSettings;
   analytics: typeof analytics;
+  auditLog: typeof auditLog;
   mailSettings: typeof mailSettings;
   media: typeof media;
   mediaSettings: typeof mediaSettings;

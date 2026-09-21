@@ -1,3 +1,4 @@
+import { recordAudit, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -127,6 +128,7 @@ export function createWxrCoreImportRoutes(
         return errorResponse(c, 409, 'EDGE_TARGET_PROJECTION_PENDING');
       }
     }
+    beginAudit(c, { action: 'import_chunk', target: { type: 'wxr' }, metadata: { phase: parsed.data.phase } });
     const result = parsed.data.phase === 'comments'
       ? await importCommentChunk({
           edgeDb: requireEdgeDatabase(c.env),
@@ -139,6 +141,11 @@ export function createWxrCoreImportRoutes(
           createId: dependencies.createId,
           createRevision: dependencies.createRevision,
         });
+    recordAudit(c, { action: 'import_chunk', target: { type: 'wxr' },
+      outcome: result.summary.failed ? (result.summary.failed === result.summary.processed ? 'failed' : 'partial')
+        : result.summary.created + result.summary.updated > 0 ? 'success' : 'unchanged',
+      metadata: { phase: result.summary.phase, requested: result.summary.processed,
+        created: result.summary.created, updated: result.summary.updated, skipped: result.summary.unchanged, failed: result.summary.failed } });
     if (parsed.data.phase === 'posts' || parsed.data.phase === 'pages') {
       await flushProjectionAfterChunk(c);
     }
@@ -168,6 +175,7 @@ export function createWxrCoreImportRoutes(
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
 
+    beginAudit(c, { action: 'import_settings', target: { type: 'wxr' } });
     const result = await finalizeSettings({
       db: c.env.DB,
       request: parsed.data,
@@ -181,6 +189,9 @@ export function createWxrCoreImportRoutes(
     if (result.kind === 'front_page_not_found') {
       return errorResponse(c, 409, 'ROUTING_FRONT_PAGE_NOT_FOUND');
     }
+    recordAudit(c, { action: 'import_settings', target: { type: 'wxr' },
+      outcome: result.generalSettings.result === 'unchanged' && result.routingSettings.result === 'unchanged' ? 'unchanged' : 'success',
+      metadata: { fields: ['general', 'routing'] } });
     return c.json(wxrImportSettingsFinalizeSuccessSchema.parse({
       success: true,
       data: {

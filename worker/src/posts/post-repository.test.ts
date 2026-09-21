@@ -1441,6 +1441,7 @@ describe('Post D1 repository', () => {
     })).resolves.toEqual({
       kind: 'completed',
       publicId: 100_000_000_001,
+      title: 'First Post',
     });
     expect(database.prepare('SELECT COUNT(*) AS count FROM post_tags').get())
       .toEqual({ count: 0 });

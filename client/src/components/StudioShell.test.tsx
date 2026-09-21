@@ -350,6 +350,7 @@ describe('StudioShell', () => {
       'Widgets',
       'Site settings',
       'Users',
+      'Audit Log',
     ]);
     expect(within(studioNavigation).getByText('Overview'))
       .toHaveClass('visually-hidden');

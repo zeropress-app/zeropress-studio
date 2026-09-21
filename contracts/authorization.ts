@@ -1,6 +1,7 @@
 import type { UserRole } from './users';
 
 export const STUDIO_CAPABILITIES = [
+  'audit.read',
   'users.manage',
   'authors.manage',
   'media.read',
@@ -23,6 +24,7 @@ export type StudioCapability = typeof STUDIO_CAPABILITIES[number];
 
 const ROLE_CAPABILITIES = {
   admin: [
+    'audit.read',
     'users.manage',
     'authors.manage',
     'media.read',

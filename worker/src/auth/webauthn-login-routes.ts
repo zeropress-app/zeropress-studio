@@ -273,6 +273,7 @@ export function createWebAuthnLoginRoutes(
       return errorResponse(c, 401, 'MFA_CHALLENGE_INVALID');
     }
     return finishAuthentication({
+      method: 'passkey',
       c,
       issueSession: dependencies.issueSession,
       userId: continuation.userId,

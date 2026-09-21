@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -72,6 +73,7 @@ export function createSiteBrandingRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'branding' } });
     const result = await updateSettings({
       db: c.env.DB,
       settings: parsed.data.settings,
@@ -89,6 +91,7 @@ export function createSiteBrandingRoutes(
     if (result.kind === 'media_type_not_allowed') {
       return errorResponse(c, 400, 'SITE_BRANDING_MEDIA_TYPE_NOT_ALLOWED');
     }
+    auditSettings(c, 'branding', Object.keys(parsed.data.settings));
     return c.json(siteBrandingSuccessSchema.parse({
       success: true,
       data: result.document,

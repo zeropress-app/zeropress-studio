@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -122,6 +123,7 @@ export function createCommentSettingsRoutes(
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     const session = await authorizeMutation(c);
     if (session instanceof Response) return session;
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'comment' } });
     const result = await updateSettings({
       edgeDb: requireEdgeDatabase(c.env),
       settings: parsed.data.settings,
@@ -131,6 +133,7 @@ export function createCommentSettingsRoutes(
     if (result.kind === 'revision_conflict') {
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     }
+    auditSettings(c, 'comment', Object.keys(parsed.data.settings));
     return c.json(commentSettingsSuccessSchema.parse({
       success: true,
       data: result.document,
@@ -165,6 +168,7 @@ export function createCommentSettingsRoutes(
     const mutate = action === 'rotate'
       ? rotateRequestSecurity
       : resetRequestSecurity;
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'comment' } });
     const result = await mutate({
       edgeDb: requireEdgeDatabase(c.env),
       expectedRevision: parsed.data.expected_revision,
@@ -184,6 +188,7 @@ export function createCommentSettingsRoutes(
         'COMMENT_REQUEST_SECURITY_NOT_ROTATABLE',
       );
     }
+    auditSettings(c, 'comment-request-security', ['request_security'], 'replaced');
     return c.json(commentRequestSecuritySuccessSchema.parse({
       success: true,
       data: result.resource,

@@ -456,6 +456,19 @@ describe('user management D1 repository', () => {
     })).resolves.toBe('setup_invalid');
   });
 
+  it('distinguishes unchanged role and status requests without rotating authentication', async () => {
+    const { database, d1 } = createTestDatabase();
+    seedRolesAndAdministrator(database);
+    await expect(updateManagedUserRole({
+      db: d1, userId: ADMIN_ID, role: 'admin', nextAuthRevision: '3'.repeat(32), now: NOW,
+    })).resolves.toMatchObject({ kind: 'completed', changed: false, revokedSessions: 0 });
+    await expect(updateManagedUserStatus({
+      db: d1, userId: ADMIN_ID, status: 'active', nextAuthRevision: '4'.repeat(32), now: NOW,
+    })).resolves.toMatchObject({ kind: 'completed', changed: false, revokedSessions: 0 });
+    expect(database.prepare('SELECT auth_revision FROM users WHERE id = ?').get(ADMIN_ID))
+      .toEqual({ auth_revision: ADMIN_REVISION });
+  });
+
   it('protects the last active administrator and revokes sessions on a real role change', async () => {
     const { database, d1 } = createTestDatabase();
     seedRolesAndAdministrator(database);
@@ -513,6 +526,7 @@ describe('user management D1 repository', () => {
     expect(changed).toMatchObject({
       kind: 'completed',
       user: { role: 'editor' },
+      changed: true,
       revokedSessions: 1,
     });
   });
@@ -760,7 +774,7 @@ describe('user management D1 repository', () => {
       confirmationEmail: 'invited@example.com',
       now: NOW,
       createRevision: () => '7'.repeat(32),
-    })).resolves.toEqual({ kind: 'completed' });
+    })).resolves.toEqual({ kind: 'completed', deletedName: 'Invited Author', deletedEmail: 'invited@example.com' });
 
     expect(database.prepare('SELECT COUNT(*) AS count FROM users WHERE id = ?')
       .get(userId)).toEqual({ count: 0 });
@@ -858,7 +872,7 @@ describe('user management D1 repository', () => {
       confirmationEmail: 'former@example.com',
       now: NOW,
       createRevision: () => 'c'.repeat(32),
-    })).resolves.toEqual({ kind: 'completed' });
+    })).resolves.toEqual({ kind: 'completed', deletedName: 'Former Author', deletedEmail: 'former@example.com' });
 
     for (const table of [
       'users',

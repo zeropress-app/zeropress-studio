@@ -216,6 +216,7 @@ describe('managed Media upload lifecycle', () => {
     })).resolves.toEqual({
       kind: 'completed',
       cleanupKey: `uploads/2026/08/${MEDIA_ID}.png`,
+      filename: 'hero.png',
     });
     expect(sqlite.prepare('SELECT COUNT(*) AS n FROM media_object_deletions').get())
       .toEqual({ n: 1 });

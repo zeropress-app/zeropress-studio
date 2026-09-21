@@ -127,7 +127,7 @@ export type CreatePostResult =
   | { kind: PostReferenceFailure };
 
 export type UpdatePostResult =
-  | { kind: 'completed'; post: Post }
+  | { kind: 'completed'; post: Post; previousStatus?: Post['status'] }
   | { kind: 'not_found' }
   | { kind: 'revision_conflict' }
   | { kind: 'slug_conflict' }
@@ -136,7 +136,7 @@ export type UpdatePostResult =
   | { kind: PostReferenceFailure };
 
 export type DeletePostResult =
-  | { kind: 'completed'; publicId: number }
+  | { kind: 'completed'; publicId: number; title?: string }
   | { kind: 'not_found' }
   | { kind: 'revision_conflict' }
   | { kind: 'not_in_trash' };
@@ -1014,6 +1014,7 @@ export async function updatePost(input: {
   autosaveUserId?: string;
   now?: Date;
   createRevision?: () => string;
+  beforeStatusChange?: (current: Post, status: Post['status']) => void;
 }): Promise<UpdatePostResult> {
   try {
     if (
@@ -1056,7 +1057,7 @@ export async function updatePost(input: {
           DELETE FROM post_autosaves WHERE user_id = ? AND post_id = ?
         `).bind(input.autosaveUserId, input.id).run();
       }
-      return { kind: 'completed', post: current };
+      return { kind: 'completed', post: current, previousStatus: current.status };
     }
     const archivedRevision = await preparePostRevision(current);
     const revision = settingsRevisionSchema.parse(
@@ -1069,6 +1070,7 @@ export async function updatePost(input: {
     const publishedAt = input.authored.status === 'published'
       ? current.published_at_iso ?? nowIso
       : current.published_at_iso;
+    if (current.status !== input.authored.status) input.beforeStatusChange?.(current, input.authored.status);
     const results = await input.db.batch([
       input.db.prepare(`
         UPDATE OR IGNORE posts
@@ -1199,7 +1201,7 @@ export async function updatePost(input: {
     }
     const post = await getPost({ db: input.db, id: input.id });
     if (!post) throw new TypeError('D1 did not return the updated Post.');
-    return { kind: 'completed', post };
+    return { kind: 'completed', post, previousStatus: current.status };
   } catch (error) {
     if (error instanceof StudioOperationalError) throw error;
     if (isSlugConstraint(error)) return { kind: 'slug_conflict' };
@@ -1371,7 +1373,7 @@ export async function deletePost(input: {
 }): Promise<DeletePostResult> {
   try {
     const identity = await input.db.prepare(`
-      SELECT public_id
+      SELECT public_id, title
       FROM posts
       WHERE id = ?
         ${input.authorScope ? `
@@ -1386,7 +1388,7 @@ export async function deletePost(input: {
       ...(input.authorScope
         ? [input.authorScope.authorId, input.authorScope.userId]
         : []),
-    ).first<{ public_id?: unknown }>();
+    ).first<{ public_id?: unknown; title?: unknown }>();
     if (!identity) return { kind: 'not_found' };
     const publicId = Number(identity.public_id);
     if (!Number.isInteger(publicId) || publicId <= 0) {
@@ -1413,7 +1415,7 @@ export async function deletePost(input: {
         ? [input.authorScope.authorId, input.authorScope.userId]
         : []),
     ).run();
-    if (readChanges(result) > 0) return { kind: 'completed', publicId };
+    if (readChanges(result) > 0) return { kind: 'completed', publicId, title: typeof identity.title === 'string' ? identity.title : undefined };
     const current = await getPost({
       db: input.db,
       id: input.id,

@@ -1,3 +1,4 @@
+import { recordAudit, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import type { ApiErrorCode } from '../../../contracts/api';
@@ -152,6 +153,7 @@ export function createMailRoutes(dependencies: MailRouteDependencies = {}) {
         now: dependencies.now?.() ?? new Date(),
       });
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'mail' } });
     const result = await updateSettings({
       db: c.env.DB,
       settings: parsed.data.settings,
@@ -168,6 +170,13 @@ export function createMailRoutes(dependencies: MailRouteDependencies = {}) {
     if (result.kind === 'credential_missing') {
       return errorResponse(c, 409, 'MAIL_CREDENTIAL_NOT_CONFIGURED');
     }
+    recordAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'mail', label: 'mail' }, metadata: {
+      fields: Object.keys(parsed.data.settings),
+      credentials: (['resend_api_key', 'cloudflare_api_token'] as const).flatMap((field) => {
+        const action = parsed.data.credentials[field].action;
+        return action === 'preserve' ? [] : [{ field, action }];
+      }),
+    } });
     return c.json(mailSettingsSuccessSchema.parse({
       success: true,
       data: result.document,

@@ -603,6 +603,7 @@ describe('Page D1 repository', () => {
     })).resolves.toEqual({
       kind: 'completed',
       publicId: 100_000_000_002,
+      title: 'Team',
     });
     const rootTrash = await updatePage({
       db: d1,
@@ -621,6 +622,7 @@ describe('Page D1 repository', () => {
     })).resolves.toEqual({
       kind: 'completed',
       publicId: 100_000_000_001,
+      title: 'About',
     });
   });
 

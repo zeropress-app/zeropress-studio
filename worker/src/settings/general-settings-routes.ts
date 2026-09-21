@@ -1,3 +1,4 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -97,6 +98,7 @@ export function createGeneralSettingsRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'general' } });
     const result = await updateSettings({
       db: c.env.DB,
       settings: parsed.data.settings,
@@ -108,6 +110,7 @@ export function createGeneralSettingsRoutes(
     if (result.kind === 'revision_conflict') {
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     }
+    auditSettings(c, 'general', Object.keys(parsed.data.settings));
     return c.json(generalSettingsSuccessSchema.parse({
       success: true,
       data: result.document,
@@ -131,6 +134,7 @@ export function createGeneralSettingsRoutes(
     if (!hasValidCsrfHeader(c, session.csrfToken)) {
       return errorResponse(c, 403, 'CSRF_VALIDATION_FAILED');
     }
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'general' } });
     const result = await repairSettings({
       db: c.env.DB,
       expectedRevision: parsed.data.expected_revision,
@@ -142,6 +146,7 @@ export function createGeneralSettingsRoutes(
     if (result.kind === 'recovery_conflict') {
       return errorResponse(c, 409, 'SETTINGS_RECOVERY_CONFLICT');
     }
+    auditSettings(c, 'general', parsed.data.missing_fields);
     return c.json(generalSettingsSuccessSchema.parse({
       success: true,
       data: result.document,

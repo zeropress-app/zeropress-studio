@@ -1,3 +1,4 @@
+import { recordAudit, userAuditActor, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
@@ -286,6 +287,7 @@ export function createUserRoutes(
     }
     const now = currentTime();
     const expiresAt = new Date(now.getTime() + USER_INVITATION_TTL_MS);
+    beginAudit(c, { action: 'account_invite', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await createInvitation({
       db: c.env.DB,
       administratorId: session.user.id,
@@ -301,6 +303,7 @@ export function createUserRoutes(
     if (result.kind === 'email_conflict') {
       return errorResponse(c, 409, 'USER_EMAIL_CONFLICT');
     }
+    recordAudit(c, { action: 'account_invite', actor: userAuditActor(session.user), target: { type: 'user', id: result.user.id, label: result.user.name } });
     return c.json(userSetupIssuedSuccessSchema.parse({
       success: true,
       data: {
@@ -337,6 +340,7 @@ export function createUserRoutes(
     );
     const now = currentTime();
     const expiresAt = new Date(now.getTime() + USER_INVITATION_TTL_MS);
+    beginAudit(c, { action: 'account_reinvite', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await reissueInvitation({
       db: c.env.DB,
       administratorId: session.user.id,
@@ -353,6 +357,7 @@ export function createUserRoutes(
     if (result.kind === 'state_conflict') {
       return errorResponse(c, 409, 'USER_STATE_CONFLICT');
     }
+    recordAudit(c, { action: 'account_reinvite', actor: userAuditActor(session.user), target: { type: 'user', id: result.user.id, label: result.user.name } });
     return c.json(userSetupIssuedSuccessSchema.parse({
       success: true,
       data: {
@@ -384,6 +389,7 @@ export function createUserRoutes(
     }
     const limited = await applyNativeAuthRateLimit(c, 'limit_mfa_route');
     if (limited) return limited;
+    beginAudit(c, { action: 'account_cancel_invitation', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await cancelInvitation({
       db: c.env.DB,
       administratorId: session.user.id,
@@ -404,6 +410,7 @@ export function createUserRoutes(
     if (result.kind !== 'completed') {
       return errorResponse(c, 409, 'USER_INVITATION_NOT_CANCELLABLE');
     }
+    recordAudit(c, { action: 'account_cancel_invitation', actor: userAuditActor(session.user), target: { type: 'user', id: parsed.data.user_id, label: result.deletedName ?? result.deletedEmail } });
     return c.json(destructiveUserMutationSuccessSchema.parse({
       success: true,
       data: {
@@ -433,6 +440,7 @@ export function createUserRoutes(
     }
     const limited = await applyNativeAuthRateLimit(c, 'limit_mfa_route');
     if (limited) return limited;
+    beginAudit(c, { action: 'account_delete', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await deleteAccount({
       db: c.env.DB,
       administratorId: session.user.id,
@@ -457,6 +465,7 @@ export function createUserRoutes(
         'USER_ACCOUNT_DELETE_REQUIRES_INACTIVE',
       );
     }
+    recordAudit(c, { action: 'account_delete', actor: userAuditActor(session.user), target: { type: 'user', id: parsed.data.user_id, label: result.deletedName ?? result.deletedEmail } });
     return c.json(destructiveUserMutationSuccessSchema.parse({
       success: true,
       data: {
@@ -494,6 +503,7 @@ export function createUserRoutes(
     const expiresAt = new Date(
       now.getTime() + USER_CREDENTIAL_RECOVERY_TTL_MS,
     );
+    beginAudit(c, { action: 'account_recover', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await resetAccess({
       db: c.env.DB,
       administratorId: session.user.id,
@@ -513,6 +523,7 @@ export function createUserRoutes(
     if (result.kind === 'state_conflict') {
       return errorResponse(c, 409, 'USER_STATE_CONFLICT');
     }
+    recordAudit(c, { action: 'account_recover', actor: userAuditActor(session.user), target: { type: 'user', id: result.user.id, label: result.user.name } });
     return c.json(userSetupIssuedSuccessSchema.parse({
       success: true,
       data: {
@@ -587,6 +598,7 @@ export function createUserRoutes(
       'limit_mfa_route',
     );
     if (limited) return limited;
+    beginAudit(c, { action: 'account_role', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await updateRole({
       db: c.env.DB,
       userId: parsed.data.user_id,
@@ -606,6 +618,8 @@ export function createUserRoutes(
     const currentSessionEnded = session.user.id === parsed.data.user_id
       && result.revokedSessions > 0;
     if (currentSessionEnded) clearSessionCookie(c);
+    recordAudit(c, { action: 'account_role', outcome: result.changed === false ? 'unchanged' : 'success', actor: userAuditActor(session.user), target: { type: 'user', id: result.user.id, label: result.user.name },
+      metadata: { roles: [result.user.role], deleted: result.revokedSessions } });
     return c.json(userMutationSuccessSchema.parse({
       success: true,
       data: {
@@ -637,6 +651,7 @@ export function createUserRoutes(
       'limit_mfa_route',
     );
     if (limited) return limited;
+    beginAudit(c, { action: 'account_status', actor: userAuditActor(session.user), target: { type: 'user' } });
     const result = await updateStatus({
       db: c.env.DB,
       userId: parsed.data.user_id,
@@ -659,6 +674,8 @@ export function createUserRoutes(
     const currentSessionEnded = session.user.id === parsed.data.user_id
       && result.revokedSessions > 0;
     if (currentSessionEnded) clearSessionCookie(c);
+    recordAudit(c, { action: 'account_status', outcome: result.changed === false ? 'unchanged' : 'success', actor: userAuditActor(session.user), target: { type: 'user', id: result.user.id, label: result.user.name },
+      metadata: { to_status: result.user.status, deleted: result.revokedSessions } });
     return c.json(userMutationSuccessSchema.parse({
       success: true,
       data: {

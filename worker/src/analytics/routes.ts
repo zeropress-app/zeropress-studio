@@ -1,6 +1,8 @@
+import { auditSettings, beginAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import {
+  ANALYTICS_DEFAULT_PERIOD,
   analyticsSettingsResponseSchema,
   analyticsSummaryResponseSchema,
   analyticsConnectionResponseSchema,
@@ -117,6 +119,7 @@ export function createAnalyticsSettingsRoutes(
     if (!body.valid) return body.response;
     const parsed = updateAnalyticsSettingsSchema.safeParse(body.value);
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    beginAudit(c, { action: 'settings_update', target: { type: 'settings', id: 'analytics' } });
     const result = await (
       dependencies.updateSettings ?? updateAnalyticsSettings
     )({
@@ -130,6 +133,7 @@ export function createAnalyticsSettingsRoutes(
       return errorResponse(c, 409, 'SETTINGS_REVISION_CONFLICT');
     if (result.kind === 'credential_missing')
       return errorResponse(c, 422, 'ANALYTICS_CREDENTIAL_NOT_CONFIGURED');
+    auditSettings(c, 'analytics', Object.keys(parsed.data.settings), parsed.data.credential.action === 'replace' ? 'replaced' : parsed.data.credential.action === 'remove' ? 'removed' : 'retained');
     return c.json(
       analyticsSettingsResponseSchema.parse({
         success: true,
@@ -193,7 +197,7 @@ export function createAnalyticsRoutes(
     const session = await authorize(c, dependencies);
     if (session instanceof Response) return session;
     const parsed = analyticsPeriodSchema.safeParse(
-      c.req.query('period') ?? '30d',
+      c.req.query('period') ?? ANALYTICS_DEFAULT_PERIOD,
     );
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     const secret = readAuthSecret(c);

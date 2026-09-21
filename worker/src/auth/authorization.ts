@@ -1,3 +1,4 @@
+import { setAuditActor, userAuditActor } from '../audit/service';
 import type { Context } from 'hono';
 import {
   hasStudioCapability,
@@ -29,6 +30,7 @@ export async function requireStudioSession(input: {
     clearSessionCookie(input.context);
     return errorResponse(input.context, 401, 'AUTHENTICATION_REQUIRED');
   }
+  setAuditActor(input.context, userAuditActor(session.user));
   return session;
 }
 
