@@ -12,6 +12,7 @@ import { SettingsScreen } from './SettingsScreen';
 
 const paths = [
   STUDIO_PATHS.generalSettings,
+  STUDIO_PATHS.analyticsSettings,
   STUDIO_PATHS.interfaceSettings,
   STUDIO_PATHS.brandingSettings,
   STUDIO_PATHS.mediaSettings,
@@ -101,7 +102,7 @@ describe('Site settings presentation', () => {
   it.each([
     { locale: 'en', nav: 'Site settings', picker: 'Settings section', current: 'Custom Code' },
     { locale: 'ko', nav: '사이트 설정', picker: '설정 항목', current: 'Custom Code' },
-  ] as const)('keeps all eight routes in the $locale selector and Operations outside it', async (input) => {
+  ] as const)('keeps all site settings routes in the $locale selector and Operations outside it', async (input) => {
     await changeLocale(input.locale);
     setup({ initial: `${STUDIO_PATHS.customCodeSettings}/` });
     const nav = screen.getByRole('navigation', { name: input.nav });
@@ -115,7 +116,7 @@ describe('Site settings presentation', () => {
     expect(external).toHaveAttribute('href', '/system/operations');
     expect(external).toHaveAttribute('rel', 'noopener noreferrer');
     expect(within(picker).queryByRole('option', { name: /Recovery|복구/u })).toBeNull();
-    expect(nav.querySelectorAll('.site-settings-sections a svg')).toHaveLength(8);
+    expect(nav.querySelectorAll('.site-settings-sections a svg')).toHaveLength(paths.length);
   });
 
   it.each(['selector', 'link'] as const)('guards a section change through the %s without saving the draft', async (method) => {

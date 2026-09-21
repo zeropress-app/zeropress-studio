@@ -256,6 +256,15 @@ const NewsletterSettingsPage = lazyScreen(
   ['newsletterSettings', 'settings'],
 );
 
+const AnalyticsPage = lazyScreen(
+  async () => ({ default: (await import('./AnalyticsPage')).AnalyticsPage }),
+  ['analytics'],
+);
+const AnalyticsSettingsPage = lazyScreen(
+  async () => ({ default: (await import('./AnalyticsSettingsPage')).AnalyticsSettingsPage }),
+  ['analytics', 'settings'],
+);
+
 const MailSettingsPage = lazyScreen(
   async () => ({
     default: (await import('./MailSettingsPage')).MailSettingsPage,
@@ -881,6 +890,33 @@ export function AuthenticatedApplication(input: {
             <DeferredRoute>
               {canManageSettings ? (
                 <NewsletterSettingsPage
+                  data={input.data}
+                  onSessionEnded={input.onSessionEnded}
+                />
+              ) : (
+                <StudioAccessDeniedPage />
+              )}
+            </DeferredRoute>
+          )}
+        />
+        <Route
+          path={STUDIO_PATHS.analytics}
+          element={(
+            <DeferredRoute>
+              {canManageSettings ? (
+                <AnalyticsPage onSessionEnded={input.onSessionEnded} />
+              ) : (
+                <StudioAccessDeniedPage />
+              )}
+            </DeferredRoute>
+          )}
+        />
+        <Route
+          path={STUDIO_PATHS.analyticsSettings}
+          element={(
+            <DeferredRoute>
+              {canManageSettings ? (
+                <AnalyticsSettingsPage
                   data={input.data}
                   onSessionEnded={input.onSessionEnded}
                 />

@@ -1,0 +1,76 @@
+.analytics-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+.analytics-toolbar,
+.analytics-context,
+.analytics-metric-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.analytics-toolbar {
+  justify-content: space-between;
+}
+.analytics-toolbar .studio-field {
+  max-width: 18rem;
+}
+.analytics-context,
+.analytics-footnote {
+  color: var(--studio-text-muted);
+  font-size: 0.875rem;
+}
+.analytics-context {
+  justify-content: space-between;
+  overflow-wrap: anywhere;
+}
+.analytics-metrics,
+.analytics-rankings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.analytics-value {
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-variant-numeric: tabular-nums;
+}
+.analytics-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.analytics-chart text {
+  fill: currentColor;
+  font-size: 12px;
+}
+.analytics-chart-axis {
+  stroke: currentColor;
+  opacity: 0.3;
+}
+.analytics-chart-line {
+  stroke: var(--studio-primary);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.analytics-chart-point {
+  fill: var(--studio-primary);
+}
+.analytics-stack .studio-table tbody th {
+  overflow-wrap: anywhere;
+  min-width: 7rem;
+}
+.analytics-stack .studio-table td {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.analytics-stack details > summary {
+  cursor: pointer;
+  margin-block: 0.75rem;
+}
+@media (max-width: 760px) {
+  .analytics-rankings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

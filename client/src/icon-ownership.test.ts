@@ -25,10 +25,11 @@ const sources = walk(SOURCE_ROOT)
   }));
 
 describe('Studio icon ownership', () => {
-  it('uses shared icons for general-purpose SVG outside product identity', () => {
+  it('uses shared icons for general-purpose SVG outside product identity and data charts', () => {
     const offenders = sources
       .filter(({ path, source }) => (
         path !== 'components/LogoMark.tsx'
+        && path !== 'components/AnalyticsTrendChart.tsx'
         && /<svg\b/u.test(source)
       ))
       .map(({ path }) => path);

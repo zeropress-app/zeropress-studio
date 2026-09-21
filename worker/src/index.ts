@@ -1,3 +1,8 @@
+import {
+  createAnalyticsRoutes,
+  createAnalyticsSettingsRoutes,
+  type AnalyticsRouteDependencies,
+} from './analytics/routes';
 import { Hono } from 'hono';
 import type { CredentialsAuthenticator } from './auth/routes';
 import { createAuthRoutes } from './auth/routes';
@@ -159,6 +164,7 @@ const MANAGED_MEDIA_STORAGE_ENABLED =
   || __ZEROPRESS_MANAGED_MEDIA_STORAGE_ENABLED__;
 
 export function createApp(dependencies?: {
+  analytics?: AnalyticsRouteDependencies;
   authenticate?: CredentialsAuthenticator;
   issueSession?: IssueUserSession;
   listSessions?: ListUserSessions;
@@ -332,6 +338,14 @@ export function createApp(dependencies?: {
   app.route('/api/widgets', createWidgetRoutes({
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.widgets,
+  }));
+  app.route('/api/settings/analytics', createAnalyticsSettingsRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.analytics,
+  }));
+  app.route('/api/analytics', createAnalyticsRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.analytics,
   }));
   app.route('/api/settings/general', createGeneralSettingsRoutes({
     resolveSession: dependencies?.resolveSession,

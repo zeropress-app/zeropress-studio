@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { matchPath, NavLink, useLocation, useNavigate } from 'react-router';
 import {
+  ChartNoAxesCombined,
   Code2,
   ExternalLink,
   Image,
@@ -16,6 +17,7 @@ import { Field, StudioIcon } from './primitives';
 
 const SECTIONS = [
   { path: STUDIO_PATHS.generalSettings, key: 'general', icon: Settings },
+  { path: STUDIO_PATHS.analyticsSettings, key: 'analytics', icon: ChartNoAxesCombined },
   { path: STUDIO_PATHS.interfaceSettings, key: 'interface', icon: Languages },
   { path: STUDIO_PATHS.brandingSettings, key: 'branding', icon: Palette },
   { path: STUDIO_PATHS.mediaSettings, key: 'media', icon: Image },

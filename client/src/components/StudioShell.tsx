@@ -12,6 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  ChartNoAxesCombined,
   ChevronDown,
   ClipboardList,
   ExternalLink,
@@ -328,6 +329,7 @@ function SidebarTooltip(input: { controller: SidebarTooltipController }) {
 }
 
 const NAVIGATION_ICONS = {
+  analytics: ChartNoAxesCombined,
   dashboard: LayoutDashboard,
   publish: PackageCheck,
   posts: Newspaper,

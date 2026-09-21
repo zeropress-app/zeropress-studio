@@ -8,6 +8,8 @@
   },
   "include": [
     "playwright.config.ts",
-    "e2e/**/*.ts"
-  ]
+    "e2e/**/*.ts",
+    "contracts/**/*.ts"
+  ],
+  "exclude": ["contracts/**/*.test.ts"]
 }

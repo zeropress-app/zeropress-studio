@@ -27,6 +27,7 @@ Worker, while keeping the public site on the static ZeroPress publishing path.
   boundary
 - Database lifecycle, backup, recovery, reconciliation, and upgrade tools in a
   separately protected Operations area
+- Optional [Cloudflare Web Analytics](docs/analytics.md) for recent public-site traffic
 - English and Korean Studio interfaces
 
 Studio is the authoring and control plane. It does not build or host the public

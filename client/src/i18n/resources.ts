@@ -1,3 +1,4 @@
+import type { analytics } from './locales/en/analytics';
 import { FALLBACK_LOCALE } from './locale';
 import type { StudioNamespace } from './namespaces';
 
@@ -77,6 +78,7 @@ export type StudioResourceContract = {
   forms: typeof forms;
   install: typeof enInstall;
   interfaceSettings: typeof interfaceSettings;
+  analytics: typeof analytics;
   mailSettings: typeof mailSettings;
   media: typeof media;
   mediaSettings: typeof mediaSettings;

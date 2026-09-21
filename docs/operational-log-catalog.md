@@ -1285,6 +1285,41 @@ not logged.
 - Guidance: `Verify D1 availability and the current Studio site_settings table, then reload Mail delivery before retrying the update.`
 - Expected context: `resource=DB`, `action=update_mail_settings`
 
+## `ANALYTICS_CREDENTIAL_CRYPTO_FAILED`
+
+- Level: `error`
+- Message: `Studio analytics credential encryption failed`
+- Guidance: `Verify STUDIO_AUTH_SECRET matches the secret used to save Analytics settings, then replace the API token if needed.`
+
+## `ANALYTICS_SETTINGS_DATABASE_QUERY_FAILED`
+
+- Level: `error`
+- Message: `Studio analytics settings query failed`
+- Guidance: `Verify DB availability before retrying.`
+
+## `ANALYTICS_SETTINGS_DATABASE_WRITE_FAILED`
+
+- Level: `error`
+- Message: `Studio analytics settings update failed`
+- Guidance: `Verify DB availability before saving Analytics settings again.`
+
+## `ANALYTICS_SETTINGS_DATA_INVALID`
+
+- Level: `error`
+- Message: `Studio analytics settings are invalid`
+- Guidance: `Restore valid Analytics settings from a database backup.`
+
+## `ANALYTICS_PROVIDER_FAILED`
+
+- Level: `error`
+- Message: `Cloudflare Web Analytics query failed`
+- Guidance: `Review the Analytics connection settings and retry.`
+
+## `ANALYTICS_CACHE_FAILED`
+
+- Level: `warn`
+- Message: `Studio analytics cache is unavailable`
+
 ## `MAIL_CREDENTIAL_CRYPTO_FAILED`
 
 - Level: `error`

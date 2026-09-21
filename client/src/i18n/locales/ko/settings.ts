@@ -26,9 +26,11 @@ export const settings = {
     reset: '변경 취소',
   },
   navigation: {
+    analytics: '방문 통계',
     section: '설정 항목',
     edgeSection: 'Edge 서비스 항목',
     descriptions: {
+      analytics: '공개 사이트 방문 현황',
       general: '사이트 정보와 언어·시간대',
       interface: '기본 언어와 사용 가능한 언어',
       branding: '사이트 아이콘과 로고',

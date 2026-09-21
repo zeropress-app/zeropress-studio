@@ -2,6 +2,8 @@ import type { StudioCapability } from '../../../contracts/authorization';
 
 export const STUDIO_PATHS = {
   dashboard: '/',
+  analytics: '/analytics',
+  analyticsSettings: '/settings/site/analytics',
   publish: '/publish',
   posts: '/posts',
   newPost: '/posts/new',
@@ -68,6 +70,7 @@ export type StudioNavigationSection =
   | 'utility'
   | 'account';
 export type StudioNavigationIcon =
+  | 'analytics'
   | 'dashboard'
   | 'publish'
   | 'posts'
@@ -91,6 +94,7 @@ export type StudioRouteDefinition = {
   navigationSection: StudioNavigationSection | null;
   requiredCapability: StudioCapability | null;
   labelKey:
+    | 'navigation.analytics'
     | 'navigation.dashboard'
     | 'navigation.publish'
     | 'navigation.posts'
@@ -121,6 +125,24 @@ export const STUDIO_ROUTE_DEFINITIONS = [
     requiredCapability: null,
     labelKey: 'navigation.dashboard',
     icon: 'dashboard',
+    end: true,
+  },
+  {
+    id: 'analytics',
+    path: STUDIO_PATHS.analytics,
+    navigationSection: 'overview',
+    requiredCapability: 'settings.manage',
+    labelKey: 'navigation.analytics',
+    icon: 'analytics',
+    end: true,
+  },
+  {
+    id: 'analyticsSettings',
+    path: STUDIO_PATHS.analyticsSettings,
+    navigationSection: null,
+    requiredCapability: 'settings.manage',
+    labelKey: 'navigation.siteSettings',
+    icon: 'settings',
     end: true,
   },
   {

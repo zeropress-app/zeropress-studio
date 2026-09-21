@@ -335,6 +335,7 @@ describe('StudioShell', () => {
       link.textContent?.trim()
     ))).toEqual([
       'Dashboard',
+      'Analytics',
       'Export',
       'Posts',
       'Pages',

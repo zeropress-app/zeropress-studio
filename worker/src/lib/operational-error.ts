@@ -657,6 +657,35 @@ export const OPERATIONAL_LOG_DEFINITIONS = {
     message: 'Studio mail delivery settings update failed',
     guidance: 'Verify D1 availability and the current Studio site_settings table, then reload Mail delivery before retrying the update.',
   },
+  ANALYTICS_CREDENTIAL_CRYPTO_FAILED: {
+    level: 'error',
+    message: 'Studio analytics credential encryption failed',
+    guidance: 'Verify STUDIO_AUTH_SECRET matches the secret used to save Analytics settings, then replace the API token if needed.',
+  },
+  ANALYTICS_SETTINGS_DATABASE_QUERY_FAILED: {
+    level: 'error',
+    message: 'Studio analytics settings query failed',
+    guidance: 'Verify DB availability before retrying.',
+  },
+  ANALYTICS_SETTINGS_DATABASE_WRITE_FAILED: {
+    level: 'error',
+    message: 'Studio analytics settings update failed',
+    guidance: 'Verify DB availability before saving Analytics settings again.',
+  },
+  ANALYTICS_SETTINGS_DATA_INVALID: {
+    level: 'error',
+    message: 'Studio analytics settings are invalid',
+    guidance: 'Restore valid Analytics settings from a database backup.',
+  },
+  ANALYTICS_PROVIDER_FAILED: {
+    level: 'error',
+    message: 'Cloudflare Web Analytics query failed',
+    guidance: 'Review the Analytics connection settings and retry.',
+  },
+  ANALYTICS_CACHE_FAILED: {
+    level: 'warn',
+    message: 'Studio analytics cache is unavailable',
+  },
   MAIL_CREDENTIAL_CRYPTO_FAILED: {
     level: 'error',
     message: 'Studio mail credential cryptography failed',
