@@ -15,7 +15,7 @@ export const studio = {
     site: 'Site',
     utility: 'Utilities',
     dashboard: 'Dashboard',
-    publish: 'Export',
+    publish: 'Publish site',
     posts: 'Posts',
     pages: 'Pages',
     comments: 'Comments',

@@ -1,3 +1,4 @@
+import type { publishing } from './locales/en/publishing';
 import type { analytics } from './locales/en/analytics';
 import { FALLBACK_LOCALE } from './locale';
 import type { StudioNamespace } from './namespaces';
@@ -64,6 +65,7 @@ export const BOOT_RESOURCES = {
 
 /** Translation-key type contract. Only the shape is needed, with no runtime cost. */
 export type StudioResourceContract = {
+  publishing: typeof publishing;
   accessSettings: typeof accessSettings;
   auth: typeof enAuth;
   authors: typeof authors;

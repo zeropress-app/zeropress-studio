@@ -48,6 +48,7 @@ export const DEFERRED_NAMESPACES = [
   'posts',
   'preferences',
   'previewData',
+  'publishing',
   'routingSettings',
   'security',
   'settings',

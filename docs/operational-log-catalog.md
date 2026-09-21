@@ -1285,6 +1285,36 @@ not logged.
 - Guidance: `Verify D1 availability and the current Studio site_settings table, then reload Mail delivery before retrying the update.`
 - Expected context: `resource=DB`, `action=update_mail_settings`
 
+## `PUBLISHING_CREDENTIAL_CRYPTO_FAILED`
+
+- Level: `error`
+- Message: `Studio publishing credential encryption failed`
+- Guidance: `Verify STUDIO_AUTH_SECRET matches the secret used to save Publishing settings, then replace the API token if needed.`
+
+## `PUBLISHING_SETTINGS_DATABASE_QUERY_FAILED`
+
+- Level: `error`
+- Message: `Studio publishing settings query failed`
+- Guidance: `Verify DB availability before retrying.`
+
+## `PUBLISHING_SETTINGS_DATABASE_WRITE_FAILED`
+
+- Level: `error`
+- Message: `Studio publishing settings update failed`
+- Guidance: `Verify DB availability before saving Publishing settings again.`
+
+## `PUBLISHING_SETTINGS_DATA_INVALID`
+
+- Level: `error`
+- Message: `Studio publishing settings are invalid`
+- Guidance: `Restore valid Publishing settings from a database backup.`
+
+## `PUBLISHING_PROVIDER_FAILED`
+
+- Level: `error`
+- Message: `GitHub publishing request failed`
+- Guidance: `Review the Publishing connection settings. If the write result is unknown, check the latest GitHub file commit before publishing again.`
+
 ## `ANALYTICS_CREDENTIAL_CRYPTO_FAILED`
 
 - Level: `error`

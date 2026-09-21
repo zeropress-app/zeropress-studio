@@ -1,8 +1,8 @@
 export const previewData = {
-  documentTitle: '사이트 데이터 내보내기 — ZeroPress Studio',
-  kicker: '사이트 내보내기',
-  title: '사이트 데이터 내보내기',
-  description: 'ZeroPress Build에서 사용할 최신 Preview Data를 준비하고 내보냅니다.',
+  documentTitle: '사이트 발행 — ZeroPress Studio',
+  kicker: '사이트 발행',
+  title: '사이트 발행',
+  description: '최신 사이트 데이터를 GitHub에 반영하거나 파일로 내보냅니다.',
   export: {
     title: 'Preview Data',
     description: '포함될 항목을 확인한 뒤 최신 내보내기 데이터를 생성하세요.',

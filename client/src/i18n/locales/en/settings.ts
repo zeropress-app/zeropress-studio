@@ -26,10 +26,12 @@ export const settings = {
     reset: 'Undo changes',
   },
   navigation: {
+    publishing: 'Publishing',
     analytics: 'Analytics',
     section: 'Settings section',
     edgeSection: 'Edge services section',
     descriptions: {
+      publishing: 'GitHub repository connection.',
       analytics: 'Traffic on your public site',
       general: 'Site identity and localization',
       interface: 'Default and available languages',

@@ -165,7 +165,7 @@ function renderShell(input: {
             element={(
               <TestPage
                 kicker="SITE EXPORT"
-                title="Export site data"
+                title="Publish site"
                 content="Export content"
               />
             )}
@@ -302,7 +302,7 @@ describe('StudioShell', () => {
       name: 'Users',
     })).toBeInTheDocument();
     expect(within(studioNavigation).getByRole('link', {
-      name: 'Export',
+      name: 'Publish site',
     })).toBeInTheDocument();
     expect(within(studioNavigation).getByRole('link', {
       name: 'Authors',
@@ -336,7 +336,7 @@ describe('StudioShell', () => {
     ))).toEqual([
       'Dashboard',
       'Analytics',
-      'Export',
+      'Publish site',
       'Posts',
       'Pages',
       'Media',
@@ -513,7 +513,7 @@ describe('StudioShell', () => {
       'Site settings',
       'Edge services',
       'Import WordPress',
-      'Export',
+      'Publish site',
     ]) {
       expect(within(studioNavigation).queryByRole('link', { name }))
         .not.toBeInTheDocument();
@@ -533,16 +533,16 @@ describe('StudioShell', () => {
       .toBeInTheDocument();
   });
 
-  it('marks Export active and renders its page heading', () => {
+  it('marks Publish site active and renders its page heading', () => {
     renderShell({ initialPath: '/publish' });
 
     const studioNavigation = screen.getByRole('navigation', {
       name: 'Studio navigation',
     });
     expect(within(studioNavigation).getByRole('link', {
-      name: 'Export',
+      name: 'Publish site',
     })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('heading', { name: 'Export site data' }))
+    expect(screen.getByRole('heading', { name: 'Publish site' }))
       .toBeInTheDocument();
   });
 

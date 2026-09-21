@@ -14,6 +14,7 @@ import { STUDIO_PREVIEW_DATA_GENERATOR } from '../../contracts/studio-version';
 import { StudioToaster } from './components/primitives';
 import { changeLocale } from './i18n';
 import { PreviewDataPage } from './PreviewDataPage';
+vi.mock('./components/PublishingPanel', () => ({ PublishingPanel: () => null }));
 
 function response(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -81,6 +82,7 @@ function renderPage(input: {
   const content = (
     <>
       <PreviewDataPage
+        data={{ csrf_token: 'synthetic-csrf' }}
         onSessionEnded={input.onSessionEnded ?? vi.fn()}
       />
       <StudioToaster />
@@ -116,7 +118,7 @@ describe('PreviewDataPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderPage({ strict: true });
 
-    expect(screen.getByRole('heading', { name: 'Export site data' }))
+    expect(screen.getByRole('heading', { name: 'Publish site' }))
       .toBeInTheDocument();
     expect(screen.getByText('Counting content…')).toBeInTheDocument();
     await waitForSummary();

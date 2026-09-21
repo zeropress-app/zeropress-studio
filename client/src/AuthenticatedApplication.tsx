@@ -260,6 +260,10 @@ const AnalyticsPage = lazyScreen(
   async () => ({ default: (await import('./AnalyticsPage')).AnalyticsPage }),
   ['analytics'],
 );
+const PublishingSettingsPage = lazyScreen(
+  async () => ({ default: (await import('./PublishingSettingsPage')).PublishingSettingsPage }),
+  ['publishing', 'settings'],
+);
 const AnalyticsSettingsPage = lazyScreen(
   async () => ({ default: (await import('./AnalyticsSettingsPage')).AnalyticsSettingsPage }),
   ['analytics', 'settings'],
@@ -276,7 +280,7 @@ const PreviewDataPage = lazyScreen(
   async () => ({
     default: (await import('./PreviewDataPage')).PreviewDataPage,
   }),
-  ['previewData'],
+  ['previewData', 'publishing'],
 );
 
 const WxrImportPage = lazyScreen(
@@ -412,7 +416,7 @@ export function AuthenticatedApplication(input: {
           element={(
             <DeferredRoute>
               {canPublish ? (
-                <PreviewDataPage onSessionEnded={input.onSessionEnded} />
+                <PreviewDataPage data={input.data} onSessionEnded={input.onSessionEnded} />
               ) : (
                 <StudioAccessDeniedPage />
               )}
@@ -917,6 +921,21 @@ export function AuthenticatedApplication(input: {
             <DeferredRoute>
               {canManageSettings ? (
                 <AnalyticsSettingsPage
+                  data={input.data}
+                  onSessionEnded={input.onSessionEnded}
+                />
+              ) : (
+                <StudioAccessDeniedPage />
+              )}
+            </DeferredRoute>
+          )}
+        />
+        <Route
+          path={STUDIO_PATHS.publishingSettings}
+          element={(
+            <DeferredRoute>
+              {canManageSettings ? (
+                <PublishingSettingsPage
                   data={input.data}
                   onSessionEnded={input.onSessionEnded}
                 />

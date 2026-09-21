@@ -1,14 +1,18 @@
 /*
  * Site data export.
  *
- * Entering /publish reads only item counts. Users explicitly generate data,
- * then copy or download the result from the same card. Primitives own panels,
+ * Entering /publish reads publishing status and item counts. Users explicitly
+ * publish to GitHub or generate data to copy or download. Primitives own panels,
  * notices, buttons, and loading states. This file owns generation metadata,
  * warning details, and count layout.
  */
 
 .preview-data-page {
   min-width: 0;
+}
+
+.preview-data-page > .studio-panel + .studio-panel {
+  margin-top: 24px;
 }
 
 .preview-data-progress {

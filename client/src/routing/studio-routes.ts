@@ -4,6 +4,7 @@ export const STUDIO_PATHS = {
   dashboard: '/',
   analytics: '/analytics',
   analyticsSettings: '/settings/site/analytics',
+  publishingSettings: '/settings/site/publishing',
   publish: '/publish',
   posts: '/posts',
   newPost: '/posts/new',
@@ -139,6 +140,15 @@ export const STUDIO_ROUTE_DEFINITIONS = [
   {
     id: 'analyticsSettings',
     path: STUDIO_PATHS.analyticsSettings,
+    navigationSection: null,
+    requiredCapability: 'settings.manage',
+    labelKey: 'navigation.siteSettings',
+    icon: 'settings',
+    end: true,
+  },
+  {
+    id: 'publishingSettings',
+    path: STUDIO_PATHS.publishingSettings,
     navigationSection: null,
     requiredCapability: 'settings.manage',
     labelKey: 'navigation.siteSettings',

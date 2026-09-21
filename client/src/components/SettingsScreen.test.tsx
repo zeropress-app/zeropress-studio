@@ -12,6 +12,7 @@ import { SettingsScreen } from './SettingsScreen';
 
 const paths = [
   STUDIO_PATHS.generalSettings,
+  STUDIO_PATHS.publishingSettings,
   STUDIO_PATHS.analyticsSettings,
   STUDIO_PATHS.interfaceSettings,
   STUDIO_PATHS.brandingSettings,

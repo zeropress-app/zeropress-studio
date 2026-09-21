@@ -1,8 +1,8 @@
 export const previewData = {
-  documentTitle: 'Export site data — ZeroPress Studio',
-  kicker: 'SITE EXPORT',
-  title: 'Export site data',
-  description: 'Prepare and export the latest Preview Data for ZeroPress Build.',
+  documentTitle: 'Publish site — ZeroPress Studio',
+  kicker: 'SITE PUBLISHING',
+  title: 'Publish site',
+  description: 'Send the latest site data to GitHub, or export it as a file.',
   export: {
     title: 'Preview Data',
     description: 'Review what will be included, then generate a fresh export.',

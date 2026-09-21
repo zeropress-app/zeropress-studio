@@ -555,7 +555,7 @@ describe('AuthenticatedApplication authorization presentation', () => {
     expect(await screen.findByRole('heading', {
       name: 'You cannot open this Studio page',
     })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Export' }))
+    expect(screen.queryByRole('link', { name: 'Publish site' }))
       .not.toBeInTheDocument();
   });
 });

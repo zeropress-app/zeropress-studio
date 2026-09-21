@@ -657,6 +657,31 @@ export const OPERATIONAL_LOG_DEFINITIONS = {
     message: 'Studio mail delivery settings update failed',
     guidance: 'Verify D1 availability and the current Studio site_settings table, then reload Mail delivery before retrying the update.',
   },
+  PUBLISHING_CREDENTIAL_CRYPTO_FAILED: {
+    level: 'error',
+    message: 'Studio publishing credential encryption failed',
+    guidance: 'Verify STUDIO_AUTH_SECRET matches the secret used to save Publishing settings, then replace the API token if needed.',
+  },
+  PUBLISHING_SETTINGS_DATABASE_QUERY_FAILED: {
+    level: 'error',
+    message: 'Studio publishing settings query failed',
+    guidance: 'Verify DB availability before retrying.',
+  },
+  PUBLISHING_SETTINGS_DATABASE_WRITE_FAILED: {
+    level: 'error',
+    message: 'Studio publishing settings update failed',
+    guidance: 'Verify DB availability before saving Publishing settings again.',
+  },
+  PUBLISHING_SETTINGS_DATA_INVALID: {
+    level: 'error',
+    message: 'Studio publishing settings are invalid',
+    guidance: 'Restore valid Publishing settings from a database backup.',
+  },
+  PUBLISHING_PROVIDER_FAILED: {
+    level: 'error',
+    message: 'GitHub publishing request failed',
+    guidance: 'Review the Publishing connection settings. If the write result is unknown, check the latest GitHub file commit before publishing again.',
+  },
   ANALYTICS_CREDENTIAL_CRYPTO_FAILED: {
     level: 'error',
     message: 'Studio analytics credential encryption failed',

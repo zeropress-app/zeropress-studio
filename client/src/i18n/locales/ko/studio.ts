@@ -15,7 +15,7 @@ export const studio = {
     site: '사이트',
     utility: '관리 도구',
     dashboard: '대시보드',
-    publish: '내보내기',
+    publish: '사이트 발행',
     posts: '글',
     pages: '페이지',
     comments: '댓글',

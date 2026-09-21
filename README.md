@@ -18,6 +18,7 @@ Worker, while keeping the public site on the static ZeroPress publishing path.
 - Site identity, routing, output, branding, localization, and custom-code
   settings
 - WordPress WXR import and validated Preview Data export
+- Optional [GitHub publishing](docs/publishing.md) to an existing site repository
 - Comment moderation, Forms, Newsletters, and mail delivery management through
   an optional ZeroPress Edge integration
 - Role-based administration for administrators, editors, and authors

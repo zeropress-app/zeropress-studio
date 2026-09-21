@@ -11,12 +11,14 @@ import {
   Route,
   Settings,
   SlidersHorizontal,
+  Upload,
 } from 'lucide-react';
 import { STUDIO_PATHS } from '../routing/studio-routes';
 import { Field, StudioIcon } from './primitives';
 
 const SECTIONS = [
   { path: STUDIO_PATHS.generalSettings, key: 'general', icon: Settings },
+  { path: STUDIO_PATHS.publishingSettings, key: 'publishing', icon: Upload },
   { path: STUDIO_PATHS.analyticsSettings, key: 'analytics', icon: ChartNoAxesCombined },
   { path: STUDIO_PATHS.interfaceSettings, key: 'interface', icon: Languages },
   { path: STUDIO_PATHS.brandingSettings, key: 'branding', icon: Palette },

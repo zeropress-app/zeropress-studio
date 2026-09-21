@@ -1,3 +1,4 @@
+import { PublishingPanel } from './components/PublishingPanel';
 import {
   useEffect,
   useMemo,
@@ -73,6 +74,7 @@ function summarizeDocument(
 }
 
 export function PreviewDataPage(input: {
+  data: { csrf_token: string };
   onSessionEnded: () => void;
 }) {
   const { t, i18n } = useTranslation('previewData');
@@ -312,6 +314,10 @@ export function PreviewDataPage(input: {
         description={t('description')}
       />
 
+      <PublishingPanel
+        csrfToken={input.data.csrf_token}
+        onSessionEnded={input.onSessionEnded}
+      />
       <Panel
         leading={<StudioIcon icon={FileJson} />}
         title={t('export.title')}

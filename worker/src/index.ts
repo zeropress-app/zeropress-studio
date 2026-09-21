@@ -1,4 +1,9 @@
 import {
+  createPublishingRoutes,
+  createPublishingSettingsRoutes,
+  type PublishingRouteDependencies,
+} from './publishing/routes';
+import {
   createAnalyticsRoutes,
   createAnalyticsSettingsRoutes,
   type AnalyticsRouteDependencies,
@@ -165,6 +170,7 @@ const MANAGED_MEDIA_STORAGE_ENABLED =
 
 export function createApp(dependencies?: {
   analytics?: AnalyticsRouteDependencies;
+  publishing?: PublishingRouteDependencies;
   authenticate?: CredentialsAuthenticator;
   issueSession?: IssueUserSession;
   listSessions?: ListUserSessions;
@@ -339,6 +345,14 @@ export function createApp(dependencies?: {
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.widgets,
   }));
+  app.route('/api/settings/publishing', createPublishingSettingsRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.publishing,
+  }));
+  app.route('/api/publishing', createPublishingRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.publishing,
+  }));
   app.route('/api/settings/analytics', createAnalyticsSettingsRoutes({
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.analytics,
@@ -468,6 +482,7 @@ export function createApp(dependencies?: {
         || pathname.startsWith('/api/settings/comments/')
         || pathname === '/api/settings/edge-security'
         || pathname.startsWith('/api/settings/edge-security/')
+        || pathname === '/api/publishing'
         || pathname === '/api/preview-data'
         || pathname.startsWith('/api/preview-data/')
         || pathname === '/api/imports/wxr'
