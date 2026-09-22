@@ -806,7 +806,10 @@ export function OperationsPage() {
           </div>
         </header>
         <div className="operations-layout">
-          <OperationsNavigation disabled={operationsBusy} />
+          <OperationsNavigation
+            disabled={operationsBusy}
+            databaseUpgradeRequired={status.database.state === 'upgrade_required'}
+          />
           <div className="operations-route">
             <Suspense
               fallback={(

@@ -103,8 +103,6 @@ test('unlocks Operations with its token and locks it again on reload', async ({
 
 for (const studioProfile of [
   'operations-ip-denied',
-  'operations-ip-denied-token-missing',
-  'operations-ip-denied-token-invalid',
 ] as const) {
   test.describe(`Operations unavailable: ${studioProfile}`, () => {
     test.use({ studioProfile });
@@ -158,6 +156,8 @@ for (const studioProfile of [
   'operations-allowlist-invalid',
   'operations-token-missing',
   'operations-token-invalid',
+  'operations-ip-denied-token-missing',
+  'operations-ip-denied-token-invalid',
 ] as const) {
   test.describe(`Operations configuration: ${studioProfile}`, () => {
     test.use({ studioProfile });
@@ -175,7 +175,14 @@ for (const studioProfile of [
       const publicStatus = page.waitForResponse((response) => (
         new URL(response.url()).pathname === '/api/system/status'
       ));
-      await page.goto('/system/operations/edge');
+      if (studioProfile === 'initial-no-operations') {
+        await page.goto('/system/operations/edge');
+      } else {
+        await page.goto('/');
+        await page.getByRole('link', {
+          name: 'Open Maintenance & Recovery',
+        }).click();
+      }
       const publicResponse = await publicStatus;
       expect(publicResponse.headers()['cache-control']).toBe('no-store');
       const entry = (await publicResponse.json()).data.operations;

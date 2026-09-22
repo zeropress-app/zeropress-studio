@@ -130,24 +130,31 @@ const cases: {
     headers: { Origin: 'https://other.example.com' },
     state: 'not_found',
   },
-  ...[undefined, '', 'too-short', operationsToken].map((token) => ({
-    name: `denied IP takes precedence over token state (${token === undefined ? 'unset' : token.length})`,
-    overrides: { STUDIO_OPERATIONS_TOKEN: token },
-    headers: { 'CF-Connecting-IP': '198.51.100.20' },
-    state: 'not_found' as const,
-  })),
+  ...(['initial', 'maintenance', 'recovery'] as const).flatMap((siteMode) => (
+    [undefined, '', 'too-short'].map((token) => ({
+      name: `${siteMode} guides token setup outside the allowlist (${token === undefined ? 'unset' : token.length})`,
+      overrides: { STUDIO_SITE_MODE: siteMode, STUDIO_OPERATIONS_TOKEN: token },
+      headers: { 'CF-Connecting-IP': '198.51.100.20' },
+      state: 'setup_required' as const,
+      configuration: {
+        allowed_ips: 'valid' as const,
+        token: token === undefined ? 'missing' as const : 'invalid' as const,
+      },
+    }))
+  )),
   ...[undefined, '', 'not-an-ip', allowedIp].map((allowlist) => ({
     name: `cross-origin hides setup (${allowlist === undefined ? 'unset' : allowlist.length})`,
     overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: allowlist, STUDIO_OPERATIONS_TOKEN: undefined },
     headers: { Origin: 'https://other.example.com' },
     state: 'not_found' as const,
   })),
-  {
-    name: 'missing trusted client IP cannot discover token setup',
+  ...[undefined, '', 'not-an-ip'].map((header) => ({
+    name: `token setup does not require a resolved client IP (${header === undefined ? 'unset' : header.length})`,
     overrides: { STUDIO_OPERATIONS_TOKEN: undefined },
-    headers: { 'CF-Connecting-IP': '', 'X-Forwarded-For': allowedIp },
-    state: 'not_found',
-  },
+    headers: { 'CF-Connecting-IP': header, 'X-Forwarded-For': allowedIp },
+    state: 'setup_required' as const,
+    configuration: { allowed_ips: 'valid' as const, token: 'missing' as const },
+  })),
   {
     name: 'same-origin request',
     headers: { Origin: 'https://studio.example.com' },
@@ -265,6 +272,14 @@ const setupConfigurations: { name: string; overrides: Partial<Env> }[] = [
   { name: 'invalid allowlist', overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: 'not-an-ip' } },
   { name: 'missing token', overrides: { STUDIO_OPERATIONS_TOKEN: undefined } },
   { name: 'invalid token', overrides: { STUDIO_OPERATIONS_TOKEN: 'too-short' } },
+  {
+    name: 'missing token outside the allowlist',
+    overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: '192.0.2.55', STUDIO_OPERATIONS_TOKEN: undefined },
+  },
+  {
+    name: 'invalid token outside the allowlist',
+    overrides: { STUDIO_OPERATIONS_ALLOWED_IPS: '192.0.2.55', STUDIO_OPERATIONS_TOKEN: 'too-short' },
+  },
 ];
 
 function operationalEnvironment(overrides: Partial<Env> = {}): Env {
@@ -352,10 +367,10 @@ describe('Operations setup session boundary', () => {
   it.each([
     { 'CF-Connecting-IP': '198.51.100.20' },
     { Origin: 'https://other.example.com' },
-  ] as Record<string, string>[])('enforces the IP and Origin boundary before administrator access', async (headers) => {
+  ] as Record<string, string>[])('enforces the IP and Origin boundary for configured Operations before administrator access', async (headers) => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const resolveSession = vi.fn().mockResolvedValue(administratorSession);
-    const env = operationalEnvironment({ STUDIO_OPERATIONS_TOKEN: undefined });
+    const env = operationalEnvironment();
     const app = createApp({ resolveSession });
     const response = await app.fetch(entryRequest('/api/system/status', headers), env);
     expect((await response.json() as SystemStatusResponse).data.operations)

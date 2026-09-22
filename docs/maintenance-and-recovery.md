@@ -17,13 +17,16 @@ Operations is disabled until both values are configured:
 CIDR ranges are not supported. Addresses follow Studio's
 [client IP policy](authentication-rate-limits.md). If the
 allowlist needs configuration, the entry guide shows the current connection
-IP when available. Refresh it after a network or VPN change. Requests outside
-a valid allowlist receive a not-found response before any credential form.
+IP when available. Refresh it after a network or VPN change. Setup guidance
+remains available until both settings are valid. Once configured, requests
+outside the allowlist receive a not-found response before any credential form.
 
 In `operational` mode, sign in to Studio as an administrator before opening
 the setup guide. Without an active administrator session, unconfigured
 Operations shows a not-found page without prompting for sign-in. Other site
-modes allow setup guidance without a Studio session.
+modes allow setup guidance without a Studio session. In maintenance and
+recovery modes, **Open Maintenance & Recovery** also opens this guide when
+access settings are incomplete.
 
 Use an operations token independent of the install token, for example:
 
@@ -238,7 +241,8 @@ switch to `maintenance`. If administrator credentials need recovery, complete
 [administrator recovery](#recover-administrator-access) first, then return to
 maintenance for the upgrade.
 
-Review the displayed steps, acknowledge the backup, re-verify an active
+Open **Studio database** and find the highlighted **Upgrade Studio database**
+section. Review the steps, acknowledge the backup, re-verify an active
 administrator, and enter **UPGRADE STUDIO DATABASE**. The runner applies the
 supported consecutive artifacts from the stored schema to the version required
 by the Worker. See [schema-version.ts](../worker/src/system/schema-version.ts)

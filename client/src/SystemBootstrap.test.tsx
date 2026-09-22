@@ -1460,51 +1460,77 @@ describe('SystemBootstrap', () => {
     })).toBeInTheDocument();
   });
 
-  it('keeps maintenance details and its entry point hidden outside the operations boundary', async () => {
+  it.each([
+    ['maintenance', 'Maintenance is in progress. Try again later.'],
+    ['recovery', 'Recovery work is in progress. Try again after normal Studio access has been restored.'],
+  ] as const)('keeps the %s entry point hidden outside the operations boundary', async (siteMode, message) => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse(statusResponse({
-        siteMode: 'maintenance',
-        access: { state: 'maintenance' },
+        siteMode,
+        access: { state: siteMode },
         operations: 'not_found',
       })));
     vi.stubGlobal('fetch', fetchMock);
 
     render(<App />);
 
-    expect(await screen.findByText('Maintenance is in progress. Try again later.'))
+    expect(await screen.findByText(message))
       .toBeInTheDocument();
-    expect(screen.queryByText(/Planned lifecycle work is in progress/))
-      .not.toBeInTheDocument();
     expect(screen.queryByRole('link', {
       name: 'Open Maintenance & Recovery',
     })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('does not expose recovery operations when their availability cannot be verified', async () => {
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(jsonResponse(statusResponse({
-        siteMode: 'recovery',
-        access: { state: 'recovery' },
-        operations: 'setup_required',
-      }))));
+  it.each([
+    ['maintenance', 'en'],
+    ['recovery', 'en'],
+    ['maintenance', 'ko'],
+    ['recovery', 'ko'],
+  ] as const)('opens Operations setup from %s in %s when access settings are incomplete', async (siteMode, locale) => {
+    await changeLocale(locale);
+    const user = userEvent.setup();
+    const payload = statusResponse({
+      siteMode,
+      database: {
+        state: 'upgrade_required',
+        schema_version: 1,
+        target_schema_version: 2,
+      },
+      access: { state: siteMode },
+      operations: 'setup_required',
+    });
+    const fetchMock = vi.fn().mockImplementation(() => (
+      Promise.resolve(jsonResponse(payload))
+    ));
+    vi.stubGlobal('fetch', fetchMock);
 
     render(<App />);
 
-    expect(await screen.findByText(/Recovery work is in progress/))
-      .toHaveTextContent(/normal Studio access has been restored/);
-    expect(screen.getByRole('button', {
-      name: 'Check recovery status',
-    }))
+    expect(await screen.findByText(locale === 'en'
+      ? 'Open Maintenance & Recovery to finish setting up access.'
+      : '유지보수 및 복구를 열어 접근 설정을 완료하세요.'))
       .toBeInTheDocument();
-    expect(screen.queryByText(/Normal sign-in is paused/))
-      .not.toBeInTheDocument();
-    expect(screen.queryByRole('link', {
-      name: 'Open Maintenance & Recovery',
-    })).not.toBeInTheDocument();
+    const operationsLink = screen.getByRole('link', {
+      name: locale === 'en'
+        ? 'Open Maintenance & Recovery'
+        : '유지보수 및 복구 열기',
+    });
+    expect(operationsLink).toHaveAttribute('href', '/system/operations');
+    await user.click(operationsLink);
+
+    expect(await screen.findByRole('heading', {
+      name: locale === 'en'
+        ? 'Set up Operations access'
+        : 'Operations 접근을 설정하세요',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'STUDIO_OPERATIONS_TOKEN' }))
+      .toHaveTextContent(locale === 'en' ? 'Not set' : '설정되지 않음');
+    expect(fetchMock.mock.calls.map(([url]) => url))
+      .toEqual(['/api/system/status', '/api/system/status']);
   });
 
-  it('shows installation guidance without a dead operations link for an empty database', async () => {
+  it.each(['not_found', 'setup_required'] as const)('preserves installation guidance for an empty database with Operations %s', async (operations) => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(jsonResponse(statusResponse({
         siteMode: 'recovery',
@@ -1513,7 +1539,7 @@ describe('SystemBootstrap', () => {
           target_schema_version: 13,
         },
         access: { state: 'recovery' },
-        operations: 'not_found',
+        operations,
       }))));
 
     render(<App />);
@@ -1536,9 +1562,15 @@ describe('SystemBootstrap', () => {
     expect(within(requirements).queryByRole('region', {
       name: 'STUDIO_AUTH_SECRET',
     })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', {
-      name: 'Open Maintenance & Recovery',
-    })).not.toBeInTheDocument();
+    if (operations === 'setup_required') {
+      expect(screen.getByRole('link', {
+        name: 'Open Maintenance & Recovery',
+      })).toHaveAttribute('href', '/system/operations');
+    } else {
+      expect(screen.queryByRole('link', {
+        name: 'Open Maintenance & Recovery',
+      })).not.toBeInTheDocument();
+    }
     expect(screen.queryByText(/matching Worker operational log/))
       .not.toBeInTheDocument();
   });

@@ -17,7 +17,6 @@ import {
 import type {
   DatabaseStatus,
   SystemBlockedReason,
-  SystemStatusData,
   SystemStatusResponse,
 } from '../../contracts/system';
 import type { CurrentSessionSuccess } from '../../contracts/session';
@@ -256,10 +255,11 @@ function blockedPresentation(
 }
 
 function resolvedPresentation(
-  status: SystemStatusData,
-  operationsAvailable: boolean,
+  status: SystemStatusResponse['data'],
   t: TFunction<'system'>,
 ): StatusPresentation | null {
+  const operationsAvailable = status.operations.state === 'available';
+  const operationsSetupRequired = status.operations.state === 'setup_required';
   if (status.access.state === 'operational') {
     return null;
   }
@@ -302,7 +302,9 @@ function resolvedPresentation(
       title: t('states.maintenance.title'),
       message: operationsAvailable
         ? t('states.maintenance.operatorMessage')
-        : t('states.maintenance.visitorMessage'),
+        : operationsSetupRequired
+          ? t('states.maintenance.setupMessage')
+          : t('states.maintenance.visitorMessage'),
       tone: 'warning',
     };
   }
@@ -315,7 +317,9 @@ function resolvedPresentation(
       title: t('states.recovery.title'),
       message: operationsAvailable
         ? t('states.recovery.operatorMessage')
-        : t('states.recovery.visitorMessage'),
+        : operationsSetupRequired
+          ? t('states.recovery.setupMessage')
+          : t('states.recovery.visitorMessage'),
       tone: 'warning',
       retryIcon: RefreshCw,
       retryLabel: t('states.recovery.retry'),
@@ -720,15 +724,12 @@ function DefaultSystemBootstrap() {
     );
   }
 
-  const operationsAvailable =
+  const showOperationsLink =
     (state.status.access.state === 'maintenance'
       || state.status.access.state === 'recovery')
-    && state.status.operations.state === 'available';
-  const presentation = resolvedPresentation(
-    state.status,
-    operationsAvailable,
-    t,
-  );
+    && (state.status.operations.state === 'available'
+      || state.status.operations.state === 'setup_required');
+  const presentation = resolvedPresentation(state.status, t);
   if (!presentation) {
     return <OperationalApplication />;
   }
@@ -790,7 +791,7 @@ function DefaultSystemBootstrap() {
       presentation={presentation}
       onRetry={() => setAttempt((value) => value + 1)}
       workerSecretSetup={workerSecretSetup}
-      showOperationsLink={operationsAvailable}
+      showOperationsLink={showOperationsLink}
       installationCompletion={installationComplete
         ? { installTokenRemovalRequired }
         : undefined}

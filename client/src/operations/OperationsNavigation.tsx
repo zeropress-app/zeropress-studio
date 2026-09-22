@@ -8,7 +8,7 @@ import {
   KeyRound,
   ShieldCheck,
 } from 'lucide-react';
-import { Field, StudioIcon } from '../components/primitives';
+import { Field, StatusPill, StudioIcon } from '../components/primitives';
 import {
   OPERATIONS_PATHS,
   type OperationsSection,
@@ -27,8 +27,12 @@ const SECTIONS = [
   end: boolean;
 }>;
 
-export function OperationsNavigation({ disabled = false }: {
+export function OperationsNavigation({
+  disabled = false,
+  databaseUpgradeRequired = false,
+}: {
   disabled?: boolean;
+  databaseUpgradeRequired?: boolean;
 }) {
   const { t } = useTranslation('operations');
   const { pathname } = useLocation();
@@ -59,6 +63,9 @@ export function OperationsNavigation({ disabled = false }: {
                   value={OPERATIONS_PATHS[section.key]}
                 >
                   {t(`navigation.${section.key}.label`)}
+                  {section.key === 'database' && databaseUpgradeRequired
+                    ? ` · ${t('summary.databaseStates.upgrade_required')}`
+                    : ''}
                 </option>
               ))}
             </select>
@@ -72,6 +79,9 @@ export function OperationsNavigation({ disabled = false }: {
               to={OPERATIONS_PATHS[section.key]}
               end={section.end}
               aria-disabled={disabled || undefined}
+              className={section.key === 'database' && databaseUpgradeRequired
+                ? 'operations-navigation-attention'
+                : undefined}
             >
               <StudioIcon
                 icon={section.icon}
@@ -84,6 +94,11 @@ export function OperationsNavigation({ disabled = false }: {
                 <span className="operations-navigation-description">
                   {t(`navigation.${section.key}.description`)}
                 </span>
+                {section.key === 'database' && databaseUpgradeRequired ? (
+                  <StatusPill tone="attention">
+                    {t('summary.databaseStates.upgrade_required')}
+                  </StatusPill>
+                ) : null}
               </span>
             </NavLink>
           </li>

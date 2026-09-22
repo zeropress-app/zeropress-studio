@@ -1486,15 +1486,49 @@ describe('Maintenance and Recovery dashboard', () => {
     })).not.toBeInTheDocument();
   });
 
-  it('highlights an upgrade-required database as an attention state', async () => {
-    vi.stubGlobal('fetch', withOperationsPreflight(vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(statusResponse(
-        'maintenance',
-        'upgrade_required',
-      )), {
+  it('guides an upgrade-required database from navigation through completion', async () => {
+    const required = statusResponse('maintenance', 'upgrade_required');
+    const ready = statusResponse('maintenance');
+    ready.data.database = {
+      state: 'ready',
+      schema_version: 2,
+      target_schema_version: 2,
+    };
+    ready.data.database_upgrade.current_schema_version = 2;
+    ready.data.database_upgrade.target_schema_version = 2;
+    const step = required.data.database_upgrade.steps[0];
+    const responses = [
+      required,
+      {
+        success: true,
+        data: {
+          operation: 'upgrade_studio_database',
+          status: 'started',
+          operation_id: '1'.repeat(32),
+          current_schema_version: 1,
+          target_schema_version: 2,
+          next_step: step,
+        },
+      },
+      {
+        success: true,
+        data: {
+          operation: 'upgrade_studio_database',
+          status: 'completed',
+          operation_id: null,
+          applied_step: step,
+          current_schema_version: 2,
+          target_schema_version: 2,
+          next_step: null,
+        },
+      },
+      ready,
+    ];
+    vi.stubGlobal('fetch', withOperationsPreflight(vi.fn(async () => (
+      new Response(JSON.stringify(responses.shift()), {
         headers: { 'Content-Type': 'application/json' },
-      }),
-    )));
+      })
+    ))));
     const user = userEvent.setup();
 
     render(<App />);
@@ -1509,8 +1543,33 @@ describe('Maintenance and Recovery dashboard', () => {
       .toHaveClass('studio-pill-attention');
     expect(within(summary).getByText('Upgrade required'))
       .toHaveClass('studio-pill-attention');
-    expect(screen.queryByRole('heading', { name: 'Clear, reset, or uninstall' }))
-      .not.toBeInTheDocument();
+
+    const navigation = screen.getByRole('navigation', { name: 'Operations sections' });
+    const databaseLink = within(navigation).getByRole('link', { name: /^Studio database/u });
+    expect(within(databaseLink).getByText('Upgrade required'))
+      .toHaveClass('studio-pill-attention');
+    expect(within(navigation).getByRole('option', {
+      name: 'Studio database · Upgrade required',
+    })).toHaveValue('/system/operations/database');
+    await user.click(databaseLink);
+    expect(databaseLink).toHaveAttribute('aria-current', 'page');
+
+    const upgradePanel = await screen.findByRole('region', { name: 'Upgrade Studio database' });
+    expect(upgradePanel.parentElement).toHaveClass('operations-upgrade-required');
+    const upgrade = within(upgradePanel);
+    expect(upgrade.getByText('A database upgrade is required')).toBeInTheDocument();
+    await user.type(upgrade.getByLabelText('Administrator email'), 'owner@example.com');
+    await user.type(upgrade.getByLabelText('Administrator password'), 'administrator-password');
+    await user.click(upgrade.getByLabelText(/I created and safely stored/));
+    await user.type(upgrade.getByLabelText(/Type the exact confirmation phrase/), 'UPGRADE STUDIO DATABASE');
+    await user.click(upgrade.getByRole('button', { name: 'Start database upgrade' }));
+
+    expect(await upgrade.findByText('Database schema is up to date')).toBeInTheDocument();
+    expect(databaseLink).not.toHaveClass('operations-navigation-attention');
+    expect(within(databaseLink).queryByText('Upgrade required')).not.toBeInTheDocument();
+    expect(upgradePanel.parentElement).not.toHaveClass('operations-upgrade-required');
+    expect(within(navigation).getByRole('option', { name: 'Studio database' }))
+      .toHaveValue('/system/operations/database');
   });
 
   it('shows and copies the table-level uninstall report', async () => {

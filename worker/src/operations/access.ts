@@ -138,11 +138,6 @@ function resolveOperationsConfigurationBoundary(
     };
   }
 
-  // A valid allowlist always takes precedence over token setup diagnostics.
-  // Never disclose token configuration to a requester outside that boundary.
-  if (!isOperationsIpAllowed({ allowedIps: configuration.allowedIps }, clientIp)) {
-    return { state: 'not_found' };
-  }
   if (configuration.state === 'invalid') {
     return {
       state: 'setup_required',
@@ -151,6 +146,10 @@ function resolveOperationsConfigurationBoundary(
         token: configuration.tokenState === 'missing' ? 'missing' : 'invalid',
       },
     };
+  }
+  // Apply IP restrictions only once both access settings are valid.
+  if (!isOperationsIpAllowed(configuration, clientIp)) {
+    return { state: 'not_found' };
   }
   return { state: 'available', configuration, clientIp };
 }

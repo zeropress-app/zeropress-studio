@@ -53,13 +53,18 @@ export function OperationsDatabasePage() {
             />
           ) : null}
           {showUpgrade ? (
-            <DatabaseUpgradePanel
-              token={token}
-              status={status.database_upgrade}
-              refreshStatus={refreshDatabaseUpgradeStatus}
-              headingLevel={2}
-              onBusyChange={reportUpgradeBusy}
-            />
+            <div className={status.database.state === 'upgrade_required'
+              ? 'operations-upgrade-required'
+              : undefined}
+            >
+              <DatabaseUpgradePanel
+                token={token}
+                status={status.database_upgrade}
+                refreshStatus={refreshDatabaseUpgradeStatus}
+                headingLevel={2}
+                onBusyChange={reportUpgradeBusy}
+              />
+            </div>
           ) : null}
           {showSearch ? (
             <ContentSearchIndexPanel
