@@ -102,7 +102,9 @@ async function readOptionalTimedMetadata(
   durationMs: number | null;
 }> {
   return new Promise((resolve) => {
-    const element = document.createElement(kind);
+    const element = kind === 'audio'
+      ? document.createElement('audio')
+      : document.createElement('video');
     const url = URL.createObjectURL(file);
     let completed = false;
     const timeout = window.setTimeout(finish, 10_000);

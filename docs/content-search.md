@@ -15,9 +15,9 @@ resolved.
 The body projection follows the stored document type:
 
 - HTML preserves decoded text nodes and removes tags, attributes, comments, and
-  `script`/`style` contents;
-- Markdown preserves rendered labels and text while removing markup and link
-  destinations;
+  `script`/`style`/`template` contents;
+- Markdown preserves rendered labels and text while removing markup, link
+  destinations, and the same hidden HTML contents;
 - plaintext removes control characters and collapses whitespace.
 
 No body truncation is applied while indexing. The FTS rowid is the canonical

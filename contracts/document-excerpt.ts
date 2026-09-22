@@ -1,4 +1,4 @@
-import { decodeHTMLStrict } from 'entities/decode';
+import { defaultTreeAdapter, parseFragment, type DefaultTreeAdapterMap } from 'parse5';
 
 export type PreviewDocumentType = 'plaintext' | 'markdown' | 'html';
 
@@ -25,96 +25,11 @@ function normalizeSafePlainText(value: string): string {
     .trim();
 }
 
-function decodeHtmlEntities(value: string): string {
-  return decodeHTMLStrict(value);
-}
-
-function looksLikeHtmlMarkupStart(value: string, start: number): boolean {
-  const next = value[start + 1] ?? '';
-  if (/[A-Za-z!?]/u.test(next)) return true;
-  return next === '/' && /[A-Za-z]/u.test(value[start + 2] ?? '');
-}
-
-function scanHtmlTag(value: string, start: number): {
-  name: string;
-  closing: boolean;
-  end: number;
-} | null {
-  let index = start + 1;
-  let quote = '';
-  while (index < value.length) {
-    const character = value[index];
-    if (quote) {
-      if (character === quote) quote = '';
-    } else if (character === '"' || character === "'") {
-      quote = character;
-    } else if (character === '>') {
-      const body = value.slice(start + 1, index).trim();
-      const closing = body.startsWith('/');
-      const source = body.slice(closing ? 1 : 0).trimStart();
-      const name = /^[A-Za-z][A-Za-z0-9:-]*/u.exec(source)?.[0]
-        ?.toLowerCase() ?? '';
-      return { name, closing, end: index + 1 };
-    }
-    index += 1;
-  }
-  return null;
-}
-
-function asciiCaseInsensitiveMatch(
-  value: string,
-  start: number,
-  expected: string,
-): boolean {
-  if (start + expected.length > value.length) return false;
-  for (let index = 0; index < expected.length; index += 1) {
-    if (value[start + index]?.toLowerCase() !== expected[index]) return false;
-  }
-  return true;
-}
-
-function findRawTextElementEnd(
-  value: string,
-  start: number,
-  tagName: string,
-): number | null {
-  for (let index = start; index < value.length; index += 1) {
-    if (value[index] !== '<' || value[index + 1] !== '/') continue;
-    if (!asciiCaseInsensitiveMatch(value, index + 2, tagName)) continue;
-    let end = index + 2 + tagName.length;
-    const boundary = value[end];
-    if (boundary && !/[\s>]/u.test(boundary)) continue;
-    while (/\s/u.test(value[end] ?? '')) end += 1;
-    if (value[end] === '>') return end + 1;
-  }
-  return null;
-}
-
-function decodeHtmlEntityAt(value: string, start: number): {
-  value: string;
-  end: number;
-} | null {
-  const maximumEnd = Math.min(value.length, start + 34);
-  let semicolon = -1;
-  for (let index = start + 1; index < maximumEnd; index += 1) {
-    if (value[index] === ';') {
-      semicolon = index;
-      break;
-    }
-  }
-  if (semicolon < 0) return null;
-  const candidate = value.slice(start, semicolon + 1);
-  const decoded = decodeHtmlEntities(candidate);
-  return decoded === candidate
-    ? null
-    : { value: decoded, end: semicolon + 1 };
-}
-
 function htmlToPlainText(value: string, scanLimit: number): string {
-  const html = String(value || '');
+  const fragment = parseFragment(String(value || ''));
+  const pending: (DefaultTreeAdapterMap['childNode'] | null)[] = [...fragment.childNodes].reverse();
   let output = '';
   let pendingWhitespace = false;
-  let index = 0;
 
   const appendWhitespace = () => {
     if (output) pendingWhitespace = true;
@@ -151,45 +66,34 @@ function htmlToPlainText(value: string, scanLimit: number): string {
     }
   };
 
-  while (index < html.length && output.length < scanLimit) {
-    if (html.startsWith('<!--', index)) {
-      const commentEnd = html.indexOf('-->', index + 4);
-      if (commentEnd < 0) break;
+  // Extract text without serializing or reparsing it; the parser decodes entities once.
+  while (pending.length > 0 && output.length < scanLimit) {
+    const node = pending.pop()!;
+    if (node === null) {
       appendWhitespace();
-      index = commentEnd + 3;
       continue;
     }
-    if (html[index] === '<' && looksLikeHtmlMarkupStart(html, index)) {
-      const tag = scanHtmlTag(html, index);
-      if (!tag) {
-        appendVisible(html[index]!);
-        index += 1;
-        continue;
-      }
-      if (!tag.closing && (tag.name === 'script' || tag.name === 'style')) {
-        const rawTextEnd = findRawTextElementEnd(html, tag.end, tag.name);
-        if (rawTextEnd === null) break;
-        appendWhitespace();
-        index = rawTextEnd;
-        continue;
-      }
-      if (
-        BLOCK_TAG_NAMES.has(tag.name)
-        || LINE_BREAK_TAG_NAMES.has(tag.name)
-      ) appendWhitespace();
-      index = tag.end;
+    if (defaultTreeAdapter.isTextNode(node)) {
+      appendVisible(node.value);
       continue;
     }
-    if (html[index] === '&') {
-      const entity = decodeHtmlEntityAt(html, index);
-      if (entity) {
-        appendVisible(entity.value);
-        index = entity.end;
-        continue;
-      }
+    if (!defaultTreeAdapter.isElementNode(node)) {
+      appendWhitespace();
+      continue;
     }
-    appendVisible(html[index]!);
-    index += 1;
+    if (node.tagName === 'script' || node.tagName === 'style' || node.tagName === 'template') {
+      appendWhitespace();
+      continue;
+    }
+    if (BLOCK_TAG_NAMES.has(node.tagName)) {
+      appendWhitespace();
+      pending.push(null);
+    } else if (LINE_BREAK_TAG_NAMES.has(node.tagName)) {
+      appendWhitespace();
+    }
+    for (let index = node.childNodes.length - 1; index >= 0; index -= 1) {
+      pending.push(node.childNodes[index]);
+    }
   }
   return output.trim();
 }
@@ -198,9 +102,6 @@ function markdownToPlainText(value: string): string {
   let next = value.replace(/\r\n?/gu, '\n');
   next = next.replace(/<(https?:\/\/[^>\s]+)>/giu, '$1');
   next = next.replace(/<([^\s>]+@[^\s>]+)>/gu, '$1');
-  next = next.replace(/<script\b[^>]*>[\s\S]*?<\/script>/giu, ' ');
-  next = next.replace(/<style\b[^>]*>[\s\S]*?<\/style>/giu, ' ');
-  next = next.replace(/<\/?[^>]+>/gu, ' ');
   next = next.replace(/^```[^\n]*$/gmu, ' ');
   next = next.replace(/^~~~[^\n]*$/gmu, ' ');
   next = next.replace(/!\[([^\]]*)\]\([^)]+\)/gu, '$1');
@@ -217,7 +118,7 @@ function markdownToPlainText(value: string): string {
   next = next.replace(/(\*|_)(.*?)\1/gu, '$2');
   next = next.replace(/~~(.*?)~~/gu, '$1');
   next = next.replace(/\\([\\`*_{}\[\]()#+\-.!>])/gu, '$1');
-  return normalizeSafePlainText(decodeHtmlEntities(next));
+  return htmlToPlainText(next, Number.MAX_SAFE_INTEGER);
 }
 
 function contentToPlainText(

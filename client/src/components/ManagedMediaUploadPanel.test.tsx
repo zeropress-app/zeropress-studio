@@ -10,6 +10,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLocale } from '../i18n';
+import * as managedMediaUpload from '../lib/managed-media-upload';
 import { ManagedMediaUploadPanel } from './ManagedMediaUploadPanel';
 
 function renderPanel() {
@@ -49,6 +50,47 @@ beforeEach(async () => {
 });
 
 describe('ManagedMediaUploadPanel', () => {
+  it.each([
+    { filename: 'clip.mp4', kind: 'video', width: 640, height: 360 },
+    { filename: 'clip.mp3', kind: 'audio', width: null, height: null },
+  ])('reads $kind metadata through a local media element before upload', async ({
+    filename, kind, width, height,
+  }) => {
+    const objectUrl = 'blob:studio-media-metadata';
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue(objectUrl);
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const sources: { element: HTMLMediaElement; url: string }[] = [];
+    vi.spyOn(HTMLMediaElement.prototype, 'src', 'set').mockImplementation(function (
+      this: HTMLMediaElement, url: string,
+    ) {
+      sources.push({ element: this, url });
+      Object.defineProperty(this, 'duration', { value: 1.25 });
+      if (this instanceof HTMLVideoElement) {
+        Object.defineProperty(this, 'videoWidth', { value: width });
+        Object.defineProperty(this, 'videoHeight', { value: height });
+      }
+      queueMicrotask(() => this.dispatchEvent(new Event('loadedmetadata')));
+    });
+    const upload = vi.spyOn(managedMediaUpload, 'storeManagedMediaFile')
+      .mockResolvedValue({ success: false, error: { code: 'MEDIA_UPLOAD_SIGNATURE_INVALID' } });
+    const file = new File(['synthetic media bytes'], filename);
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.upload(screen.getByLabelText('Choose files'), file);
+    await screen.findByText('Ready');
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.element).toBeInstanceOf(kind === 'audio' ? HTMLAudioElement : HTMLVideoElement);
+    expect(sources[0]!.url).toBe(objectUrl);
+    expect(createObjectUrl).toHaveBeenCalledWith(file);
+    expect(revokeObjectUrl).toHaveBeenCalledWith(objectUrl);
+
+    await user.click(screen.getByRole('button', { name: 'Upload 1 file' }));
+    expect(upload).toHaveBeenCalledWith(expect.objectContaining({
+      file, width, height, durationMs: 1250,
+    }));
+  });
+
   it('inspects files added by later chooser events instead of stranding them', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn(async () => imageBitmap()));
     const user = userEvent.setup();

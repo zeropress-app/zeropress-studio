@@ -211,7 +211,8 @@ describe('First-paint script', () => {
     resolve(process.cwd(), 'client/public/_headers'),
     'utf8',
   );
-  const inlineScript = html.match(/<script>([\s\S]*?)<\/script>/u)?.[1];
+  const inlineScript = new DOMParser().parseFromString(html, 'text/html')
+    .querySelector('script:not([src]):not([type])')?.textContent;
 
   /*
    * The inline script duplicates this module's policy to avoid a light flash
