@@ -1,3 +1,4 @@
+import { previewDataHash } from './metadata';
 import { describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import { PUBLISHING_DEFAULTS } from '../../../contracts/publishing';
@@ -65,9 +66,14 @@ function request(path: string, method = 'GET', body?: unknown) {
       'Content-Type': 'application/json',
       'X-ZeroPress-CSRF': session.csrfToken,
     },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: JSON.stringify(
+      path === '/api/publishing' && method === 'POST'
+        ? { expected_data_hash: preparedHash, expected_blob_sha: 'b'.repeat(40), ...body as object }
+        : body,
+    ) }),
   });
 }
+const preparedHash = await previewDataHash(previewDocument().preview_data);
 const endpoints = [
   ['/api/settings/publishing', 'GET'],
   ['/api/settings/publishing', 'PUT'],
@@ -203,7 +209,13 @@ describe('publishing API authorization and snapshots', () => {
   it.each([false, true])(
     'keeps disabled publishing local with configured=%s',
     async (configured) => {
+      const disabled = {
+        ...DOCUMENT,
+        settings: { ...PUBLISHING_DEFAULTS, ...(configured ? TARGET : {}) },
+        configured, token_configured: configured,
+      };
       const { app, env, dependencies } = setup({
+        readSettings: vi.fn().mockResolvedValue(disabled),
         readRuntimeSettings: vi.fn().mockResolvedValue({
           document: {
             ...DOCUMENT,
@@ -225,6 +237,7 @@ describe('publishing API authorization and snapshots', () => {
           revision: DOCUMENT.revision,
         },
       });
+      expect(dependencies.readRuntimeSettings).not.toHaveBeenCalled();
       expect(
         (
           await app.fetch(
@@ -239,6 +252,30 @@ describe('publishing API authorization and snapshots', () => {
       expect(dependencies.prepareExport).not.toHaveBeenCalled();
     },
   );
+  it('reads unconfigured publishing without an encryption secret or remote request', async () => {
+    const { app, env, dependencies } = setup({
+      readSettings: vi.fn().mockResolvedValue({
+        ...DOCUMENT, settings: PUBLISHING_DEFAULTS,
+        configured: false, token_configured: false,
+      }),
+    });
+    delete env.STUDIO_AUTH_SECRET;
+    const response = await app.fetch(request('/api/publishing/status'), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { configured: false, enabled: false } });
+    expect(dependencies.readRuntimeSettings).not.toHaveBeenCalled();
+    expect(dependencies.fetch).not.toHaveBeenCalled();
+  });
+  it('returns a conflict when the prepared data is stale', async () => {
+    const { app, env, api } = setup();
+    const response = await app.fetch(request('/api/publishing', 'POST', {
+      expected_revision: DOCUMENT.revision,
+      expected_data_hash: '0'.repeat(64),
+    }), env);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ success: false, error: { code: 'PUBLISHING_DATA_CHANGED' } });
+    expect(api.state.uploads).toHaveLength(0);
+  });
   it('reads the latest file commit when a saved connection is enabled', async () => {
     const { app, env, dependencies } = setup();
     const response = await app.fetch(request('/api/publishing/status'), env);

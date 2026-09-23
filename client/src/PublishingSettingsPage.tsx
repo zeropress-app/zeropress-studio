@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { CircleCheck, ExternalLink, GitBranch, KeyRound, Link2, Rocket } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   PUBLISHING_DEFAULTS,
@@ -22,6 +22,7 @@ import {
   Field,
   Notice,
   Panel,
+  Spinner,
   StudioIcon,
   Switch,
 } from './components/primitives';
@@ -275,7 +276,21 @@ export function PublishingSettingsPage(input: {
       }}
       onSubmit={(event) => void submit(event)}
     >
-      <Panel title="GitHub" layout="split">
+      <Panel
+        title={t('settings.starter.title')}
+        description={t('settings.starter.description')}
+        leading={<StudioIcon icon={Rocket} />}
+        actions={(
+          <ButtonLink
+            to="https://github.com/zeropress-app/zeropress-starter-studio"
+            external
+          >
+            {t('settings.starter.action')}
+            <StudioIcon icon={ExternalLink} />
+          </ButtonLink>
+        )}
+      />
+      <Panel title="GitHub" layout="split" leading={<StudioIcon icon={GitBranch} />}>
         <div className="settings-fields">
           <Switch
             label={t('settings.enabled')}
@@ -289,6 +304,7 @@ export function PublishingSettingsPage(input: {
           {!manual ? (
             <Field
               label={t('settings.fileUrl')}
+              leading={<StudioIcon icon={Link2} />}
               hint={t('settings.fileUrlHint')}
               error={invalidUrl ? t('errors.urlInvalid') : undefined}
             >
@@ -361,6 +377,7 @@ export function PublishingSettingsPage(input: {
           />
           <Field
             label={t('settings.token')}
+            leading={<StudioIcon icon={KeyRound} />}
             hint={t('settings.tokenHint')}
             note={
               document?.token_configured ? t('settings.tokenStored') : undefined
@@ -414,6 +431,7 @@ export function PublishingSettingsPage(input: {
             }
             onClick={() => void testConnection()}
           >
+            {test === 'running' ? <Spinner /> : <StudioIcon icon={CircleCheck} />}
             {t(test === 'running' ? 'settings.testing' : 'settings.test')}
           </Button>
           {test === 'success' ? (

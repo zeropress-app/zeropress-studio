@@ -13,6 +13,8 @@ import { gitBlobSha, previewDataHash, publishCommitMessage } from './metadata';
 export async function publishSite(input: {
   target: PublishingTarget;
   token: string;
+  expectedDataHash: string;
+  expectedBlobSha: string;
   generate: () => Promise<PreviewDataExportDocument | Response>;
   fetch?: typeof fetch;
   signal?: AbortSignal;
@@ -23,9 +25,13 @@ export async function publishSite(input: {
     timeoutMs: 60_000,
   });
   const snapshot = await provider.inspect(input.target);
+  if (snapshot.file.blob_sha !== input.expectedBlobSha)
+    throw new PublishingFailure('PUBLISHING_CONFLICT');
   const document = await input.generate();
   if (document instanceof Response) return document;
   const dataHash = await previewDataHash(document.preview_data);
+  if (dataHash !== input.expectedDataHash)
+    throw new PublishingFailure('PUBLISHING_DATA_CHANGED');
   if (snapshot.metadata?.dataHash === dataHash)
     return { outcome: 'unchanged', file: snapshot.file };
   const bytes = new TextEncoder().encode(
@@ -40,7 +46,7 @@ export async function publishSite(input: {
   try {
     return {
       outcome: 'committed',
-      file: await provider.update(snapshot, { bytes, blobSha, message }),
+      file: await provider.update(snapshot, { bytes, blobSha, dataHash, message }),
     };
   } catch (error) {
     if (!(error instanceof UncertainGithubWrite)) throw error;

@@ -19,10 +19,11 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
     branch: 'release/current',
     path: 'data/preview.json',
   };
-  const file = {
+  let file = {
     target,
     blob_sha: 'b'.repeat(40),
     metadata_status: 'valid',
+    data_hash: 'a'.repeat(64),
     commit: {
       sha: 'c'.repeat(40),
       url: 'https://github.com/example/site/commit/' + 'c'.repeat(40),
@@ -36,6 +37,7 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
     revision: PUBLISHING_INITIAL_REVISION,
     updated_at_iso: null,
   };
+  let preparedHash = 'd'.repeat(64);
   let outcome = 'committed';
   let fail = false;
   let release: () => void = () => {};
@@ -91,9 +93,12 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
         expect(request.headers()['x-zeropress-csrf']).toBeTruthy();
         expect(request.postDataJSON()).toEqual({
           expected_revision: settings.revision,
+          expected_data_hash: preparedHash,
+          expected_blob_sha: file.blob_sha,
         });
         writes.push(request.postDataJSON());
         await hold;
+        if (!fail) file = { ...file, data_hash: preparedHash };
         await route.fulfill(
           fail
             ? {
@@ -111,6 +116,18 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
       }
     },
   );
+  await page.route('**/api/preview-data', (route) => route.fulfill({ json: {
+    success: true, data: {
+      data_hash: preparedHash,
+      preview_data: {
+        version: '0.7', generator: 'synthetic/1.0', generated_at: '2026-09-23T00:00:00Z',
+        site: { title: `Example ${preparedHash[0]}`, description: '', url: '', media_origin: '', locale: 'en-US',
+          posts_per_page: 10, date_style: 'medium', time_style: 'none', timezone: 'UTC', robots: { allow_indexing: false } },
+        content: { authors: [], posts: [], pages: [], categories: [], tags: [] },
+      },
+      validation: { status: 'valid', contract_version: '0.7', warnings: [] },
+    },
+  } }));
   await page.route('**/api/system/interface-config', (route) =>
     route.fulfill({
       json: {
@@ -126,11 +143,11 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
     .click();
   await expect(
     page.getByText(
-      'Choose a GitHub file and add a token in publishing settings.',
+      'To publish directly to GitHub, connect a repository in publishing settings.',
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Generate Preview Data' }),
+    page.getByRole('button', { name: 'Prepare data' }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Publishing settings' }).click();
   await page
@@ -170,6 +187,11 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
       'To use your saved connection, turn on “Publish to GitHub” in publishing settings and save.',
     ),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Prepare data' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download Preview Data' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^zeropress-preview-data-.*\.json$/);
+  expect(writes).toHaveLength(0);
   await page.getByRole('link', { name: 'Publishing settings' }).click();
   const enablePublishing = page.getByRole('switch', {
     name: 'Publish to GitHub',
@@ -182,6 +204,9 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
     .getByRole('navigation', { name: 'Studio navigation' })
     .getByRole('link', { name: 'Publish site', exact: true })
     .click();
+  await expect(page.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Prepare data' }).click();
+  await expect(page.getByText('There are changes to publish.')).toBeVisible();
   hold = new Promise<void>((resolve) => {
     release = resolve;
   });
@@ -218,10 +243,21 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
   hold = undefined;
   await expect(page.getByText('Updated on GitHub.')).toBeVisible();
   expect(writes).toHaveLength(1);
+  await expect(page.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Prepare data again' }).click();
+  await expect(page.getByText('The prepared data is already on GitHub.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+  expect(writes).toHaveLength(1);
+  preparedHash = 'e'.repeat(64);
+  await page.getByRole('button', { name: 'Prepare data again' }).click();
+  await expect(page.getByText('There are changes to publish.')).toBeVisible();
   outcome = 'unchanged';
   await page.getByRole('button', { name: 'Publish to GitHub' }).click();
   await confirmation.getByRole('button', { name: 'Publish to GitHub' }).click();
-  await expect(page.getByText('No changes to publish.')).toBeVisible();
+  await expect(page.getByText('The prepared data is already on GitHub.')).toBeVisible();
+  preparedHash = 'f'.repeat(64);
+  await page.getByRole('button', { name: 'Prepare data again' }).click();
+  await expect(page.getByText('There are changes to publish.')).toBeVisible();
   fail = true;
   await page.getByRole('button', { name: 'Publish to GitHub' }).click();
   await confirmation.getByRole('button', { name: 'Publish to GitHub' }).click();
@@ -246,6 +282,8 @@ test('connects and publishes synthetic site data with keyboard, mobile and local
     page.getByRole('heading', { name: '사이트 발행', exact: true }),
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: '데이터 준비' }).click();
+  await expect(page.getByText('발행할 변경 사항이 있습니다.')).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'GitHub에 발행' }),
   ).toBeVisible();

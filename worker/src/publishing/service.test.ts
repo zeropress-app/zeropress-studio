@@ -9,13 +9,15 @@ import {
   TOKEN,
 } from './test-support';
 forbidPublishingNetwork();
-const run = (
+const run = async (
   api: ReturnType<typeof syntheticGithub>,
   document = previewDocument(),
 ) =>
   publishSite({
     target: TARGET,
     token: TOKEN,
+    expectedDataHash: await previewDataHash(document.preview_data),
+    expectedBlobSha: api.state.blob,
     fetch: api.fetch,
     generate: async () => document,
   });
@@ -27,7 +29,7 @@ describe('site publishing', () => {
     const result = await run(api, document);
     expect(result).toMatchObject({
       outcome: 'committed',
-      file: { blob_sha: api.state.blob },
+      file: { blob_sha: api.state.blob, data_hash: await previewDataHash(document.preview_data) },
     });
     const uploaded = Buffer.from(
       api.state.uploads[0]!.content!,
@@ -95,6 +97,31 @@ describe('site publishing', () => {
     });
     expect(api.state.uploads).toHaveLength(1);
   });
+  it('rejects changed site data after preparation without writing to GitHub', async () => {
+    const api = syntheticGithub();
+    const document = previewDocument();
+    const expectedDataHash = await previewDataHash(document.preview_data);
+    document.preview_data.site.title = 'Edited after preparation';
+    await expect(publishSite({
+      target: TARGET, token: TOKEN, fetch: api.fetch,
+      expectedDataHash, expectedBlobSha: api.state.blob,
+      generate: async () => document,
+    })).rejects.toMatchObject({ code: 'PUBLISHING_DATA_CHANGED' });
+    expect(api.state.uploads).toHaveLength(0);
+  });
+  it('rejects a remote edit since comparison before generating or overwriting data', async () => {
+    const api = syntheticGithub();
+    const expectedBlobSha = api.state.blob;
+    api.state.blob = 'f'.repeat(40);
+    const generate = vi.fn(async () => previewDocument());
+    await expect(publishSite({
+      target: TARGET, token: TOKEN, fetch: api.fetch,
+      expectedDataHash: await previewDataHash(previewDocument().preview_data),
+      expectedBlobSha, generate,
+    })).rejects.toMatchObject({ code: 'PUBLISHING_CONFLICT' });
+    expect(generate).not.toHaveBeenCalled();
+    expect(api.state.uploads).toHaveLength(0);
+  });
   it('stops when the shared export preflight rejects the data', async () => {
     const api = syntheticGithub();
     const failure = Response.json(
@@ -107,6 +134,8 @@ describe('site publishing', () => {
         target: TARGET,
         token: TOKEN,
         fetch: api.fetch,
+        expectedDataHash: '0'.repeat(64),
+        expectedBlobSha: api.state.blob,
         generate,
       }),
     ).toBe(failure);

@@ -21,6 +21,7 @@ const file = {
   },
   blob_sha: 'b'.repeat(40),
   metadata_status: 'valid',
+  data_hash: 'a'.repeat(64),
   commit: {
     sha: 'c'.repeat(40),
     url: 'https://github.com/example/site/commit/' + 'c'.repeat(40),
@@ -42,11 +43,20 @@ function setup(
     fail?: string;
     lost?: boolean;
     hold?: Promise<void>;
+    prepared?: string | null;
+    remoteHash?: string | null;
+    metadata?: string;
   } = {},
 ) {
   let reads = 0;
   const writes: unknown[] = [];
   let failRead = false;
+  let remote = { ...file, data_hash: options.remoteHash === undefined ? file.data_hash : options.remoteHash,
+    metadata_status: options.metadata ?? file.metadata_status };
+  let prepared = options.prepared === null ? null : { data_hash: options.prepared ?? 'd'.repeat(64) };
+  const onPrepare = vi.fn();
+  const onPublishingChange = vi.fn();
+  const onSessionEnded = vi.fn();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (path: string, init?: RequestInit) => {
@@ -62,7 +72,7 @@ function setup(
             file:
               options.configured === false || options.enabled === false
                 ? null
-                : file,
+                : remote,
           },
         });
       }
@@ -78,18 +88,26 @@ function setup(
           });
         return Response.json({
           success: true,
-          data: { outcome: options.outcome ?? 'committed', file },
+          data: { outcome: options.outcome ?? 'committed', file: { ...file, data_hash: prepared!.data_hash } },
         });
       }
       throw new Error('Unexpected request');
     }),
   );
-  render(
+  const element = () => (
     <MemoryRouter>
-      <PublishingPanel csrfToken="csrf" onSessionEnded={vi.fn()} />
-    </MemoryRouter>,
+      <PublishingPanel csrfToken="csrf" prepared={prepared} onPrepare={onPrepare}
+        onPublishingChange={onPublishingChange} onSessionEnded={onSessionEnded} />
+    </MemoryRouter>
   );
+  const view = render(element());
   return {
+    onPrepare, onPublishingChange,
+    prepare: (hash: string | null) => {
+      prepared = hash === null ? null : { data_hash: hash };
+      view.rerender(element());
+    },
+    setRemoteHash: (hash: string) => { remote = { ...remote, data_hash: hash }; },
     user: userEvent.setup(),
     writes,
     reads: () => reads,
@@ -111,11 +129,55 @@ async function confirmPublish(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('publishing panel', () => {
+  it('waits for prepared data, then compares before enabling publishing', async () => {
+    const api = setup({ prepared: null });
+    const button = await screen.findByRole('button', { name: 'Publish to GitHub' });
+    expect(button).toBeDisabled();
+    expect(screen.getByText('Prepare the site data to check for changes.')).toBeVisible();
+    api.prepare('d'.repeat(64));
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(screen.getByText('There are changes to publish.')).toBeVisible();
+    expect(api.writes).toHaveLength(0);
+  });
+  it('identifies unchanged data before any write and updates the comparison after preparation', async () => {
+    const api = setup({ remoteHash: 'd'.repeat(64) });
+    const status = await screen.findByText('The prepared data is already on GitHub.');
+    expect(status.closest('[role="status"]')).toHaveClass('studio-notice-info');
+    const button = screen.getByRole('button', { name: 'Publish to GitHub' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass('studio-button-secondary');
+    api.prepare(null);
+    api.prepare('e'.repeat(64));
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(api.writes).toHaveLength(0);
+  });
+  it.each(['missing', 'invalid', 'mismatched'])(
+    'allows a new baseline when the remote comparison record is %s', async (metadata) => {
+      const api = setup({ metadata, remoteHash: null });
+      const button = await screen.findByRole('button', { name: 'Publish to GitHub' });
+      await waitFor(() => expect(button).toBeEnabled());
+      expect(screen.getByText(/no matching Studio comparison record/)).toBeVisible();
+      expect(api.writes).toHaveLength(0);
+    },
+  );
+  it('keeps stale preparation blocked after status retry and offers preparation again', async () => {
+    const api = setup({ fail: 'PUBLISHING_DATA_CHANGED' });
+    await confirmPublish(api.user);
+    expect(await screen.findByText(/site data changed after preparation/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+    await api.user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(api.reads()).toBe(2));
+    expect(screen.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+    await api.user.click(screen.getByRole('button', { name: 'Prepare data again' }));
+    expect(api.onPrepare).toHaveBeenCalledOnce();
+    api.prepare('e'.repeat(64));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Publish to GitHub' })).toBeEnabled());
+  });
   it('guides an incomplete connection to publishing settings', async () => {
     const { writes } = setup({ configured: false });
     expect(
       await screen.findByText(
-        'Choose a GitHub file and add a token in publishing settings.',
+        'To publish directly to GitHub, connect a repository in publishing settings.',
       ),
     ).toBeVisible();
     expect(
@@ -205,7 +267,7 @@ describe('publishing panel', () => {
     ).toBeDisabled();
     await api.user.keyboard('{Escape}');
     expect(dialog).toBeVisible();
-    expect(api.writes).toEqual([{ expected_revision: revision }]);
+    expect(api.writes).toEqual([{ expected_revision: revision, expected_data_hash: 'd'.repeat(64), expected_blob_sha: file.blob_sha }]);
     release();
     expect(await screen.findByText('Updated on GitHub.')).toBeVisible();
     api.failRead();
@@ -214,7 +276,7 @@ describe('publishing panel', () => {
     expect(screen.getByText('Updated on GitHub.')).toBeVisible();
   });
   it.each([
-    ['unchanged', 'No changes to publish.'],
+    ['unchanged', 'The prepared data is already on GitHub.'],
     ['confirmed', 'The update was confirmed on GitHub.'],
   ])('presents %s separately', async (outcome, text) => {
     const api = setup({ outcome });

@@ -6,10 +6,16 @@ export const publishing = {
     title: '사이트 발행',
     kicker: '사이트 설정',
     description: '사이트 빌드에 사용하는 Preview Data 파일을 연결합니다.',
+    starter: {
+      title: '새 사이트 만들기',
+      description:
+        'Studio용 starter에서 Deploy to Cloudflare를 눌러 사이트와 GitHub 저장소를 만드세요. 완료한 뒤 새 저장소의 zeropress-preview-data.json을 열고 GitHub 주소를 아래에 붙여넣으세요.',
+      action: 'Studio용 starter 열기',
+    },
     enabled: 'GitHub 발행 사용',
     fileUrl: 'GitHub 파일 URL',
     fileUrlHint:
-      '사이트 빌드에 사용하는 기존 Preview Data JSON 파일의 GitHub 주소를 붙여넣으세요.',
+      'GitHub에서 사이트 빌드에 사용하는 Preview Data JSON 파일을 열고 주소를 붙여넣으세요.',
     owner: '저장소 소유자',
     repo: '저장소',
     branch: '브랜치',
@@ -32,8 +38,8 @@ export const publishing = {
   panel: {
     title: 'GitHub 발행',
     description:
-      '최신 사이트 데이터를 커밋합니다. 이후 배포는 저장소에 연결된 빌드 서비스가 진행합니다.',
-    notConfigured: '발행 설정에서 대상 파일과 GitHub 토큰을 저장해 주세요.',
+      '준비한 데이터를 GitHub에 반영합니다. 이후 배포는 연결된 빌드 서비스가 진행합니다.',
+    notConfigured: 'GitHub에 직접 발행하려면 발행 설정에서 저장소를 연결하세요.',
     disabled: 'GitHub 발행이 꺼져 있습니다',
     enableHint:
       '저장된 연결을 사용하려면 발행 설정에서 ‘GitHub 발행 사용’을 켜고 저장해 주세요.',
@@ -45,16 +51,24 @@ export const publishing = {
     failed: 'GitHub 요청에 실패했습니다',
     unknown: '반영 여부 확인 필요',
   },
+  readiness: {
+    notPrepared: '데이터를 준비하면 발행할 변경 사항을 확인할 수 있습니다.',
+    checking: 'GitHub와 비교 중…',
+    unchanged: '준비한 데이터가 GitHub에 이미 반영되어 있습니다.',
+    changed: '발행할 변경 사항이 있습니다.',
+    baseline: '발행할 준비가 되었습니다. 이 파일에는 비교할 Studio 기록이 없습니다.',
+    stale: '준비 이후 사이트 데이터가 변경되었습니다. 다시 준비한 뒤 발행하세요.',
+    prepareAgain: '데이터 다시 준비',
+  },
   confirmation: {
     title: 'GitHub에 발행할까요?',
     description:
-      '최신 사이트 데이터를 아래 파일에 반영합니다. 연결된 사이트 배포가 시작될 수 있습니다.',
+      '준비한 사이트 데이터를 아래 파일에 반영합니다. 연결된 사이트 배포가 시작될 수 있습니다.',
     cancel: '취소',
   },
   outcome: {
     committed: 'GitHub 반영 완료',
     confirmed: 'GitHub 반영을 확인했습니다.',
-    unchanged: '발행할 변경 사항이 없습니다.',
   },
   leaving: {
     title: '발행 중입니다',
@@ -81,7 +95,8 @@ export const publishing = {
     branchRestricted:
       'GitHub 브랜치 규칙에 의해 커밋이 거부되었습니다. 이 토큰으로 직접 발행할 수 있는 브랜치를 선택해 주세요.',
     conflict:
-      '발행 중 대상 파일이 변경되었습니다. 최근 커밋을 확인한 뒤 다시 발행해 주세요.',
+      'GitHub 파일이 변경되었습니다. 다시 확인한 뒤 발행해 주세요.',
+    dataChanged: '준비 이후 사이트 데이터가 변경되었습니다. 다시 준비한 뒤 발행하세요.',
     settingsConflict:
       '연결 설정이 변경되었습니다. 다시 불러온 뒤 진행해 주세요.',
     limited: 'GitHub 요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.',

@@ -185,6 +185,7 @@ function apiErrorKey(code: ApiErrorCode): OperationsErrorTranslationKey {
     case 'PUBLISHING_TARGET_INVALID':
     case 'PUBLISHING_BRANCH_RESTRICTED':
     case 'PUBLISHING_CONFLICT':
+    case 'PUBLISHING_DATA_CHANGED':
     case 'PUBLISHING_RATE_LIMITED':
     case 'PUBLISHING_UNAVAILABLE':
     case 'PUBLISHING_RESPONSE_INVALID':

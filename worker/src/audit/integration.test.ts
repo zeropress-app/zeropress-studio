@@ -1,5 +1,6 @@
 import { createWxrCoreImportRoutes } from '../imports/wxr-core-import-routes';
 import { createPublishingRoutes } from '../publishing/routes';
+import { previewDataHash } from '../publishing/metadata';
 import { DOCUMENT, TOKEN, syntheticGithub, previewDocument, forbidPublishingNetwork } from '../publishing/test-support';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -173,7 +174,11 @@ describe('audit import and publishing results', () => {
       fetch: github.fetch,
     }));
     for (const _outcome of outcomes) {
-      const response = await app.fetch(mutation('/publishing', { expected_revision: DOCUMENT.revision }), env);
+      const response = await app.fetch(mutation('/publishing', {
+        expected_revision: DOCUMENT.revision,
+        expected_data_hash: await previewDataHash(previewDocument().preview_data),
+        expected_blob_sha: github.state.blob,
+      }), env);
       expect(response.status).toBe(status);
     }
     const result = await db.prepare('SELECT outcome, metadata_json FROM audit_logs ORDER BY rowid').all<{ outcome: string; metadata_json: string }>();

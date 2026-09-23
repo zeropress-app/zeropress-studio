@@ -29,11 +29,18 @@ change `STUDIO_AUTH_SECRET`, enter the token again.
 
 ## Publish
 
-Select **Publish to GitHub**, review the repository, branch, and file in the
-confirmation dialog, then confirm. Studio prepares and validates fresh Preview
-Data and updates the connected file. **Updated on GitHub** confirms the commit;
-check your build service for the site's deployment result. You can also generate,
-copy, and download Preview Data without a GitHub connection.
+Select **Prepare data** to generate and validate Preview Data. You can copy or
+download it without enabling GitHub publishing, even when GitHub is unavailable.
+
+With GitHub connected, Studio compares the prepared data with the target file.
+If it is already on GitHub, publishing is disabled. Otherwise, select
+**Publish to GitHub**, review the target in the confirmation dialog, and confirm.
+**Updated on GitHub** confirms the commit; your build service reports the site's
+deployment result.
+
+Studio checks the prepared content and remote file again before writing. If
+content changed, select **Prepare data again**; if the GitHub file changed,
+check its latest state before confirming a new publish.
 
 Studio uses the file's Git Blob SHA and its latest commit metadata to recognize
 unchanged data, without downloading the remote file. A new generation timestamp

@@ -29,6 +29,7 @@ const file = {
   target,
   blob_sha: 'b'.repeat(40),
   metadata_status: 'missing',
+  data_hash: null,
   commit: {
     sha: 'c'.repeat(40),
     url: 'https://github.com/example/site/commit/' + 'c'.repeat(40),

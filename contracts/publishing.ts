@@ -129,10 +129,16 @@ export const testPublishingConnectionSchema = z
   })
   .strict()
   .refine((value) => !(value.target && value.file_url));
-export const publishRequestSchema = z
-  .object({ expected_revision: settingsRevisionSchema })
-  .strict();
 const sha = z.string().regex(/^[a-f\d]{40}$/u);
+const dataHash = z.string().regex(/^[a-f\d]{64}$/u);
+export const publishRequestSchema = z
+  .object({
+    expected_revision: settingsRevisionSchema,
+    expected_data_hash: dataHash,
+    expected_blob_sha: sha,
+  })
+  .strict();
+export type PublishRequest = z.infer<typeof publishRequestSchema>;
 export const publishingCommitSchema = z
   .object({
     sha,
@@ -149,6 +155,7 @@ export const publishingFileStatusSchema = z
     blob_sha: sha,
     commit: publishingCommitSchema,
     metadata_status: z.enum(['valid', 'missing', 'invalid', 'mismatched']),
+    data_hash: dataHash.nullable(),
   })
   .strict();
 export const publishingStatusSchema = z

@@ -1,3 +1,4 @@
+import { previewDataHash } from '../publishing/metadata';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { STUDIO_PREVIEW_DATA_GENERATOR } from '../../../contracts/studio-version';
 import type { ResolvedSession } from '../auth/session-repository';
@@ -188,7 +189,7 @@ describe('Preview Data export route', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     await expect(response.json()).resolves.toEqual({
       success: true,
-      data: document,
+      data: { ...document, data_hash: await previewDataHash(document.preview_data) },
     });
     expect(generateExport).toHaveBeenCalledWith({
       db: expect.anything(),

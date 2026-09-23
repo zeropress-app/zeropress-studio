@@ -5,8 +5,8 @@ export const previewData = {
   description: 'Send the latest site data to GitHub, or export it as a file.',
   export: {
     title: 'Preview Data',
-    description: 'Review what will be included, then generate a fresh export.',
-    readyDescription: 'Copy the generated data or download it as a file.',
+    description: 'Prepare the site data to copy, download, or publish it.',
+    readyDescription: 'Use the prepared data below, or prepare it again to include your latest changes.',
   },
   summary: {
     loading: 'Counting content…',
@@ -41,8 +41,8 @@ export const previewData = {
     label: 'Generated',
   },
   actions: {
-    generate: 'Generate Preview Data',
-    refresh: 'Generate again',
+    generate: 'Prepare data',
+    refresh: 'Prepare data again',
     generated: 'Preview Data was generated.',
     copy: 'Copy Preview Data',
     copied: 'Preview Data copied.',

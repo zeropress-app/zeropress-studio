@@ -5,6 +5,7 @@ import {
   publishingConnectionResponseSchema,
   type UpdatePublishingSettings,
   type TestPublishingConnection,
+  type PublishRequest,
 } from '../../../contracts/publishing';
 import { studioFetch } from './studio-fetch';
 
@@ -119,11 +120,11 @@ export function requestPublishingStatus(signal?: AbortSignal) {
     },
   });
 }
-export function requestPublish(csrfToken: string, revision: string) {
+export function requestPublish(csrfToken: string, body: PublishRequest) {
   return request({
     path: '/api/publishing',
     method: 'POST',
-    body: { expected_revision: revision },
+    body,
     csrfToken,
     parse: (value) => {
       const result = publishingResultResponseSchema.safeParse(value);
@@ -153,6 +154,8 @@ export function publishingErrorKey(code: string) {
       return 'branchRestricted';
     case 'PUBLISHING_CONFLICT':
       return 'conflict';
+    case 'PUBLISHING_DATA_CHANGED':
+      return 'dataChanged';
     case 'SETTINGS_REVISION_CONFLICT':
       return 'settingsConflict';
     case 'PUBLISHING_RATE_LIMITED':

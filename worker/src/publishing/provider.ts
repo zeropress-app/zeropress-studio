@@ -239,6 +239,7 @@ export function createGithubPublisher(
         blob_sha: blobSha,
         commit: commitDocument(target, last.sha, last.commit.committer.date),
         metadata_status: metadata.status,
+        data_hash: metadata.metadata?.dataHash ?? null,
       },
       metadata: metadata.metadata,
     };
@@ -272,7 +273,7 @@ export function createGithubPublisher(
   }
   async function update(
     snapshot: GithubSnapshot,
-    input: { bytes: Uint8Array; blobSha: string; message: string },
+    input: { bytes: Uint8Array; blobSha: string; dataHash: string; message: string },
   ): Promise<PublishingFileStatus> {
     const chunks: string[] = [];
     for (let index = 0; index < input.bytes.length; index += 8192)
@@ -295,6 +296,7 @@ export function createGithubPublisher(
       target: snapshot.file.target,
       blob_sha: input.blobSha,
       metadata_status: 'valid',
+      data_hash: input.dataHash,
       commit: commitDocument(
         snapshot.file.target,
         parsed.data.commit.sha,

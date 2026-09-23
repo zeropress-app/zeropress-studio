@@ -11,6 +11,7 @@ import {
   type PreviewDataPreparationDependencies,
 } from './prepare';
 import { readPreviewDataSummary } from './summary';
+import { previewDataHash } from '../publishing/metadata';
 
 type PreviewDataRouteDependencies = PreviewDataPreparationDependencies & {
   resolveSession?: ResolveUserSession;
@@ -53,7 +54,10 @@ export function createPreviewDataRoutes(
     return c.json(
       previewDataSuccessSchema.parse({
         success: true,
-        data: document,
+        data: {
+          ...document,
+          data_hash: await previewDataHash(document.preview_data),
+        },
       }),
     );
   });

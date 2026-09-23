@@ -2,7 +2,7 @@
  * Site data export.
  *
  * Entering /publish reads publishing status and item counts. Users explicitly
- * publish to GitHub or generate data to copy or download. Primitives own panels,
+ * prepare data before copying, downloading, or publishing it. Primitives own panels,
  * notices, buttons, and loading states. This file owns generation metadata,
  * warning details, and count layout.
  */

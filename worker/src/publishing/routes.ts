@@ -81,6 +81,7 @@ function routesBase() {
           : code === 'PUBLISHING_TARGET_NOT_FOUND'
             ? 404
             : code === 'PUBLISHING_CONFLICT' ||
+                code === 'PUBLISHING_DATA_CHANGED' ||
                 code === 'PUBLISHING_NOT_CONFIGURED'
               ? 409
               : code === 'PUBLISHING_RESPONSE_INVALID'
@@ -227,6 +228,22 @@ export function createPublishingRoutes(
   routes.get('/status', async (c) => {
     const session = await authorize(c, dependencies, 'publish.manage');
     if (session instanceof Response) return session;
+    const document = await (dependencies.readSettings ?? readPublishingSettings)({
+      db: c.env.DB,
+    });
+    if (!document.settings.enabled || !document.configured) {
+      return c.json(
+        publishingStatusResponseSchema.parse({
+          success: true,
+          data: {
+            enabled: document.settings.enabled,
+            configured: document.configured,
+            revision: document.revision,
+            file: null,
+          },
+        }),
+      );
+    }
     const secret = readAuthSecret(c);
     if (secret instanceof Response) return secret;
     const snapshot = await readRuntime({ db: c.env.DB, authSecret: secret });
@@ -278,6 +295,8 @@ export function createPublishingRoutes(
     const result = await publishSite({
       target: targetFromSettings(snapshot.document.settings),
       token: snapshot.token,
+      expectedDataHash: parsed.data.expected_data_hash,
+      expectedBlobSha: parsed.data.expected_blob_sha,
       fetch: dependencies.fetch,
       signal: c.req.raw.signal,
       generate: () =>

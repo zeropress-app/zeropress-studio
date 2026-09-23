@@ -5,8 +5,8 @@ export const previewData = {
   description: '최신 사이트 데이터를 GitHub에 반영하거나 파일로 내보냅니다.',
   export: {
     title: 'Preview Data',
-    description: '포함될 항목을 확인한 뒤 최신 내보내기 데이터를 생성하세요.',
-    readyDescription: '생성된 데이터를 복사하거나 파일로 다운로드하세요.',
+    description: '복사·다운로드·발행에 사용할 사이트 데이터를 준비하세요.',
+    readyDescription: '준비한 데이터를 사용하거나, 최신 변경 사항을 포함하도록 다시 준비하세요.',
   },
   summary: {
     loading: '콘텐츠 수를 확인하는 중…',
@@ -41,8 +41,8 @@ export const previewData = {
     label: '생성 시각',
   },
   actions: {
-    generate: 'Preview Data 생성',
-    refresh: '다시 생성',
+    generate: '데이터 준비',
+    refresh: '데이터 다시 준비',
     generated: 'Preview Data를 생성했습니다.',
     copy: 'Preview Data 복사',
     copied: 'Preview Data를 복사했습니다.',

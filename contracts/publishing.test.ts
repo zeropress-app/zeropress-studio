@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseGithubFileUrl,
+  publishRequestSchema,
   publishingTargetSchema,
   publishingSettingsSchema,
   PUBLISHING_DEFAULTS,
@@ -14,6 +15,15 @@ const target = {
   path: 'data/preview.json',
 };
 describe('publishing contracts', () => {
+  it('requires the compared file and prepared data fingerprints for publishing', () => {
+    const request = {
+      expected_revision: '0'.repeat(32), expected_data_hash: 'd'.repeat(64), expected_blob_sha: 'b'.repeat(40),
+    };
+    expect(publishRequestSchema.parse(request)).toEqual(request);
+    expect(publishRequestSchema.safeParse({ expected_revision: request.expected_revision }).success).toBe(false);
+    expect(publishRequestSchema.safeParse({ ...request, expected_data_hash: 'invalid' }).success).toBe(false);
+    expect(publishRequestSchema.safeParse({ ...request, expected_blob_sha: null }).success).toBe(false);
+  });
   it('allows a disabled installation without a target and requires one when enabled', () => {
     expect(publishingSettingsSchema.parse(PUBLISHING_DEFAULTS)).toEqual(
       PUBLISHING_DEFAULTS,

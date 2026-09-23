@@ -16,6 +16,7 @@ import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
 import type { ApiErrorCode } from '../../contracts/api';
 import type {
   PreviewDataExportDocument,
+  PreparedPreviewData,
   PreviewDataSummary,
 } from '../../contracts/preview-data';
 import {
@@ -45,7 +46,7 @@ type SummaryState =
 type GenerationState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'ready'; document: PreviewDataExportDocument }
+  | { kind: 'ready'; document: PreparedPreviewData }
   | { kind: 'error'; failure: Failure };
 type CopyState = 'idle' | 'copied' | 'failed';
 
@@ -87,6 +88,7 @@ export function PreviewDataPage(input: {
     kind: 'idle',
   });
   const [copyState, setCopyState] = useState<CopyState>('idle');
+  const [publishing, setPublishing] = useState(false);
   const [generationCompleted, setGenerationCompleted] = useState(false);
 
   useStudioDocumentTitle(t('documentTitle'));
@@ -234,7 +236,7 @@ export function PreviewDataPage(input: {
   }
 
   function generate() {
-    if (generationState.kind === 'loading') return;
+    if (publishing || generationState.kind === 'loading') return;
     setGenerationCompleted(false);
     setCopyState('idle');
     setGenerationState({ kind: 'loading' });
@@ -273,7 +275,7 @@ export function PreviewDataPage(input: {
 
   const panelActions = exportDocument ? (
     <>
-      <Button type="button" onClick={generate}>
+      <Button type="button" disabled={publishing} onClick={generate}>
         <StudioIcon icon={RefreshCw} className="preview-data-action-icon" />
         {t('actions.refresh')}
       </Button>
@@ -281,7 +283,7 @@ export function PreviewDataPage(input: {
         <StudioIcon icon={Copy} className="preview-data-action-icon" />
         {t('actions.copy')}
       </Button>
-      <Button type="button" variant="primary" onClick={downloadJson}>
+      <Button type="button" onClick={downloadJson}>
         <StudioIcon icon={Download} className="preview-data-action-icon" />
         {t('actions.download')}
       </Button>
@@ -314,10 +316,6 @@ export function PreviewDataPage(input: {
         description={t('description')}
       />
 
-      <PublishingPanel
-        csrfToken={input.data.csrf_token}
-        onSessionEnded={input.onSessionEnded}
-      />
       <Panel
         leading={<StudioIcon icon={FileJson} />}
         title={t('export.title')}
@@ -439,6 +437,13 @@ export function PreviewDataPage(input: {
           </section>
         </div>
       </Panel>
+      <PublishingPanel
+        csrfToken={input.data.csrf_token}
+        prepared={exportDocument}
+        onPrepare={generate}
+        onPublishingChange={setPublishing}
+        onSessionEnded={input.onSessionEnded}
+      />
     </main>
   );
 }

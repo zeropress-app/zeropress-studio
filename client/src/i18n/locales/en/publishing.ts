@@ -6,10 +6,16 @@ export const publishing = {
     title: 'Publishing',
     kicker: 'SITE SETTINGS',
     description: 'Connect the Preview Data file used to build your site.',
+    starter: {
+      title: 'Start a new site',
+      description:
+        'Use Deploy to Cloudflare in the Studio starter to create your site and GitHub repository. Then open zeropress-preview-data.json in your new repository and paste its GitHub URL below.',
+      action: 'Open Studio starter',
+    },
     enabled: 'Publish to GitHub',
     fileUrl: 'GitHub file URL',
     fileUrlHint:
-      'Paste the GitHub URL of the existing Preview Data JSON file used by your site build.',
+      'Open the Preview Data JSON file used by your site build on GitHub and paste its URL.',
     owner: 'Repository owner',
     repo: 'Repository',
     branch: 'Branch',
@@ -32,9 +38,9 @@ export const publishing = {
   panel: {
     title: 'GitHub publishing',
     description:
-      'Commit the latest site data. Your connected build service handles deployment.',
+      'Publish the prepared data. Your connected build service handles deployment.',
     notConfigured:
-      'Choose a GitHub file and add a token in publishing settings.',
+      'To publish directly to GitHub, connect a repository in publishing settings.',
     disabled: 'GitHub publishing is turned off',
     enableHint:
       'To use your saved connection, turn on “Publish to GitHub” in publishing settings and save.',
@@ -46,16 +52,24 @@ export const publishing = {
     failed: 'GitHub request failed',
     unknown: 'Check whether the publish completed',
   },
+  readiness: {
+    notPrepared: 'Prepare the site data to check for changes.',
+    checking: 'Comparing with GitHub…',
+    unchanged: 'The prepared data is already on GitHub.',
+    changed: 'There are changes to publish.',
+    baseline: 'Ready to publish. This file has no matching Studio comparison record.',
+    stale: 'The site data changed after preparation. Prepare it again before publishing.',
+    prepareAgain: 'Prepare data again',
+  },
   confirmation: {
     title: 'Publish to GitHub?',
     description:
-      'This commits the latest site data to the file below and may start your site’s deployment.',
+      'This commits the prepared site data to the file below and may start your site’s deployment.',
     cancel: 'Cancel',
   },
   outcome: {
     committed: 'Updated on GitHub.',
     confirmed: 'The update was confirmed on GitHub.',
-    unchanged: 'No changes to publish.',
   },
   leaving: {
     title: 'Publishing is in progress',
@@ -83,7 +97,8 @@ export const publishing = {
     branchRestricted:
       'GitHub branch rules rejected this commit. Choose a branch that permits direct publishing with this token.',
     conflict:
-      'The file changed during publishing. Check its latest commit before publishing again.',
+      'The GitHub file changed. Check it again before publishing.',
+    dataChanged: 'The site data changed after preparation. Prepare it again before publishing.',
     settingsConflict:
       'The connection settings changed. Reload them before continuing.',
     limited: 'GitHub limited this request. Wait before trying again.',

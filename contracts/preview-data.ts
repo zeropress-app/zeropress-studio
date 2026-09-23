@@ -35,6 +35,10 @@ export const previewDataExportDocumentSchema = z.object({
   }).strict(),
 }).strict();
 
+export const preparedPreviewDataSchema = previewDataExportDocumentSchema.extend({
+  data_hash: z.string().regex(/^[a-f\d]{64}$/u),
+});
+
 const previewDataCountSchema = z.number().int().nonnegative().safe();
 
 export const previewDataSummarySchema = z.object({
@@ -58,7 +62,7 @@ export const previewDataSummaryResponseSchema = z.union([
 
 export const previewDataSuccessSchema = z.object({
   success: z.literal(true),
-  data: previewDataExportDocumentSchema,
+  data: preparedPreviewDataSchema,
 }).strict();
 
 export const previewDataResponseSchema = z.union([
@@ -69,6 +73,7 @@ export const previewDataResponseSchema = z.union([
 export type PreviewDataExportDocument = z.infer<
   typeof previewDataExportDocumentSchema
 >;
+export type PreparedPreviewData = z.infer<typeof preparedPreviewDataSchema>;
 export type PreviewDataSummary = z.infer<typeof previewDataSummarySchema>;
 export type PreviewDataSummarySuccess = z.infer<
   typeof previewDataSummarySuccessSchema

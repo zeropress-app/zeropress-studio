@@ -72,6 +72,7 @@ describe('Preview Data export contract', () => {
     expect(previewDataResponseSchema.safeParse({
       success: true,
       data: {
+        data_hash: 'd'.repeat(64),
         preview_data: validPreviewData,
         validation: {
           status: 'valid',
@@ -88,6 +89,7 @@ describe('Preview Data export contract', () => {
     expect(previewDataResponseSchema.safeParse({
       success: true,
       data: {
+        data_hash: 'd'.repeat(64),
         preview_data: validPreviewData,
         validation: {
           status: 'valid',

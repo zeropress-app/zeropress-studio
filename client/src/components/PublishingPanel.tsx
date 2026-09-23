@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, RefreshCw, Upload } from 'lucide-react';
+import { ExternalLink, RefreshCw, Settings2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { PreparedPreviewData } from '../../../contracts/preview-data';
 import {
   githubFileUrl,
   type PublishingStatus,
   type PublishingResult,
   type PublishingTarget,
+  type PublishRequest,
 } from '../../../contracts/publishing';
 import {
   PublishingClientError,
@@ -25,8 +27,13 @@ import {
 import { UnsavedChangesGuard } from './UnsavedChangesGuard';
 import './publishing.css';
 
+type PreparedData = Pick<PreparedPreviewData, 'data_hash'>;
+
 export function PublishingPanel(input: {
   csrfToken: string;
+  prepared: PreparedData | null;
+  onPrepare: () => void;
+  onPublishingChange: (busy: boolean) => void;
   onSessionEnded: () => void;
 }) {
   const { t, i18n } = useTranslation('publishing');
@@ -35,10 +42,17 @@ export function PublishingPanel(input: {
   const [status, setStatus] = useState<PublishingStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<PublishingResult | null>(null);
-  const [confirmation, setConfirmation] = useState<{
+  const [outcome, setOutcome] = useState<{
+    data: PublishingResult;
+    prepared: PreparedData;
     revision: string;
+  } | null>(null);
+  const [checkedPreparation, setCheckedPreparation] = useState<PreparedData | null>(null);
+  const [outdatedPreparation, setOutdatedPreparation] = useState<PreparedData | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    request: PublishRequest;
     target: PublishingTarget;
+    prepared: PreparedData;
   } | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const mounted = useRef(true);
@@ -50,14 +64,19 @@ export function PublishingPanel(input: {
     };
   }, []);
   useEffect(() => {
+    setConfirmation(null);
+  }, [input.prepared]);
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
     void requestPublishingStatus(controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return;
-        if (response.success) setStatus(response.data);
-        else if (response.error.code === 'AUTHENTICATION_REQUIRED')
+        if (response.success) {
+          setStatus(response.data);
+          setCheckedPreparation(input.prepared);
+        } else if (response.error.code === 'AUTHENTICATION_REQUIRED')
           input.onSessionEnded();
         else {
           setError(response.error.code);
@@ -76,11 +95,13 @@ export function PublishingPanel(input: {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [attempt, input.onSessionEnded]);
+  }, [attempt, input.prepared, input.onSessionEnded]);
   async function publish() {
     if (
       publishing.current ||
       !confirmation ||
+      !canPublish ||
+      confirmation.prepared !== input.prepared ||
       !status?.enabled ||
       !status.configured ||
       loading ||
@@ -89,20 +110,27 @@ export function PublishingPanel(input: {
       return;
     publishing.current = true;
     setBusy(true);
+    input.onPublishingChange(true);
     setError(null);
-    setResult(null);
+    setOutcome(null);
     try {
       const response = await requestPublish(
         input.csrfToken,
-        confirmation.revision,
+        confirmation.request,
       );
       if (!mounted.current) return;
       if (response.success) {
-        setResult(response.data);
+        setOutcome({
+          data: response.data,
+          prepared: confirmation.prepared,
+          revision: confirmation.request.expected_revision,
+        });
         setStatus({ ...status, file: response.data.file });
       } else if (response.error.code === 'AUTHENTICATION_REQUIRED')
         input.onSessionEnded();
-      else {
+      else if (response.error.code === 'PUBLISHING_DATA_CHANGED') {
+        setOutdatedPreparation(confirmation.prepared);
+      } else {
         setError(response.error.code);
       }
     } catch {
@@ -114,12 +142,35 @@ export function PublishingPanel(input: {
       publishing.current = false;
       if (mounted.current) {
         setBusy(false);
+        input.onPublishingChange(false);
         setConfirmation(null);
       }
     }
   }
+  const result = outcome?.prepared === input.prepared &&
+    outcome?.revision === status?.revision &&
+    outcome?.data.file.blob_sha === status?.file?.blob_sha
+    ? outcome?.data : null;
   const file = status?.file ?? result?.file;
-  const canPublish = Boolean(status?.enabled && status.configured);
+  const connected = Boolean(status?.enabled && status.configured);
+  const stale = Boolean(input.prepared && outdatedPreparation === input.prepared);
+  const unchanged = Boolean(
+    input.prepared && file?.metadata_status === 'valid' &&
+    file.data_hash === input.prepared.data_hash,
+  );
+  const canPublish = Boolean(
+    connected && input.prepared && file && !loading && !error &&
+    checkedPreparation === input.prepared && !stale && !unchanged,
+  );
+  const preparationState = !input.prepared
+    ? 'notPrepared'
+    : stale
+      ? 'stale'
+      : checkedPreparation !== input.prepared
+        ? 'checking'
+        : unchanged
+          ? 'unchanged'
+          : file?.metadata_status === 'valid' ? 'changed' : 'baseline';
   return (
     <Panel
       leading={<StudioIcon icon={Upload} />}
@@ -132,7 +183,7 @@ export function PublishingPanel(input: {
             <Spinner /> {t('loading')}
           </p>
         ) : null}
-        {!loading && !error && status && !canPublish ? (
+        {!loading && !error && status && !connected ? (
           <Notice
             tone="info"
             title={status.configured ? t('panel.disabled') : undefined}
@@ -152,8 +203,11 @@ export function PublishingPanel(input: {
             {t(`errors.${publishingErrorKey(error)}`)}
           </Notice>
         ) : null}
-        {result ? (
+        {result && result.outcome !== 'unchanged' ? (
           <Notice tone="success">{t(`outcome.${result.outcome}`)}</Notice>
+        ) : null}
+        {!loading && !error && connected && (!result || result.outcome === 'unchanged' || stale) ? (
+          <Notice tone="info">{t(`readiness.${preparationState}`)}</Notice>
         ) : null}
         {file ? (
           <dl className="publishing-details">
@@ -193,16 +247,21 @@ export function PublishingPanel(input: {
           </dl>
         ) : null}
         <div className="publishing-actions">
-          {canPublish ? (
+          {connected ? (
             <Button
               type="button"
-              variant="primary"
-              disabled={busy || loading || Boolean(error) || !status?.file}
+              variant={canPublish ? 'primary' : 'secondary'}
+              disabled={busy || !canPublish}
               aria-busy={busy}
               onClick={() => {
-                if (status?.file) {
+                if (canPublish && status?.file && input.prepared) {
                   setConfirmation({
-                    revision: status.revision,
+                    request: {
+                      expected_revision: status.revision,
+                      expected_data_hash: input.prepared.data_hash,
+                      expected_blob_sha: status.file.blob_sha,
+                    },
+                    prepared: input.prepared,
                     target: status.file.target,
                   });
                 }
@@ -212,7 +271,13 @@ export function PublishingPanel(input: {
               {t(busy ? 'panel.publishing' : 'panel.publish')}
             </Button>
           ) : null}
-          {canPublish || error ? (
+          {stale ? (
+            <Button type="button" disabled={busy} onClick={input.onPrepare}>
+              <StudioIcon icon={RefreshCw} />
+              {t('readiness.prepareAgain')}
+            </Button>
+          ) : null}
+          {connected || error ? (
             <Button
               type="button"
               disabled={busy || loading}
@@ -224,10 +289,9 @@ export function PublishingPanel(input: {
           ) : null}
           <ButtonLink
             to="/settings/site/publishing"
-            variant={
-              !loading && status && !canPublish ? 'primary' : 'secondary'
-            }
+            variant="secondary"
           >
+            <StudioIcon icon={Settings2} />
             {t('panel.settings')}
           </ButtonLink>
         </div>

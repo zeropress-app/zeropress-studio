@@ -41,6 +41,7 @@ function previewResponse(generatedAt = '2026-08-01T06:00:00Z') {
   return {
     success: true,
     data: {
+      data_hash: 'd'.repeat(64),
       preview_data: {
         $schema: 'https://schemas.zeropress.dev/preview-data/v0.7/schema.json',
         version: '0.7',
@@ -93,7 +94,7 @@ function renderPage(input: {
 
 async function waitForSummary() {
   await screen.findByText('274');
-  return screen.getByRole('button', { name: 'Generate Preview Data' });
+  return screen.getByRole('button', { name: 'Prepare data' });
 }
 
 async function generatePreviewData() {
@@ -213,7 +214,7 @@ describe('PreviewDataPage', () => {
     await generatePreviewData();
 
     await userEvent.click(screen.getByRole('button', {
-      name: 'Generate again',
+      name: 'Prepare data again',
     }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     await screen.findByRole('button', { name: 'Download Preview Data' });
@@ -274,7 +275,7 @@ describe('PreviewDataPage', () => {
     expect(await screen.findByText('Content counts could not be loaded'))
       .toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {
-      name: 'Generate Preview Data',
+      name: 'Prepare data',
     }));
     await screen.findByRole('button', { name: 'Download Preview Data' });
     expect(fetchMock).toHaveBeenCalledTimes(2);
