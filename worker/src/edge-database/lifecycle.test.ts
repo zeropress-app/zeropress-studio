@@ -45,6 +45,8 @@ function legacyInstall(sqlite: DatabaseSync) {
       sqlite.exec(statement);
     }
   }
+  // Unversioned installations used an active default newsletter.
+  sqlite.exec("UPDATE newsletter_lists SET status = 'active' WHERE slug = 'default'");
 }
 
 afterEach(() => {
@@ -76,6 +78,9 @@ describe('Edge database lifecycle runner', () => {
       target_schema_version: null,
       active_operation_id: null,
     });
+    expect(sqlite.prepare(`
+      SELECT status FROM newsletter_lists WHERE slug = 'default'
+    `).get()).toEqual({ status: 'archived' });
   });
 
   it('rolls the entire fresh install back on a statement failure', async () => {
