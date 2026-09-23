@@ -1,8 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ContentSearchIndexStatus } from '../../../contracts/content-search-index';
+import { createPostRequestSchema, updatePostRequestSchema } from '../../../contracts/posts';
+import { createPageRequestSchema, updatePageRequestSchema } from '../../../contracts/pages';
+import { createPost, updatePost, deletePost, listPosts } from '../posts/post-repository';
+import { createPage, updatePage, deletePage, listPages } from '../pages/page-repository';
+import { importWxrCoreChunk } from '../imports/wxr-core-import-repository';
 import { sqliteD1, type SqliteD1Hooks } from '../test-helpers/sqlite-d1';
 import {
   applyContentSearchIndexRebuildStep,
@@ -106,6 +111,141 @@ async function finishRebuild(input: {
 }
 
 describe('checkpointed content-search index rebuild', () => {
+  it('allows only one dashboard start and preserves the active checkpoint on later attempts', async () => {
+    const { database, db } = createDatabase();
+    database.exec("UPDATE content_search_index_state SET state = 'rebuild_required'");
+    insertPost(database, 1);
+    const results = await Promise.allSettled(['d', 'e'].map((id) =>
+      startContentSearchIndexRebuild({
+        db, initiator: INITIATOR, operationId: id.repeat(32), now: NOW,
+        expectedState: 'rebuild_required',
+      })));
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find((result) => result.status === 'rejected');
+    expect(rejected?.status === 'rejected' && rejected.reason).toMatchObject({ issue: 'state_conflict' });
+    let status = await inspectContentSearchIndex({ db, available: true });
+    status = await applyContentSearchIndexRebuildStep({ db, request: stepRequest(status) });
+    const checkpoint = status;
+    await expect(startContentSearchIndexRebuild({
+      db, initiator: INITIATOR, expectedState: 'rebuild_required',
+    })).rejects.toMatchObject({ issue: 'state_conflict' });
+    expect(await inspectContentSearchIndex({ db, available: true })).toEqual(checkpoint);
+    expect(database.prepare('SELECT count(*) AS count FROM post_search_fts').get()).toEqual({ count: 1 });
+    await finishRebuild({ db, status });
+    await expect(startContentSearchIndexRebuild({
+      db, initiator: INITIATOR, expectedState: 'rebuild_required',
+    })).rejects.toMatchObject({ issue: 'state_conflict' });
+    database.exec("UPDATE content_search_index_state SET state = 'recovery_required'");
+    await expect(startContentSearchIndexRebuild({
+      db, initiator: INITIATOR, expectedState: 'rebuild_required',
+    })).rejects.toMatchObject({ issue: 'state_conflict' });
+  });
+
+  it('keeps live edits, deletions, new content and WXR writes made after a rebuild batch reads its rows', async () => {
+    const { database, db } = createDatabase();
+    for (let id = 1; id <= 3; id++) insertPost(database, id);
+    for (let id = 1; id <= 2; id++) insertPage(database, id);
+    let status = await startContentSearchIndexRebuild({ db, initiator: INITIATOR });
+    const postInput = (title: string) => createPostRequestSchema.parse({
+      title, slug: title, content: title, document_type: 'html',
+      editor_mode: 'source', editor_profile: null, excerpt: '', status: 'draft',
+      author_id: 'site-author', category_ids: [], tag_ids: [], discoverability: 'default',
+      allow_comments: false, featured_image_id: null,
+    });
+    const pageInput = (title: string) => createPageRequestSchema.parse({
+      title, slug: title, content: title, document_type: 'markdown',
+      editor_mode: 'source', editor_profile: null, excerpt: '', status: 'draft',
+      parent_id: null, discoverability: 'default', allow_comments: false, featured_image_id: null,
+    });
+    const firstPost = database.prepare('SELECT id, revision FROM posts WHERE public_id = 1').get() as { id: string; revision: string };
+    const deletedPost = database.prepare('SELECT id, revision FROM posts WHERE public_id = 2').get() as { id: string; revision: string };
+    database.exec("UPDATE posts SET status = 'trash' WHERE public_id = 2");
+    const batch = db.batch.bind(db);
+    const postHook = vi.spyOn(db, 'batch').mockImplementationOnce(async (statements) => {
+      postHook.mockRestore();
+      expect(await updatePost({
+        db, id: firstPost.id, authored: updatePostRequestSchema.parse({
+          ...postInput('latest-post'), expected_revision: firstPost.revision,
+        }),
+      })).toMatchObject({ kind: 'completed' });
+      expect(await deletePost({
+        db, id: deletedPost.id, expectedRevision: deletedPost.revision,
+      })).toMatchObject({ kind: 'completed' });
+      expect(await createPost({ db, authored: postInput('new-post') }))
+        .toMatchObject({ kind: 'completed' });
+      const wxr = await importWxrCoreChunk({
+        db, request: {
+          phase: 'posts', rows: [{
+            public_id: 3, title: 'Imported update', slug: 'imported-update',
+            content: 'latest imported text', document_type: 'html',
+            editor_mode: 'source', editor_profile: null, excerpt: '', status: 'draft',
+            author_id: 'site-author', category_slugs: [], tag_slugs: [],
+            discoverability: 'default', allow_comments: false, featured_image_location: null,
+            published_at_iso: null, created_at_iso: NOW.toISOString(), updated_at_iso: NOW.toISOString(),
+          }],
+        },
+      });
+      expect(wxr.summary).toMatchObject({ updated: 1, failed: 0 });
+      return batch(statements);
+    });
+    status = await applyContentSearchIndexRebuildStep({ db, request: stepRequest(status) });
+    expect(status.phase).toBe('pages');
+    expect(database.prepare('SELECT body FROM post_search_fts WHERE rowid = 1').get())
+      .toEqual({ body: 'latest-post' });
+    expect(database.prepare('SELECT body FROM post_search_fts WHERE rowid = 3').get())
+      .toEqual({ body: 'latest imported text' });
+
+    const firstPage = database.prepare('SELECT id, revision FROM pages WHERE public_id = 1').get() as { id: string; revision: string };
+    const deletedPage = database.prepare('SELECT id, revision FROM pages WHERE public_id = 2').get() as { id: string; revision: string };
+    database.exec("UPDATE pages SET status = 'trash' WHERE public_id = 2");
+    const pageHook = vi.spyOn(db, 'batch').mockImplementationOnce(async (statements) => {
+      pageHook.mockRestore();
+      expect(await updatePage({
+        db, id: firstPage.id, authored: updatePageRequestSchema.parse({
+          ...pageInput('latest-page'), expected_revision: firstPage.revision,
+        }),
+      })).toMatchObject({ kind: 'completed' });
+      expect(await deletePage({
+        db, id: deletedPage.id, expectedRevision: deletedPage.revision,
+      })).toMatchObject({ kind: 'completed' });
+      expect(await createPage({ db, authored: pageInput('new-page') }))
+        .toMatchObject({ kind: 'completed' });
+      return batch(statements);
+    });
+    status = await applyContentSearchIndexRebuildStep({ db, request: stepRequest(status) });
+    expect(status.phase).toBe('verify');
+    expect(database.prepare('SELECT body FROM page_search_fts WHERE rowid = 1').get())
+      .toEqual({ body: 'latest-page' });
+    // Imports can insert a public ID behind an already committed rebuild cursor.
+    const imported = await importWxrCoreChunk({
+      db, request: {
+        phase: 'pages', rows: [{
+          public_id: 2, parent_public_id: null, title: 'Imported page', slug: 'imported-page',
+          content: 'imported behind cursor', document_type: 'html',
+          editor_mode: 'source', editor_profile: null, excerpt: '', status: 'draft',
+          discoverability: 'default', allow_comments: false, featured_image_location: null,
+          created_at_iso: NOW.toISOString(), updated_at_iso: NOW.toISOString(),
+        }],
+      },
+    });
+    expect(imported.summary).toMatchObject({ created: 1, failed: 0 });
+    const query = { search: '', status: 'all' as const, page: 1, per_page: 50 };
+    await expect(listPosts({ db, query })).resolves.toBeDefined();
+    await expect(listPages({ db, query })).resolves.toBeDefined();
+    await expect(listPosts({ db, query: { ...query, search: 'latest' } }))
+      .rejects.toMatchObject({ state: 'in_progress' });
+    await expect(finishRebuild({ db, status })).resolves.toMatchObject({ state: 'ready' });
+    for (const [table, index] of [['posts', 'post_search_fts'], ['pages', 'page_search_fts']]) {
+      expect(database.prepare(`SELECT count(*) AS count FROM ${table}`).get())
+        .toEqual(database.prepare(`SELECT count(*) AS count FROM ${index}`).get());
+      expect(database.prepare(`SELECT count(*) AS count FROM ${table} AS source
+        LEFT JOIN ${index} AS indexed ON source.public_id = indexed.rowid AND source.revision = indexed.revision
+        WHERE indexed.rowid IS NULL`).get()).toEqual({ count: 0 });
+    }
+    expect(database.prepare('SELECT body FROM page_search_fts WHERE rowid = 2').get())
+      .toEqual({ body: 'imported behind cursor' });
+  });
+
   it('resumes five-row batches after response loss and verifies FTS parity', async () => {
     const { database, db, hooks } = createDatabase();
     for (let id = 1; id <= 7; id += 1) insertPost(database, id);

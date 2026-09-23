@@ -381,7 +381,7 @@ export const OPERATIONAL_LOG_DEFINITIONS = {
   CONTENT_SEARCH_INDEX_REBUILD_FAILED: {
     level: 'error',
     message: 'Studio content-search index rebuild failed',
-    guidance: 'Keep STUDIO_SITE_MODE in maintenance or recovery. Canonical content remains authoritative; inspect the reported index phase and resume or explicitly restart the checkpointed rebuild.',
+    guidance: 'Check the current index status and resume from its saved progress. Use Maintenance & Recovery for a forced restart or recovery. Canonical content remains unchanged by the rebuild.',
   },
   CONTENT_SEARCH_INDEX_REBUILD_COMPLETED: {
     level: 'info',

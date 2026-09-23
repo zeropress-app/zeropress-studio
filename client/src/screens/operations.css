@@ -350,7 +350,7 @@
 
 .operations-upgrade-required .studio-panel-header {
   border-color: var(--studio-warning);
-  border-radius: calc(var(--studio-radius-xl) - 1px) calc(var(--studio-radius-xl) - 1px) 0 0;
+  border-radius: var(--studio-radius-xl) var(--studio-radius-xl) 0 0;
   background: var(--studio-warning-surface);
 }
 

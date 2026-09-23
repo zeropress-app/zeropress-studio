@@ -386,7 +386,7 @@ export const posts = {
   },
   errors: {
     load: 'Studio가 글을 불러오지 못했습니다.',
-    searchIndexNotReady: '관리자가 유지보수 및 복구에서 콘텐츠 검색 index를 재구축할 때까지 검색을 사용할 수 없습니다. 검색을 지우면 글 관리를 계속할 수 있습니다.',
+    searchIndexNotReady: '관리자가 대시보드에서 검색 인덱스를 재구축할 때까지 검색을 사용할 수 없습니다. 검색을 지우면 글 관리를 계속할 수 있습니다.',
     searchQueryInvalid: '검색 가능한 문자나 숫자를 하나 이상 입력하거나 검색을 지워 주세요.',
     loadEditor: 'Studio가 글 편집기를 불러오지 못했습니다.',
     validation: '필수 항목, 슬러그, 길이 및 연결 항목 수를 확인해 주세요.',

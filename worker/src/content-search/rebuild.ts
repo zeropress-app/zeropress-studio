@@ -187,8 +187,17 @@ export async function startContentSearchIndexRebuild(input: {
   initiator: OperationsInitiator;
   operationId?: string;
   now?: Date;
+  expectedState?: 'rebuild_required';
 }): Promise<ContentSearchIndexStatus> {
   const current = await readContentSearchIndexState(input.db);
+  // Keep this check inside the same read/CAS path as the destructive batch.
+  // A dashboard request must never restart another administrator's rebuild.
+  if (input.expectedState && current.state !== input.expectedState) {
+    throw new ContentSearchRebuildError(
+      'state_conflict',
+      'Content-search rebuild is no longer required. Refresh its status.',
+    );
+  }
   const operationId = input.operationId ?? hexId();
   const nowIso = (input.now ?? new Date()).toISOString();
   const counts = await input.db.prepare(`

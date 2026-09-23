@@ -96,9 +96,7 @@ describe('Operations dashboard page column', () => {
   });
 
   it('lets the parent layout own navigation and Outlet', () => {
-    expect(MARKUP).toContain(
-      '<OperationsNavigation disabled={operationsBusy} />',
-    );
+    expect(MARKUP).toMatch(/<OperationsNavigation\s[^>]*disabled=\{operationsBusy\}/u);
     expect(MARKUP).toContain('<Outlet');
     expect(MARKUP).toContain('satisfies OperationsOutletContext');
     expect(ruleBody('.operations-layout'))

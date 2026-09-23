@@ -7,6 +7,8 @@ import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
 import { Link } from 'react-router';
 import { hasStudioCapability } from '../../contracts/authorization';
 import type { DashboardSummary } from '../../contracts/dashboard';
+import type { ContentSearchIndexStatus } from '../../contracts/content-search-index';
+import { DashboardSearchIndexNotice } from './components/DashboardSearchIndexNotice';
 import type { CurrentSessionSuccess } from '../../contracts/session';
 import {
   Button,
@@ -29,13 +31,17 @@ import { STUDIO_PATHS } from './routing/studio-routes';
 
 type DashboardSession = CurrentSessionSuccess['data'];
 type Failure = 'network' | 'timeout' | 'invalid' | 'api';
-type RuntimeState = 'ready' | 'disabled' | 'needsSetup';
+type RuntimeState = 'disabled' | 'needsSetup' | ContentSearchIndexStatus['state'];
 
 /** Map service readiness to the primitives' semantic tones. */
 const RUNTIME_TONE: Record<RuntimeState, StatusTone> = {
   ready: 'positive',
   disabled: 'neutral',
   needsSetup: 'attention',
+  rebuild_required: 'attention',
+  in_progress: 'attention',
+  recovery_required: 'critical',
+  unavailable: 'critical',
 };
 
 function runtimeState(enabled: boolean, ready: boolean): RuntimeState {
@@ -64,6 +70,7 @@ export function DashboardPage(input: {
   const [failure, setFailure] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const [searchIndexState, setSearchIndexState] = useState<ContentSearchIndexStatus['state'] | null>(null);
   const roles = input.data.user.roles;
   const canManageSettings = hasStudioCapability(roles, 'settings.manage');
   const [accessRecommendation, setAccessRecommendation] = useState(false);
@@ -84,6 +91,7 @@ export function DashboardPage(input: {
         return;
       }
       setSummary(response.data);
+      setSearchIndexState(response.data.content_search_index?.state ?? null);
     }).catch((error: unknown) => {
       if (controller.signal.aborted) return;
       if (error instanceof DashboardClientError) {
@@ -198,9 +206,7 @@ export function DashboardPage(input: {
     summary.content_search_index ? {
       id: 'content-search-index',
       label: t('runtime.contentSearch'),
-      state: summary.content_search_index.state === 'ready'
-        ? 'ready' as const
-        : 'needsSetup' as const,
+      state: searchIndexState ?? summary.content_search_index.state,
     } : null,
     summary.edge.status === 'disabled' ? {
       id: 'edge-integration', label: t('runtime.edgeIntegration'),
@@ -251,6 +257,16 @@ export function DashboardPage(input: {
           >
             {t(`errors.${failure}`)}
           </Notice>
+        ) : null}
+
+        {canManageSettings && summary?.content_search_index ? (
+          <DashboardSearchIndexNotice
+            key={attempt}
+            initialState={summary.content_search_index.state}
+            csrfToken={input.data.csrf_token}
+            onSessionEnded={input.onSessionEnded}
+            onStateChange={setSearchIndexState}
+          />
         ) : null}
 
         {summary?.edge.status === 'unavailable' ? (

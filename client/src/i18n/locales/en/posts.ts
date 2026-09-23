@@ -386,7 +386,7 @@ export const posts = {
   },
   errors: {
     load: 'Studio could not load Posts.',
-    searchIndexNotReady: 'Content search is unavailable until an administrator rebuilds its index in Maintenance & Recovery. Clear the search to continue managing Posts.',
+    searchIndexNotReady: 'Content search is unavailable until an administrator rebuilds its index from the Dashboard. Clear the search to continue managing Posts.',
     searchQueryInvalid: 'Enter at least one searchable letter or number, or clear the search to continue.',
     loadEditor: 'Studio could not load this Post editor.',
     validation: 'Review the required fields, slug, lengths, and relationship limits.',

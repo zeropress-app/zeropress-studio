@@ -145,6 +145,10 @@ import {
   type DashboardRouteDependencies,
 } from './dashboard/routes';
 import {
+  createContentSearchIndexRoutes,
+  type ContentSearchIndexRouteDependencies,
+} from './content-search/routes';
+import {
   createStudioInterfaceSettingsRoutes,
   type StudioInterfaceSettingsRouteDependencies,
 } from './settings/studio-interface-settings-routes';
@@ -221,6 +225,7 @@ export function createApp(dependencies?: {
   newsletters?: NewsletterRouteDependencies;
   forms?: FormRouteDependencies;
   dashboard?: DashboardRouteDependencies;
+  contentSearchIndex?: ContentSearchIndexRouteDependencies;
   mail?: MailRouteDependencies;
   wxrImport?: WxrCoreImportRouteDependencies;
   studioInterfaceSettings?: StudioInterfaceSettingsRouteDependencies;
@@ -307,6 +312,10 @@ export function createApp(dependencies?: {
   app.route('/api/dashboard', createDashboardRoutes({
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.dashboard,
+  }));
+  app.route('/api/content-search-index', createContentSearchIndexRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.contentSearchIndex,
   }));
   app.route('/api/users', createUserRoutes({
     resolveSession: dependencies?.resolveSession,

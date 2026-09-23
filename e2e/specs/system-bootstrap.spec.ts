@@ -182,13 +182,17 @@ test.describe('recovery boundary', () => {
 test.describe('recovery without Operations', () => {
   test.use({ studioProfile: 'recovery-no-operations' });
 
-  test('does not expose a dead Operations link', async ({ page }) => {
+  test('opens Operations setup when recovery access is not configured', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', {
       name: 'Studio access is limited during recovery',
     })).toBeVisible();
-    await expect(page.getByRole('link', {
+    const operationsLink = page.getByRole('link', {
       name: 'Open Maintenance & Recovery',
-    })).toHaveCount(0);
+    });
+    await expect(operationsLink).toHaveAttribute('href', '/system/operations');
+    await operationsLink.click();
+    await expect(page.getByRole('heading', { name: 'Set up Operations access' }))
+      .toBeVisible();
   });
 });

@@ -133,8 +133,11 @@ incompatible messages. A database upgrade does not migrate queued messages.
 
 A logical restore or schema upgrade may mark Post/Page search as
 `rebuild_required`. Normal lists remain usable, but search is unavailable
-until the derived index is rebuilt.
+until the derived index is rebuilt. In operational mode, an administrator can
+start or continue the required rebuild from the Dashboard without Operations
+credentials. Editing and imports can continue during that rebuild.
 
+For a forced restart or `recovery_required`, use Maintenance & Recovery.
 With a current ready Studio schema in `maintenance` or `recovery` mode, open
 the database tools, re-verify an active administrator, and confirm
 **REBUILD CONTENT SEARCH**. Resume an interrupted rebuild from its reported

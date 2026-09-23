@@ -310,7 +310,7 @@ export const pages = {
   },
   errors: {
     load: 'Studio could not load Pages.',
-    searchIndexNotReady: 'Content search is unavailable until an administrator rebuilds its index in Maintenance & Recovery. Clear the search to continue managing Pages.',
+    searchIndexNotReady: 'Content search is unavailable until an administrator rebuilds its index from the Dashboard. Clear the search to continue managing Pages.',
     searchQueryInvalid: 'Enter at least one searchable letter or number, or clear the search to continue.',
     loadEditor: 'Studio could not load this Page editor.',
     validation: 'Review the required fields, slug, lengths, and Page hierarchy.',

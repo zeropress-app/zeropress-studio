@@ -49,6 +49,16 @@ const administratorCredentialsShape = {
   administrator_password: z.string().min(1).max(1024),
 };
 
+export const contentSearchIndexStatusResponseSchema = z.union([
+  z.object({
+    success: z.literal(true),
+    data: contentSearchIndexStatusSchema,
+  }).strict(),
+  apiErrorSchema,
+]);
+
+export const contentSearchIndexDashboardStartRequestSchema = z.object({}).strict();
+
 export const contentSearchIndexRebuildStartRequestSchema = z.object({
   ...administratorCredentialsShape,
   confirmation: z.literal(CONTENT_SEARCH_REBUILD_CONFIRMATION),

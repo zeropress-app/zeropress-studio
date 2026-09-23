@@ -59,27 +59,32 @@ row during permanent delete, Clear content, Reset, and Uninstall.
 
 Fresh installations seed an empty index as `ready`. A logical restore,
 or an upgrade that invalidates derived search data, sets
-`content_search_index_state` to `rebuild_required`. Maintenance & Recovery
-exposes a resumable rebuild:
+`content_search_index_state` to `rebuild_required`. In operational mode, an
+administrator can select **Rebuild search index** on the Dashboard. No
+Operations token or IP configuration is needed. Lists, editing, and imports
+remain available; search resumes after verification completes.
 
-```text
-POST /api/system/operations/content-search-index/rebuild/start
-POST /api/system/operations/content-search-index/rebuild/step
-confirmation: REBUILD CONTENT SEARCH
-```
+Keep the Dashboard open to advance the rebuild. If you leave or lose the
+connection, choose **Continue rebuild** to resume from the saved checkpoint.
+Concurrent edits and imports update their index entries atomically; a rebuild
+batch cannot overwrite a newer content revision. The Dashboard shows processed
+counts rather than a percentage because content can change during the run.
 
-The operation requires maintenance or recovery mode and the normal Operations
-boundary. Start recreates the canonical FTS tables and delete triggers. Steps
-process Posts, then Pages, in public-ID keyset pages of five. The operation ID,
-phase, and both cursors use compare-and-swap checks, so a lost response resumes
-from the committed cursor. There is no cancel action: resume the current run or
-explicitly start over. Completion requires exact row count, canonical revision
-parity, zero orphan rows, and both FTS integrity checks.
+Maintenance & Recovery also provides rebuild, forced restart, and recovery
+with a current ready schema in maintenance or recovery mode. It requires the
+Operations boundary, administrator re-verification, and **REBUILD CONTENT SEARCH**.
+Use that path when the index reports `recovery_required`.
+
+Both paths share one checkpoint. Start recreates the FTS tables and delete
+triggers. Steps process Posts, then Pages, in public-ID batches of five. The
+operation ID, phase, and cursors use compare-and-swap checks to prevent stale
+requests from repeating work. Completion requires exact row count, canonical
+revision parity, zero orphan rows, and both FTS integrity checks.
 
 A search against any non-ready state returns
 `CONTENT_SEARCH_INDEX_NOT_READY`; an FTS service failure returns
-`CONTENT_SEARCH_INDEX_UNAVAILABLE`. Both are 503 responses with a Maintenance
-rebuild path. Search input with no semantic token returns the 400
+`CONTENT_SEARCH_INDEX_UNAVAILABLE`. Both are 503 responses; an administrator can check the Dashboard
+or use Maintenance & Recovery for a forced rebuild. Search input with no semantic token returns the 400
 `CONTENT_SEARCH_QUERY_INVALID` response. Queries and snippets are never logged.
 
 ## Logical backup

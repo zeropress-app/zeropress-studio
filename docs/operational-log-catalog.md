@@ -741,7 +741,7 @@ Neither the query tokens nor matched content/snippets are included.
 
 - Level: `error`
 - Message: `Studio content-search index rebuild failed`
-- Guidance: `Keep STUDIO_SITE_MODE in maintenance or recovery. Canonical content remains authoritative; inspect the reported index phase and resume or explicitly restart the checkpointed rebuild.`
+- Guidance: `Check the current index status and resume from its saved progress. Use Maintenance & Recovery for a forced restart or recovery. Canonical content remains unchanged by the rebuild.`
 - Expected context: `resource=DB`, one of
   `action=start_content_search_index_rebuild`,
   `action=apply_content_search_index_rebuild_step`, plus the initiating

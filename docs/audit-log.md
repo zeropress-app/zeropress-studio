@@ -43,9 +43,9 @@ Uninstall removes the records; its completion remains in Worker operational logs
 Recording runs in the background. A storage or hashing failure does not stop the
 original operation, so records can be missing. This is an administrative history,
 not a tamper-proof ledger: database owners can modify it and restores rewind it.
-For multi-request Operations, the initial actor is separate from the caller and
-connection that executed each step. Token-only callers appear as **Operations
-token**.
+For multi-request work, including Dashboard search-index rebuilds, the initial
+actor is separate from the caller and connection that executed each step.
+Token-only callers appear as **Operations token**.
 
 Existing installations use the Operations database upgrade before opening the
 new screen. Earlier activity is not added retroactively.
