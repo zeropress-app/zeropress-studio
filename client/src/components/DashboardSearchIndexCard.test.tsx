@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContentSearchIndexStatus } from '../../../contracts/content-search-index';
 import { changeLocale } from '../i18n';
-import { DashboardSearchIndexNotice } from './DashboardSearchIndexNotice';
+import { DashboardSearchIndexCard } from './DashboardSearchIndexCard';
 
 const CSRF = 'c'.repeat(43);
 const required: ContentSearchIndexStatus = {
@@ -34,12 +34,11 @@ function mutation(value: ContentSearchIndexStatus) {
 }
 function setup(initialState = required.state) {
   const onSessionEnded = vi.fn();
-  const onStateChange = vi.fn();
-  const view = render(<MemoryRouter><DashboardSearchIndexNotice
+  const view = render(<MemoryRouter><DashboardSearchIndexCard
     initialState={initialState} csrfToken={CSRF}
-    onSessionEnded={onSessionEnded} onStateChange={onStateChange}
+    onSessionEnded={onSessionEnded}
   /></MemoryRouter>);
-  return { ...view, onSessionEnded, onStateChange, user: userEvent.setup() };
+  return { ...view, onSessionEnded, user: userEvent.setup() };
 }
 beforeEach(async () => {
   localStorage.clear();
@@ -49,6 +48,29 @@ beforeEach(async () => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('dashboard search index rebuild', () => {
+  it('offers another status check while other maintenance blocks rebuilding', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(status({ ...required, available: false }))
+      .mockResolvedValueOnce(status(required));
+    const { user } = setup();
+    expect(await screen.findByText(/Finish other maintenance work/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Rebuild' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Rebuild' })).toBeEnabled());
+  });
+
+  it('shows the confirmed ready state after a lost completion response', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(status(active))
+      .mockRejectedValueOnce(new TypeError('Connection lost'))
+      .mockResolvedValueOnce(status(ready));
+    const { user } = setup('in_progress');
+    const resume = screen.getByRole('button', { name: 'Continue rebuild' });
+    await waitFor(() => expect(resume).toBeEnabled());
+    await user.click(resume);
+    expect(await screen.findByText('Ready')).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
   it('confirms before starting, blocks duplicate clicks and completes the shared steps', async () => {
     let completeStep!: (value: Response) => void;
     const pending = new Promise<Response>((resolve) => { completeStep = resolve; });
@@ -57,8 +79,8 @@ describe('dashboard search index rebuild', () => {
       .mockResolvedValueOnce(mutation({ ...active, post_public_id_cursor: 0, processed_posts: 0 }))
       .mockReturnValueOnce(pending)
       .mockResolvedValueOnce(mutation(ready));
-    const { user, onStateChange } = setup();
-    const start = screen.getByRole('button', { name: 'Rebuild search index' });
+    const { user } = setup();
+    const start = screen.getByRole('button', { name: 'Rebuild' });
     await waitFor(() => expect(start).toBeEnabled());
     await user.click(start);
     const dialog = screen.getByRole('dialog', { name: 'Rebuild the search index?' });
@@ -66,7 +88,7 @@ describe('dashboard search index rebuild', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(fetch).toHaveBeenCalledTimes(1);
     await user.click(start);
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Rebuild search index' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Rebuild' }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
     expect(screen.getByRole('button', { name: 'Rebuilding…' })).toBeDisabled();
     const [, init] = vi.mocked(fetch).mock.calls[1]!;
@@ -75,8 +97,7 @@ describe('dashboard search index rebuild', () => {
       headers: { 'X-ZeroPress-CSRF': CSRF },
     });
     await act(async () => completeStep(mutation(active)));
-    expect(await screen.findByText('Search is ready')).toBeVisible();
-    expect(onStateChange).toHaveBeenLastCalledWith('ready');
+    expect(await screen.findByText('Ready')).toBeVisible();
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[3]![1]!.body))).toMatchObject({
       operation_id: active.operation_id, expected_post_public_id_cursor: 5,
     });
@@ -95,7 +116,7 @@ describe('dashboard search index rebuild', () => {
     expect(await screen.findByText('7 Posts · 0 Pages processed · Pages')).toBeVisible();
     expect(screen.getByRole('alert')).toHaveTextContent('The connection was interrupted');
     await user.click(screen.getByRole('button', { name: 'Continue rebuild' }));
-    expect(await screen.findByText('Search is ready')).toBeVisible();
+    expect(await screen.findByText('Ready')).toBeVisible();
     expect(vi.mocked(fetch).mock.calls[3]![0]).toBe('/api/content-search-index/rebuild/step');
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[3]![1]!.body))).toEqual({
       operation_id: active.operation_id, expected_phase: 'pages',
@@ -132,11 +153,11 @@ describe('dashboard search index rebuild', () => {
       .mockResolvedValueOnce(status({
         ...required, state: 'recovery_required', reason: 'integrity_failure', available: false,
       }));
-    const { user, onStateChange } = setup();
-    expect(await screen.findByText('검색 인덱스 상태를 확인할 수 없습니다')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: '상태 확인' }));
-    expect(await screen.findByRole('link', { name: '유지보수 및 복구 열기' }))
+    const { user } = setup();
+    expect(await screen.findByText('확인 불가')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '다시 확인' }));
+    expect(await screen.findByRole('link', { name: '복구 열기' }))
       .toHaveAttribute('href', '/system/operations/database');
-    expect(onStateChange).toHaveBeenLastCalledWith('recovery_required');
+    expect(screen.getByRole('group', { name: '글·페이지 검색' })).toHaveTextContent('복구 필요');
   });
 });

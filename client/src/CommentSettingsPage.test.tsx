@@ -74,9 +74,9 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
-function renderPage() {
+function renderPage(path = '/settings/edge/comments') {
   return render(
-    <MemoryRouter initialEntries={['/settings/edge/comments']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
           path="/settings/edge/comments"
@@ -103,6 +103,22 @@ beforeEach(async () => {
 });
 
 describe('CommentSettingsPage', () => {
+  it('focuses the API URL after loading a dashboard setup link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL) => {
+      switch (String(url)) {
+        case '/api/settings/comments': return jsonResponse({ success: true, data: initialDocument });
+        case '/api/settings/general': return jsonResponse({ success: true, data: generalDocument });
+        case '/api/settings/comments/request-security': return jsonResponse({ success: true, data: requestSecurity });
+        default: throw new Error(`Unexpected request: ${url}`);
+      }
+    }));
+    renderPage('/settings/edge/comments#comment-api');
+    const apiBase = await screen.findByRole('textbox', { name: 'ZeroPress API base URL' });
+    await waitFor(() => expect(apiBase).toHaveFocus());
+    await userEvent.setup().type(apiBase, 'https://edge.example.com/api');
+    expect(apiBase).toHaveValue('https://edge.example.com/api');
+  });
+
   it('keeps Comment Settings usable when General Settings needs repair', async () => {
     const fetchMock = vi.fn(async (url: string | URL) => {
       const target = String(url);

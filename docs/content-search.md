@@ -60,7 +60,8 @@ row during permanent delete, Clear content, Reset, and Uninstall.
 Fresh installations seed an empty index as `ready`. A logical restore,
 or an upgrade that invalidates derived search data, sets
 `content_search_index_state` to `rebuild_required`. In operational mode, an
-administrator can select **Rebuild search index** on the Dashboard. No
+administrator can select **Rebuild** under **Service readiness → Post and Page search**
+on the Dashboard. No
 Operations token or IP configuration is needed. Lists, editing, and imports
 remain available; search resumes after verification completes.
 

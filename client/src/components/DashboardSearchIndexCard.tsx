@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Play, RefreshCw, SearchCheck, Wrench, X } from 'lucide-react';
 import type { ContentSearchIndexStatus } from '../../../contracts/content-search-index';
 import {
   ContentSearchIndexClientError,
   requestContentSearchIndex,
   requestContentSearchIndexRebuild,
 } from '../lib/content-search-index-client';
-import { Button, ButtonLink, Dialog, Notice, Spinner } from './primitives';
+import { Button, ButtonLink, Dialog, Spinner, StudioIcon } from './primitives';
+import { DashboardRuntimeRow } from './DashboardRuntimeRow';
 
 type IndexState = ContentSearchIndexStatus['state'];
 type SearchFailure = 'failed' | 'connection' | 'changed' | 'notAvailable' | 'access';
@@ -24,19 +26,17 @@ function errorKey(error: unknown): SearchFailure {
   }
 }
 
-export function DashboardSearchIndexNotice(input: {
+export function DashboardSearchIndexCard(input: {
   initialState: IndexState;
   csrfToken: string;
   onSessionEnded: () => void;
-  onStateChange: (state: IndexState) => void;
 }) {
   const { t } = useTranslation('dashboard');
-  const { initialState, onSessionEnded, onStateChange } = input;
+  const { initialState, onSessionEnded } = input;
   const [status, setStatus] = useState<ContentSearchIndexStatus | null>(null);
   const [state, setState] = useState(initialState);
   const [loading, setLoading] = useState(initialState !== 'ready');
   const [busy, setBusy] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<SearchFailure | null>(null);
   const [confirm, setConfirm] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -46,8 +46,8 @@ export function DashboardSearchIndexNotice(input: {
   const acceptStatus = useCallback((value: ContentSearchIndexStatus) => {
     setStatus(value);
     setState(value.state);
-    onStateChange(value.state);
-  }, [onStateChange]);
+    if (value.state === 'ready') setError(null);
+  }, []);
 
   const readStatus = useCallback(async (signal: AbortSignal) => {
     const value = await requestContentSearchIndex(signal);
@@ -73,12 +73,11 @@ export function DashboardSearchIndexNotice(input: {
       if (signal.aborted) return;
       setStatus(null);
       setState('unavailable');
-      onStateChange('unavailable');
       handleFailure(cause);
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [handleFailure, onStateChange, readStatus]);
+  }, [handleFailure, readStatus]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -117,7 +116,6 @@ export function DashboardSearchIndexNotice(input: {
         if (signal.aborted) return;
         acceptStatus(current);
       }
-      if (!signal.aborted) setCompleted(current.state === 'ready');
     } catch (cause) {
       if (signal.aborted) return;
       handleFailure(cause);
@@ -131,7 +129,6 @@ export function DashboardSearchIndexNotice(input: {
         if (signal.aborted) return;
         setStatus(null);
         setState('unavailable');
-        onStateChange('unavailable');
         handleFailure(readError);
       }
     } finally {
@@ -140,57 +137,65 @@ export function DashboardSearchIndexNotice(input: {
     }
   }
 
-  if (state === 'ready' && !completed) return null;
-  const title = busy ? 'running' : state;
+  const blocked = status && !status.available
+    && (state === 'rebuild_required' || state === 'in_progress');
+  const showRefresh = state === 'unavailable' || blocked || (error && state !== 'ready');
   return (
     <>
-      <Notice
-        tone={state === 'ready' ? 'success'
-          : state === 'unavailable' || error ? 'error' : 'warning'}
-        title={t(`searchIndex.titles.${title}`)}
-        actions={(
+      <DashboardRuntimeRow
+        icon={SearchCheck}
+        label={t('runtime.contentSearch')}
+        state={busy ? 'in_progress' : state}
+        actions={state === 'ready' ? undefined : (
           <>
             {state === 'rebuild_required' ? (
-              <Button type="button" variant="primary"
+              <Button type="button" size="sm"
                 disabled={loading || busy || !status?.available}
                 onClick={() => setConfirm(true)}>
-                {t('searchIndex.start')}
+                {busy ? <Spinner /> : <StudioIcon icon={RefreshCw} className="dashboard-action-icon" />}
+                {t(busy ? 'searchIndex.running' : 'searchIndex.start')}
               </Button>
             ) : null}
             {state === 'in_progress' ? (
-              <Button type="button" disabled={loading || busy || !status?.available}
+              <Button type="button" size="sm" disabled={loading || busy || !status?.available}
                 aria-busy={busy} onClick={() => void rebuild(true)}>
-                {busy ? <Spinner /> : null}
+                {busy ? <Spinner /> : <StudioIcon icon={Play} className="dashboard-action-icon" />}
                 {t(busy ? 'searchIndex.running' : 'searchIndex.continue')}
               </Button>
             ) : null}
             {state === 'recovery_required' ? (
-              <ButtonLink to="/system/operations/database">
+              <ButtonLink size="sm" to="/system/operations/database">
+                <StudioIcon icon={Wrench} className="dashboard-action-icon" />
                 {t('searchIndex.operations')}
               </ButtonLink>
             ) : null}
-            {state !== 'ready' ? (
-              <Button type="button" disabled={busy || loading} onClick={() => {
+            {showRefresh ? (
+              <Button type="button" size="sm" disabled={busy || loading} onClick={() => {
                 if (lifetime.current) void refresh(lifetime.current.signal);
-              }}>{t('searchIndex.refresh')}</Button>
+              }}>
+                <StudioIcon icon={RefreshCw} className="dashboard-action-icon" />
+                {t('searchIndex.refresh')}
+              </Button>
             ) : null}
           </>
         )}
       >
-        <p>{t(`searchIndex.descriptions.${title}`)}</p>
         {state === 'in_progress' && status ? (
-          <p>{t('searchIndex.processed', {
+          <p className="dashboard-runtime-detail" role="status">{t('searchIndex.processed', {
             posts: status.processed_posts, pages: status.processed_pages,
           })}{status.phase ? ` · ${t(`searchIndex.phases.${status.phase}`)}` : ''}</p>
         ) : null}
-        {status && !status.available
-          && (state === 'rebuild_required' || state === 'in_progress') ? (
-            <p>{t('searchIndex.errors.notAvailable')}</p>
-          ) : null}
-        {error && state !== 'unavailable' ? (
-          <p>{t(`searchIndex.errors.${error}`)}</p>
+        {busy ? <p className="dashboard-runtime-detail">{t('searchIndex.runningHint')}</p> : null}
+        {state === 'recovery_required' ? (
+          <p className="dashboard-runtime-detail">{t('searchIndex.recoveryHint')}</p>
         ) : null}
-      </Notice>
+        {blocked ? (
+          <p className="dashboard-runtime-detail">{t('searchIndex.errors.notAvailable')}</p>
+        ) : null}
+        {error ? (
+          <p className="dashboard-runtime-error" role="alert">{t(`searchIndex.errors.${error}`)}</p>
+        ) : null}
+      </DashboardRuntimeRow>
       <Dialog open={confirm} onClose={() => setConfirm(false)}
         title={t('searchIndex.confirmTitle')}
         description={t('searchIndex.confirmDescription')}
@@ -198,9 +203,11 @@ export function DashboardSearchIndexNotice(input: {
         actions={(
           <>
             <Button ref={cancelRef} type="button" onClick={() => setConfirm(false)}>
+              <StudioIcon icon={X} className="dashboard-action-icon" />
               {t('searchIndex.cancel')}
             </Button>
             <Button type="button" variant="primary" onClick={() => void rebuild(false)}>
+              <StudioIcon icon={RefreshCw} className="dashboard-action-icon" />
               {t('searchIndex.start')}
             </Button>
           </>

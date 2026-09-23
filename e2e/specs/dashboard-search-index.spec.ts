@@ -22,6 +22,13 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
     const response = await route.fetch();
     const summary = await response.json();
     summary.data.content_search_index = { state: status.state };
+    summary.data.mail = { configured: false };
+    summary.data.edge = {
+      status: 'available', pending_target_events: 0,
+      comments: { pending: 0, enabled: true, api_configured: false },
+      forms: null,
+      newsletters: { pending_confirmations: 0, confirmation_enabled: false, confirmation_ready: false },
+    };
     await route.fulfill({ response, json: summary });
   });
   await page.route(/\/api\/content-search-index(?:\/|$)/, async (route) => {
@@ -62,7 +69,22 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
     } } });
   });
   await signInAsAdministrator(page, studioRuntime);
-  const start = page.getByRole('button', { name: 'Rebuild search index' });
+  const readiness = page.getByRole('region', { name: 'Service readiness' });
+  const search = readiness.getByRole('group', { name: 'Post and Page search' });
+  await expect(search).toContainText('Rebuild required');
+  await readiness.getByRole('link', { name: 'Comment settings' }).click();
+  await expect(page).toHaveURL(/\/settings\/edge\/comments#comment-api$/);
+  await expect(page.getByRole('textbox', { name: 'ZeroPress API base URL' })).toBeFocused();
+  await page.goto('/');
+  await readiness.getByRole('link', { name: 'Delivery settings' }).click();
+  await expect(page).toHaveURL(/\/newsletters\?tab=runtime$/);
+  await expect(page.getByRole('switch', { name: 'Enable confirmation delivery' })).toBeVisible();
+  await page.goto('/');
+  await readiness.getByRole('link', { name: 'Mail settings' }).click();
+  await expect(page).toHaveURL(/\/settings\/edge\/mail$/);
+  await expect(page.getByRole('combobox', { name: 'Provider', exact: true })).toBeVisible();
+  await page.goto('/');
+  const start = search.getByRole('button', { name: 'Rebuild', exact: true });
   await expect(start).toBeEnabled();
   await start.focus();
   await page.keyboard.press('Enter');
@@ -71,7 +93,7 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
   await page.keyboard.press('Escape');
   expect(mutations).toEqual([]);
   await start.click();
-  await dialog.getByRole('button', { name: 'Rebuild search index' }).focus();
+  await dialog.getByRole('button', { name: 'Rebuild', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByText('5 Posts · 0 Pages processed · Posts')).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('The connection was interrupted');
@@ -93,7 +115,12 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
   await page.getByRole('navigation', { name: 'Studio 내비게이션' })
     .getByRole('link', { name: '대시보드', exact: true }).click();
   await page.setViewportSize({ width: 320, height: 850 });
-  await expect(page.getByText('검색 인덱스 재구축을 이어서 실행하세요')).toBeVisible();
+  const koreanReadiness = page.getByRole('region', { name: '서비스 준비 상태' });
+  const koreanSearch = koreanReadiness.getByRole('group', { name: '글·페이지 검색' });
+  await expect(koreanSearch).toContainText('재구축 진행 중');
+  await expect(koreanReadiness.getByRole('link', { name: '댓글 설정' })).toBeVisible();
+  await expect(koreanReadiness.getByRole('link', { name: '전송 설정' })).toBeVisible();
+  await expect(koreanReadiness.getByRole('link', { name: '메일 설정' })).toBeVisible();
   const resume = page.getByRole('button', { name: '이어서 실행' });
   await expect(resume).toBeEnabled();
   expect(await page.evaluate(() => (
@@ -101,10 +128,7 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
   ))).toBe(true);
   await resume.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByText('검색 준비가 완료되었습니다')).toBeVisible();
-  await expect(page.locator('.dashboard-runtime-row').filter({
-    hasText: 'Post 및 Page 검색 인덱스',
-  })).toContainText('준비됨');
+  await expect(koreanSearch).toContainText('준비됨');
   expect(mutations).toEqual([
     '/api/content-search-index/rebuild/start',
     '/api/content-search-index/rebuild/step',

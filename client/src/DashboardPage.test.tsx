@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
@@ -76,6 +77,73 @@ beforeEach(async () => {
 });
 
 describe('DashboardPage', () => {
+  it.each([
+    { locale: 'en' as const, region: 'Service readiness', comments: 'Comment settings', newsletter: 'Delivery settings', mail: 'Mail settings', unconfigured: 'Not configured' },
+    { locale: 'ko' as const, region: '서비스 준비 상태', comments: '댓글 설정', newsletter: '전송 설정', mail: '메일 설정', unconfigured: '미설정' },
+  ])('connects readiness actions to the relevant settings in $locale', async (copy) => {
+    await changeLocale(copy.locale);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({
+      success: true,
+      data: {
+        generated_at_iso: '2026-08-04T01:00:00.000Z',
+        content: { posts: null, pages: null, media: null },
+        content_search_index: { state: 'ready' },
+        mail: { configured: false },
+        edge: {
+          status: 'available', pending_target_events: 0,
+          comments: { pending: 0, enabled: true, api_configured: false },
+          forms: null,
+          newsletters: { pending_confirmations: 0, confirmation_enabled: false, confirmation_ready: false },
+        },
+      },
+    })));
+    render(<MemoryRouter><DashboardPage data={dashboardData} onSessionEnded={vi.fn()} /></MemoryRouter>);
+
+    const readiness = within(await screen.findByRole('region', { name: copy.region }));
+    expect(readiness.getByRole('link', { name: copy.comments }))
+      .toHaveAttribute('href', '/settings/edge/comments#comment-api');
+    expect(readiness.getByRole('link', { name: copy.newsletter }))
+      .toHaveAttribute('href', '/newsletters?tab=runtime');
+    expect(readiness.getByRole('link', { name: copy.mail }))
+      .toHaveAttribute('href', '/settings/edge/mail');
+    expect(readiness.getByText(copy.unconfigured)).toBeVisible();
+  });
+
+  it.each(['admin', 'editor'] as const)('offers Edge configuration only to an authorized %s', async (role) => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({
+      success: true,
+      data: {
+        generated_at_iso: '2026-08-04T01:00:00.000Z',
+        content: { posts: null, pages: null, media: null },
+        content_search_index: null, mail: null,
+        edge: { status: 'disabled', pending_target_events: 0 },
+      },
+    })));
+    render(<MemoryRouter><DashboardPage
+      data={{ ...dashboardData, user: { ...dashboardData.user, roles: [role] } }}
+      onSessionEnded={vi.fn()}
+    /></MemoryRouter>);
+    const readiness = within(await screen.findByRole('region', { name: 'Service readiness' }));
+    expect(readiness.getByText('Disabled')).toBeVisible();
+    if (role === 'admin') {
+      expect(readiness.getByRole('link', { name: 'Edge settings' }))
+        .toHaveAttribute('href', '/settings/edge');
+    } else {
+      expect(readiness.queryByRole('link')).not.toBeInTheDocument();
+    }
+  });
+
+  it('keeps comment readiness visible to editors without offering administrator settings', async () => {
+    render(<MemoryRouter><DashboardPage
+      data={{ ...dashboardData, user: { ...dashboardData.user, roles: ['editor'] } }}
+      onSessionEnded={vi.fn()}
+    /></MemoryRouter>);
+    const readiness = within(await screen.findByRole('region', { name: 'Service readiness' }));
+    expect(readiness.getByRole('group', { name: 'Comments' })).toHaveTextContent('Ready');
+    expect(readiness.queryByRole('link')).not.toBeInTheDocument();
+    expect(readiness.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('avoids repeating account details and shows the capability-aware operational overview', async () => {
     const view = render(<MemoryRouter><DashboardPage data={dashboardData} onSessionEnded={vi.fn()} /></MemoryRouter>);
 

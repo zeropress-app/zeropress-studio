@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router';
 import type { ApiErrorCode } from '../../contracts/api';
 import {
   areCommentSettingsEqual,
@@ -266,6 +267,8 @@ export function CommentSettingsPage(input: {
   data: AccountSession;
   onSessionEnded: () => void;
 }) {
+  const { hash } = useLocation();
+  const apiBaseUrlRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation('settings');
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
@@ -283,6 +286,11 @@ export function CommentSettingsPage(input: {
   const settingsDocument = loadState.kind === 'ready'
     ? loadState.document
     : null;
+  useEffect(() => {
+    if (hash === '#comment-api' && loadState.kind === 'ready') {
+      apiBaseUrlRef.current?.focus();
+    }
+  }, [hash, loadState.kind]);
   const normalized = useMemo(() => normalizedDraft(draft), [draft]);
   const apiBaseInvalid = draft.api_base_url.trim() !== ''
     && normalizeCommentApiBaseUrl(draft.api_base_url.trim()) === null;
@@ -639,27 +647,30 @@ export function CommentSettingsPage(input: {
               onChange={(enabled) => updateDraft('enabled', enabled)}
             />
           </SwitchGroup>
-          <Field
-            label={t('comments.fields.apiBaseUrl.label')}
-            hint={t('comments.fields.apiBaseUrl.description')}
-            error={apiBaseInvalid
-              ? t('comments.fields.apiBaseUrl.error')
-              : undefined}
-          >
-            {(control) => (
-              <input
-                {...control}
-                className="studio-field-input"
-                value={draft.api_base_url}
-                placeholder="https://edge.example.com/api"
-                disabled={saving}
-                onChange={(event) => updateDraft(
-                  'api_base_url',
-                  event.target.value,
-                )}
-              />
-            )}
-          </Field>
+          <div id="comment-api">
+            <Field
+              label={t('comments.fields.apiBaseUrl.label')}
+              hint={t('comments.fields.apiBaseUrl.description')}
+              error={apiBaseInvalid
+                ? t('comments.fields.apiBaseUrl.error')
+                : undefined}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  ref={apiBaseUrlRef}
+                  className="studio-field-input"
+                  value={draft.api_base_url}
+                  placeholder="https://edge.example.com/api"
+                  disabled={saving}
+                  onChange={(event) => updateDraft(
+                    'api_base_url',
+                    event.target.value,
+                  )}
+                />
+              )}
+            </Field>
+          </div>
           <div className="settings-fields settings-fields-split">
             <Field
               label={t('comments.fields.perPage.label')}
