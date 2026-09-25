@@ -665,14 +665,14 @@ CREATE TABLE posts (
   created_at_iso TEXT NOT NULL,
   updated_at_iso TEXT NOT NULL,
   editor_profile TEXT
-    CHECK (editor_profile IS NULL OR editor_profile = 'tiptap-v1'),
+    CHECK (editor_profile IS NULL OR editor_profile = 'suneditor-v1'),
   editor_mode TEXT NOT NULL DEFAULT 'source'
     CHECK (
     (editor_mode = 'source' AND editor_profile IS NULL)
     OR (
       editor_mode = 'visual'
       AND document_type = 'html'
-      AND editor_profile = 'tiptap-v1'
+      AND editor_profile = 'suneditor-v1'
       AND length(content) <= 131072
     )
   ),
@@ -772,14 +772,14 @@ CREATE TABLE pages (
   created_at_iso TEXT NOT NULL,
   updated_at_iso TEXT NOT NULL,
   editor_profile TEXT
-    CHECK (editor_profile IS NULL OR editor_profile = 'tiptap-v1'),
+    CHECK (editor_profile IS NULL OR editor_profile = 'suneditor-v1'),
   editor_mode TEXT NOT NULL DEFAULT 'source'
     CHECK (
     (editor_mode = 'source' AND editor_profile IS NULL)
     OR (
       editor_mode = 'visual'
       AND document_type = 'html'
-      AND editor_profile = 'tiptap-v1'
+      AND editor_profile = 'suneditor-v1'
       AND length(content) <= 131072
     )
   ),
@@ -824,7 +824,7 @@ CREATE TABLE post_autosaves (
       )
     ),
   snapshot_version INTEGER NOT NULL
-    CHECK (snapshot_version IN (1, 2)),
+    CHECK (snapshot_version IN (1, 2, 3)),
   snapshot_json TEXT NOT NULL
     CHECK (json_valid(snapshot_json)),
   snapshot_sha256 TEXT NOT NULL
@@ -875,7 +875,7 @@ CREATE TABLE page_autosaves (
       )
     ),
   snapshot_version INTEGER NOT NULL
-    CHECK (snapshot_version IN (1, 2)),
+    CHECK (snapshot_version IN (1, 2, 3)),
   snapshot_json TEXT NOT NULL
     CHECK (json_valid(snapshot_json)),
   snapshot_sha256 TEXT NOT NULL
@@ -916,7 +916,7 @@ CREATE TABLE post_revisions (
       AND revision_id NOT GLOB '*[^0-9a-f]*'
     ),
   snapshot_version INTEGER NOT NULL
-    CHECK (snapshot_version IN (1, 2)),
+    CHECK (snapshot_version IN (1, 2, 3)),
   snapshot_json TEXT NOT NULL
     CHECK (json_valid(snapshot_json)),
   snapshot_sha256 TEXT NOT NULL
@@ -941,7 +941,7 @@ CREATE TABLE page_revisions (
       AND revision_id NOT GLOB '*[^0-9a-f]*'
     ),
   snapshot_version INTEGER NOT NULL
-    CHECK (snapshot_version IN (1, 2)),
+    CHECK (snapshot_version IN (1, 2, 3)),
   snapshot_json TEXT NOT NULL
     CHECK (json_valid(snapshot_json)),
   snapshot_sha256 TEXT NOT NULL

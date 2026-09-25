@@ -37,3 +37,5 @@ if (typeof window !== 'undefined') {
     });
   }
 }
+
+import './test/visual-editor-environment';

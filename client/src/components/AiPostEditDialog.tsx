@@ -13,7 +13,7 @@ import {
 } from '../../../contracts/posts';
 import type { ApiErrorCode } from '../../../contracts/api';
 import type { ContentAiSelection } from '../editor/content-ai-selection';
-import { classifyTiptapHtml } from '../editor/tiptap-compatibility';
+import { classifySunEditorHtml } from '../editor/suneditor-compatibility';
 import { AiPostEditComparison } from './AiPostEditComparison';
 import {
   Button,
@@ -77,7 +77,7 @@ function validateReviewedContent(input: {
     input.target.document_type === 'html'
     && input.target.editor_mode === 'visual'
   ) {
-    const result = classifyTiptapHtml(input.content);
+    const result = classifySunEditorHtml(input.content);
     if (
       result.classification !== 'safe'
       || result.normalized

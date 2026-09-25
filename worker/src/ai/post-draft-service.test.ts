@@ -65,7 +65,7 @@ describe('AI Post draft service', () => {
       excerpt: validOutput.excerpt,
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     expect(run).toHaveBeenCalledOnce();
     expect(run.mock.calls[0][0]).toBe(AI_POST_DRAFT_MODEL);
@@ -84,7 +84,7 @@ describe('AI Post draft service', () => {
     );
   });
 
-  it('escapes every generated block and emits deterministic Tiptap HTML', async () => {
+  it('escapes every generated block and emits deterministic SunEditor HTML', async () => {
     const result = await generateAiPostDraft({
       ai: { run: vi.fn().mockResolvedValue(validOutput) } as unknown as Ai,
       source: {

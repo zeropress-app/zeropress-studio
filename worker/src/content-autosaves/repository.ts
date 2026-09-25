@@ -104,7 +104,7 @@ async function parseDocument(
     if (typeof row.snapshot_json !== 'string') throw new TypeError();
     const snapshot = config.snapshotSchema.parse(JSON.parse(row.snapshot_json));
     if (
-      (row.snapshot_version !== 1 && row.snapshot_version !== 2)
+      ![1, 2, 3].includes(Number(row.snapshot_version))
       || (snapshot as { version?: unknown }).version !== row.snapshot_version
       || await snapshotDigest(row.snapshot_json) !== row.snapshot_sha256
     ) throw new TypeError('Stored autosave integrity metadata does not match.');

@@ -12,7 +12,7 @@ const common = {
   content: '<p>Hello</p>',
   document_type: 'html' as const,
   editor_mode: 'visual' as const,
-  editor_profile: 'tiptap-v1' as const,
+  editor_profile: 'suneditor-v1' as const,
   excerpt: '',
   status: 'draft' as const,
   discoverability: 'default' as const,
@@ -24,8 +24,8 @@ describe('content editor contract', () => {
   it('keeps editor fields explicit and closed', () => {
     expect(contentEditorFieldsSchema.parse({
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
-    })).toEqual({ editor_mode: 'visual', editor_profile: 'tiptap-v1' });
+      editor_profile: 'suneditor-v1',
+    })).toEqual({ editor_mode: 'visual', editor_profile: 'suneditor-v1' });
     expect(contentEditorFieldsSchema.safeParse({
       editor_mode: 'source',
       editor_profile: null,
@@ -33,7 +33,7 @@ describe('content editor contract', () => {
     }).success).toBe(false);
   });
 
-  it('requires visual mode to use bounded HTML and the tiptap-v1 profile', () => {
+  it('requires visual mode to use bounded HTML and the suneditor-v1 profile', () => {
     const page = { parent_id: null, ...common };
     expect(createPageRequestSchema.safeParse(page).success).toBe(true);
     expect(createPageRequestSchema.safeParse({
@@ -63,7 +63,7 @@ describe('content editor contract', () => {
     expect(createPostRequestSchema.safeParse(post).success).toBe(true);
     expect(createPostRequestSchema.safeParse({
       ...post,
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     }).success).toBe(false);
   });
 });

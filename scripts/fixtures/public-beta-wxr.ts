@@ -20,7 +20,7 @@ function content(id: number, type: 'post' | 'page', body: string, parent = 0) {
   </item>`;
 }
 
-export const incompatibleHtml = '<picture><source srcset="/wide.png"><img src="/small.png" alt="Small"></picture>';
+export const incompatibleHtml = '<p><a href="javascript:alert(1)">Preserve source for review</a></p>';
 
 export const publicBetaWxr = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"

@@ -33,6 +33,9 @@ test.describe('public beta authoring smoke', () => {
       await title.fill(`Public beta ${kind}`);
       const content = page.getByRole('textbox', { name: 'Content', exact: true });
       await content.fill('Public beta 작성 smoke 🌱');
+      await content.press('ControlOrMeta+A');
+      await page.getByRole('button', { name: 'Bold', exact: true }).click();
+      await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
       if (kind === 'Post') {
         await page.getByRole('combobox', { name: 'Public Author' }).selectOption('beta-smoke-author');
       }
@@ -52,6 +55,7 @@ test.describe('public beta authoring smoke', () => {
       await page.reload();
       await expect(title).toHaveValue(`Public beta ${kind}`);
       await expect(content).toHaveText('Public beta 작성 smoke 🌱');
+      await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
 
       // A second canonical write proves this is not merely a create-page render.
       await title.fill(`Updated beta ${kind}`);
@@ -66,6 +70,7 @@ test.describe('public beta authoring smoke', () => {
       await page.reload();
       await expect(title).toHaveValue(`Updated beta ${kind}`);
       await expect(content).toHaveText('Public beta 작성 smoke 🌱');
+      await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
       await page.setViewportSize({ width: 320, height: 800 });
       await expect(save).toBeVisible();
       const overflow = await page.evaluate(() => (
@@ -74,4 +79,53 @@ test.describe('public beta authoring smoke', () => {
       expect(overflow).toBeLessThanOrEqual(1);
     });
   }
+
+  test('preserves color, alignment and tables through saving and a source round trip', async ({ page, studioRuntime }) => {
+    await signInAsAdministrator(page, studioRuntime);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.stack || error.message));
+    await page.goto('/pages/new');
+    await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Formatted page');
+    const content = page.getByRole('textbox', { name: 'Content', exact: true });
+    await content.click();
+    await page.keyboard.type('Formatted text');
+    await content.press('ControlOrMeta+A');
+    await page.getByRole('button', { name: 'Font color', exact: true }).click();
+    await page.locator('.se-color-pallet button[data-value="#ef4444"]:visible').click();
+    await page.locator('button[data-command="align"]').click();
+    await page.locator('.se-list-align button[data-command="center"]').click();
+    await expect(content.locator('p').first()).toHaveCSS('text-align', 'center');
+    await expect(content.locator('span[style]')).toHaveCSS('color', 'rgb(239, 68, 68)');
+    await content.press('ArrowRight');
+    await content.press('End');
+    await content.press('Enter');
+    await page.locator('button[data-command="table"]').click();
+    const picker = page.locator('.se-table-size-picker');
+    await picker.hover({ position: { x: 35, y: 35 } });
+    await picker.click({ position: { x: 35, y: 35 } });
+    await expect(content.locator('td')).toHaveCount(4);
+    await content.locator('td').first().click();
+    await page.keyboard.type('Table value');
+    await page.locator('button[data-command="align"]').click();
+    await page.locator('.se-list-align button[data-command="right"]').click();
+    await page.getByRole('button', { name: 'Save Page', exact: true }).click();
+    await expect(page).toHaveURL(/\/pages\/[0-9a-f]{32}$/u);
+    await page.reload();
+    await expect(content.locator('td')).toHaveCount(4);
+    await expect(content.locator('td').first()).toHaveText('Table value');
+    await expect(content.locator('td').first().locator('p')).toHaveCSS('text-align', 'right');
+    await expect(content.locator('span[style]').first()).toHaveCSS('color', 'rgb(239, 68, 68)');
+    await page.getByRole('button', { name: 'HTML source', exact: true }).click();
+    await page.getByRole('button', { name: 'Use HTML source', exact: true }).click();
+    await page.getByRole('button', { name: 'Save Page', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save Page', exact: true })).toBeDisabled();
+    await page.reload();
+    await page.getByRole('button', { name: 'Visual', exact: true }).click();
+    await page.getByRole('button', { name: 'Use visual editor', exact: true }).click();
+    await expect(content.locator('td').first()).toHaveText('Table value');
+    await expect(content.locator('td').first().locator('p')).toHaveCSS('text-align', 'right');
+    await expect(content.locator('span[style]').first()).toHaveCSS('color', 'rgb(239, 68, 68)');
+    expect(errors).toEqual([]);
+  });
+
 });

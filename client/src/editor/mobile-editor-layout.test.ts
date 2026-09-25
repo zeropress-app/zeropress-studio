@@ -7,14 +7,14 @@ const css = read('../screens/content-editor.css');
 describe('Mobile editor layout boundaries', () => {
   it('allows long authored content to shrink inside the visual editor Grid', () => {
     expect(css).toMatch(
-      /\.content-body-editor,\s*\.tiptap-editor\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/u,
+      /\.content-body-editor,\s*\.studio-visual-editor\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/u,
     );
-    expect(css).toMatch(/\.tiptap-editor-content\s*\{[^}]*min-width:\s*0/u);
+    expect(css).toMatch(/\.studio-visual-editor-content\s*\{[^}]*min-width:\s*0/u);
     expect(css).toMatch(
-      /\.tiptap-editor-content \.tiptap-editor-surface\s*\{[^}]*overflow-wrap:\s*anywhere/u,
+      /\.studio-visual-editor-content \.studio-visual-editor-surface\s*\{[^}]*overflow-wrap:\s*anywhere/u,
     );
-    expect(read('../components/TiptapVisualEditor.tsx')).toContain(
-      '<EditorContent editor={editor} className="tiptap-editor-content" />',
+    expect(read('../components/SunEditorVisualEditor.tsx')).toContain(
+      '<div className="studio-visual-editor-content" ref={hostRef} />',
     );
   });
 

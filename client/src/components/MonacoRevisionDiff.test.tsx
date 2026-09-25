@@ -83,7 +83,7 @@ describe('MonacoRevisionDiff', () => {
     expect(onUnavailable).toHaveBeenCalledOnce();
   });
 
-  it('projects two visual Tiptap HTML revisions before creating Monaco models', () => {
+  it('projects two visual SunEditor HTML revisions before creating Monaco models', () => {
     render(<MonacoRevisionDiff
       original="<p>Saved</p><p>Same</p>"
       modified="<p>Current</p><p>Same</p>"
@@ -91,8 +91,8 @@ describe('MonacoRevisionDiff', () => {
       modifiedDocumentType="html"
       originalEditorMode="visual"
       modifiedEditorMode="visual"
-      originalEditorProfile="tiptap-v1"
-      modifiedEditorProfile="tiptap-v1"
+      originalEditorProfile="suneditor-v1"
+      modifiedEditorProfile="suneditor-v1"
       originalLabel="Revision A source"
       modifiedLabel="Revision B source"
       comparisonLabel="Post revision source comparison"

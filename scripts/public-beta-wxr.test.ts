@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import '../client/src/test/visual-editor-environment';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';

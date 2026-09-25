@@ -30,7 +30,7 @@ const post: Post = {
   content: '<p>Current body.</p>',
   document_type: 'html' as const,
   editor_mode: 'visual' as const,
-  editor_profile: 'tiptap-v1' as const,
+  editor_profile: 'suneditor-v1' as const,
   excerpt: '',
   status: 'draft' as const,
   author: { id: 'Writer', display_name: 'Writer' },

@@ -5,7 +5,7 @@ import { z } from 'zod';
  * autosaves and immutable saved revisions use the same representation of
  * authored content.
  */
-export const CONTENT_SNAPSHOT_VERSION = 2 as const;
+export const CONTENT_SNAPSHOT_VERSION = 3 as const;
 export const LEGACY_CONTENT_SNAPSHOT_VERSION = 1 as const;
 export const CONTENT_REVISION_RETENTION_LIMIT = 20;
 export const CONTENT_AUTOSAVE_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -18,6 +18,7 @@ export const contentSnapshotVersionSchema = z.literal(
 );
 export const readableContentSnapshotVersionSchema = z.union([
   z.literal(LEGACY_CONTENT_SNAPSHOT_VERSION),
+  z.literal(2),
   contentSnapshotVersionSchema,
 ]);
 export const contentDraftIdSchema = z.string().regex(/^[0-9a-f]{32}$/u);

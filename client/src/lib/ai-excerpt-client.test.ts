@@ -59,7 +59,7 @@ describe('AI excerpt clients', () => {
         content: '<p>Generated body.</p>',
         document_type: 'html',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }), { headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetchMock);

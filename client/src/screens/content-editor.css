@@ -251,14 +251,14 @@
 /* Visual and source HTML editors. */
 
 .content-body-editor,
-.tiptap-editor {
+.studio-visual-editor {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
 }
 
-.tiptap-editor-content {
+.studio-visual-editor-content {
   min-width: 0;
 }
 
@@ -275,11 +275,6 @@
   font-size: 0.75rem;
 }
 
-.content-editor-dialog-form {
-  display: grid;
-  gap: 16px;
-}
-
 .content-editor-mode-comparison {
   display: grid;
   min-width: 0;
@@ -288,7 +283,8 @@
 }
 
 .content-editor-mode-buttons,
-.tiptap-image-actions {
+.studio-visual-media-tools,
+.studio-visual-media-tools > div {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -311,87 +307,7 @@
   background: var(--studio-surface-subtle);
 }
 
-.tiptap-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px;
-  border: 1px solid var(--studio-border);
-  border-radius: var(--studio-radius-md);
-  background: var(--studio-surface-subtle);
-}
-
-.tiptap-table-toolbar {
-  border-style: dashed;
-}
-
-.tiptap-toolbar-button {
-  min-height: 34px;
-  padding: 5px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--studio-radius-sm);
-  background: transparent;
-  color: var(--studio-text);
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: var(--studio-weight-semibold);
-  cursor: pointer;
-}
-
-.tiptap-toolbar-button:hover:not(:disabled),
-.tiptap-toolbar-button[aria-pressed="true"] {
-  border-color: var(--studio-border-strong);
-  background: var(--studio-surface);
-  color: var(--studio-primary);
-}
-
-.tiptap-toolbar-button:focus-visible {
-  outline: 3px solid var(--studio-focus);
-  outline-offset: 1px;
-}
-
-.tiptap-toolbar-button:disabled {
-  color: var(--studio-text-muted);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.tiptap-color-control {
-  display: inline-grid;
-  min-width: 34px;
-  min-height: 34px;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--studio-radius-sm);
-  cursor: pointer;
-}
-
-.tiptap-color-control:hover {
-  border-color: var(--studio-border-strong);
-  background: var(--studio-surface);
-}
-
-.tiptap-color-control input[type='color'] {
-  width: 26px;
-  height: 26px;
-  padding: 2px;
-  border: 1px solid var(--studio-border-strong);
-  border-radius: var(--studio-radius-sm);
-  background: var(--studio-surface);
-  cursor: pointer;
-}
-
-.tiptap-color-control input[type='color']:focus-visible {
-  outline: 3px solid var(--studio-focus);
-  outline-offset: 2px;
-}
-
-.tiptap-color-control input[type='color']:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.tiptap-editor-surface {
+.studio-visual-editor-surface {
   display: flow-root;
   min-height: 420px;
   padding: 16px;
@@ -403,42 +319,39 @@
   line-height: 1.65;
 }
 
-/*
- * Override ProseMirror's word-wrap: break-word with a more specific Studio
- * rule so wrapping does not increase the grid's min-content width.
- */
-.tiptap-editor-content .tiptap-editor-surface {
+/* Long authored tokens must not widen the editor grid. */
+.studio-visual-editor-content .studio-visual-editor-surface {
   overflow-wrap: anywhere;
 }
 
-.tiptap-editor-surface:focus-visible {
+.studio-visual-editor-surface:focus-visible {
   border-color: var(--studio-primary);
   outline: 3px solid var(--studio-focus);
   outline-offset: 1px;
 }
 
-.tiptap-editor-surface[aria-readonly='true'] a {
+.studio-visual-editor-surface[aria-readonly='true'] a {
   cursor: text;
   pointer-events: none;
 }
 
-.tiptap-editor-surface img,
-.tiptap-editor-surface video {
+.studio-visual-editor-surface img,
+.studio-visual-editor-surface video {
   max-width: 100%;
   height: auto;
 }
 
-.tiptap-editor-surface img.ProseMirror-selectednode {
+.studio-visual-editor-surface img[data-studio-selected] {
   outline: 3px solid var(--studio-primary);
   outline-offset: -3px;
 }
 
-.tiptap-editor-surface img.alignleft {
+.studio-visual-editor-surface img.alignleft {
   float: left;
   margin: 0 16px 16px 0;
 }
 
-.tiptap-editor-surface img.aligncenter {
+.studio-visual-editor-surface img.aligncenter {
   display: block;
   clear: both;
   float: none;
@@ -446,19 +359,19 @@
   margin-left: auto;
 }
 
-.tiptap-editor-surface img.alignright {
+.studio-visual-editor-surface img.alignright {
   float: right;
   margin: 0 0 16px 16px;
 }
 
-.tiptap-editor-surface table {
+.studio-visual-editor-surface table {
   width: 100%;
   border-collapse: collapse;
 }
 
 @media (max-width: 640px) {
-  .tiptap-editor-surface img.alignleft,
-  .tiptap-editor-surface img.alignright {
+  .studio-visual-editor-surface img.alignleft,
+  .studio-visual-editor-surface img.alignright {
     display: block;
     float: none;
     margin-right: auto;
@@ -466,15 +379,15 @@
   }
 }
 
-.tiptap-editor-surface th,
-.tiptap-editor-surface td {
+.studio-visual-editor-surface th,
+.studio-visual-editor-surface td {
   min-width: 80px;
   padding: 8px;
   border: 1px solid var(--studio-border-strong);
   vertical-align: top;
 }
 
-.tiptap-editor-surface pre {
+.studio-visual-editor-surface pre {
   max-width: 100%;
   overflow-x: auto;
   padding: 12px;
@@ -484,7 +397,7 @@
   white-space: pre-wrap;
 }
 
-.tiptap-embed-placeholder {
+.studio-visual-embed-placeholder {
   display: grid;
   min-height: 84px;
   place-items: center;
@@ -848,12 +761,12 @@
 }
 
 .ai-post-draft-preview .content-editor-mode-selector,
-.ai-post-draft-preview .tiptap-toolbar,
-.ai-post-draft-preview .tiptap-image-actions {
+.ai-post-draft-preview .studio-visual-media-tools,
+.ai-post-draft-preview .se-toolbar {
   display: none;
 }
 
-.ai-post-draft-preview .tiptap-editor-surface {
+.ai-post-draft-preview .studio-visual-editor-surface {
   min-height: 0;
   padding: 0;
   border: 0;
@@ -864,4 +777,75 @@
   .ai-post-draft-options {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Scope SunEditor's surfaces and controls to Studio's light/dark palette. */
+.studio-visual-editor .sun-editor,
+.studio-visual-editor .sun-editor-editable {
+  --se-main-background-color: var(--studio-surface);
+  --se-main-color: var(--studio-text);
+  --se-main-color-lighter: var(--studio-text-muted);
+  --se-main-font-color: var(--studio-text);
+  --se-main-out-color: var(--studio-border-strong);
+  --se-main-border-color: var(--studio-border);
+  --se-main-divider-color: var(--studio-border);
+  --se-edit-background-color: var(--studio-surface);
+  --se-edit-font-color: var(--studio-text);
+  --se-edit-font-pre: var(--studio-text);
+  --se-edit-font-quote: var(--studio-text-muted);
+  --se-edit-background-pre: var(--studio-surface-subtle);
+  --se-edit-border-table: var(--studio-border-strong);
+  --se-edit-anchor: var(--studio-primary);
+  --se-caret-color: var(--studio-text);
+  --se-modal-background-color: var(--studio-surface);
+  --se-modal-color: var(--studio-text);
+  --se-modal-border-color: var(--studio-border);
+  --se-modal-anchor-color: var(--studio-primary);
+  --se-dropdown-font-color: var(--studio-text);
+  --se-controller-background-color: var(--studio-surface);
+  --se-controller-color: var(--studio-text);
+  --se-hover-color: var(--studio-text);
+  --se-hover-light-color: var(--studio-surface-subtle);
+  --se-hover-light2-color: var(--studio-surface-subtle);
+  --se-active-light-color: var(--studio-surface-subtle);
+  --se-active-dark-color: var(--studio-primary);
+  --se-select-menu-hover-bg: var(--studio-surface-subtle);
+  --se-select-menu-active-bg: var(--studio-surface-subtle);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.studio-visual-editor .sun-editor {
+  border-radius: var(--studio-radius-md);
+}
+
+.studio-visual-editor .sun-editor button:focus-visible {
+  outline: 3px solid var(--studio-focus);
+  outline-offset: -3px;
+}
+
+.studio-visual-editor .sun-editor .se-toolbar {
+  max-width: 100%;
+}
+
+.studio-visual-editor .sun-editor .se-btn-module-border {
+  max-width: 100%;
+}
+
+.studio-visual-editor .sun-editor .se-menu-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.studio-visual-editor .sun-editor .se-container {
+  min-width: 0;
+}
+
+/* Move the tooltip box itself so its hidden layout cannot widen the page. */
+.studio-visual-editor .sun-editor .se-tooltip .se-tooltip-inner {
+  transform: translateX(-50%);
+}
+
+.studio-visual-editor .sun-editor .se-tooltip .se-tooltip-text {
+  left: 0;
 }

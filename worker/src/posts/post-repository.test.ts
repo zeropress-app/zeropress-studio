@@ -566,7 +566,7 @@ describe('Post D1 repository', () => {
       content: '<p>Hello</p>',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     await createPost({
       db: d1,
@@ -602,9 +602,9 @@ describe('Post D1 repository', () => {
         json_extract(snapshot_json, '$.draft.editor_profile') AS editor_profile
       FROM post_revisions WHERE post_id = ?
     `).get(postId)).toEqual({
-      snapshot_version: 2,
+      snapshot_version: 3,
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
 
     const repeated = await updatePost({
@@ -633,7 +633,7 @@ describe('Post D1 repository', () => {
       content: '',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     await createPost({
       db: emptyDatabase.d1,

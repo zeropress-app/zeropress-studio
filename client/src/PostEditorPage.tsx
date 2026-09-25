@@ -138,7 +138,7 @@ const EMPTY_DRAFT: PostDraft = {
   content: '',
   document_type: 'html',
   editor_mode: 'visual',
-  editor_profile: 'tiptap-v1',
+  editor_profile: 'suneditor-v1',
   excerpt: '',
   status: 'draft',
   author_id: '',
@@ -206,7 +206,7 @@ function snapshotFromDraft(
   ) return null;
 
   const parsed = currentPostContentSnapshotSchema.safeParse({
-    version: 2,
+    version: 3,
     content_type: 'post',
     draft,
     references: {
@@ -685,7 +685,7 @@ export function PostEditorPage(input: {
       ...current,
       document_type: documentType,
       editor_mode: documentType === 'html' ? 'visual' : 'source',
-      editor_profile: documentType === 'html' ? 'tiptap-v1' : null,
+      editor_profile: documentType === 'html' ? 'suneditor-v1' : null,
     });
     setContentBridgeDirty(false);
     setSaved(false);

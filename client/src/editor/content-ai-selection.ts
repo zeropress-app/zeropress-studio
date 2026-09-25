@@ -1,3 +1,4 @@
+import type { VisualSelectionPoint } from './visual-editor-document';
 import type { AiPostEditSelectionKind } from '../../../contracts/ai-post-edit';
 
 type ContentAiSelectionBase = {
@@ -17,8 +18,9 @@ export type SourceContentAiSelection = ContentAiSelectionBase & {
 
 export type VisualContentAiSelection = ContentAiSelectionBase & {
   kind: 'visual';
-  from: number;
-  to: number;
+  baseHtml: string;
+  start: VisualSelectionPoint;
+  end: VisualSelectionPoint;
   selectionKind: 'inline' | 'block';
 };
 

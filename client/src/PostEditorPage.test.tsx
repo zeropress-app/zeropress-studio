@@ -272,7 +272,7 @@ describe('PostEditorPage', () => {
       content: '<h2>Generated section</h2>\n<p>Generated body.</p>',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     };
     const fetchMock = vi.fn().mockImplementation(async (
       request: string,
@@ -656,7 +656,7 @@ describe('PostEditorPage', () => {
       content: '<p>Hello</p>',
       document_type: 'html' as const,
       editor_mode: 'visual' as const,
-      editor_profile: 'tiptap-v1' as const,
+      editor_profile: 'suneditor-v1' as const,
     };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(noAutosave())
@@ -693,7 +693,7 @@ describe('PostEditorPage', () => {
       content: '<p>Hello</p>',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
       author_id: post.author.id,
       category_ids: [post.categories[0].id],
       tag_ids: [post.tags[1].id, post.tags[0].id],
@@ -707,7 +707,7 @@ describe('PostEditorPage', () => {
       content: '<p>Hello</p>',
       document_type: 'html' as const,
       editor_mode: 'visual' as const,
-      editor_profile: 'tiptap-v1' as const,
+      editor_profile: 'suneditor-v1' as const,
     };
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(response({ success: true, data: visualPost }))

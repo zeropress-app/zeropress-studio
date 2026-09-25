@@ -1,24 +1,22 @@
 // @vitest-environment jsdom
 
-import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
 import {
   CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS,
   CONTENT_EDITOR_VISUAL_MAX_NODES,
 } from '../../../contracts/content-editor';
 import {
-  canonicalizeTiptapHtml,
-  classifyTiptapHtml,
-  prepareNetworkInertTiptapHtml,
-} from './tiptap-compatibility';
+  canonicalizeSunEditorHtml,
+  classifySunEditorHtml,
+  prepareNetworkInertSunEditorHtml,
+} from './suneditor-compatibility';
 import {
   isAllowedContentUrl,
-  createTiptapVisualExtensions,
   normalizeLinkRel,
   normalizeLinkTarget,
-} from './tiptap-profile';
+} from './visual-html-policy';
 
-describe('Tiptap visual HTML profile', () => {
+describe('SunEditor visual HTML profile', () => {
   it('round-trips the reviewed WordPress and native media structures', () => {
     const source = [
       '<a href="https://example.com/full" target="_blank"><img src="/media/photo.png" alt="Photo" width="640" height="360"></a>',
@@ -30,7 +28,7 @@ describe('Tiptap visual HTML profile', () => {
       '<audio controls><source src="/media/audio.mp3" type="audio/mpeg"></audio>',
     ].join('');
 
-    const result = classifyTiptapHtml(source);
+    const result = classifySunEditorHtml(source);
 
     expect(result.compatible, JSON.stringify(result)).toBe(true);
     if (!result.compatible) return;
@@ -43,7 +41,7 @@ describe('Tiptap visual HTML profile', () => {
     expect(result.canonicalHtml).toContain('<iframe');
     expect(result.canonicalHtml).toContain('<video');
     expect(result.canonicalHtml).toContain('<audio');
-    expect(classifyTiptapHtml(result.canonicalHtml)).toMatchObject({
+    expect(classifySunEditorHtml(result.canonicalHtml)).toMatchObject({
       compatible: true,
       canonicalHtml: result.canonicalHtml,
       normalized: false,
@@ -51,7 +49,7 @@ describe('Tiptap visual HTML profile', () => {
   });
 
   it('reports the visual representation of an image paragraph', () => {
-    const result = classifyTiptapHtml('<p><img src="/photo.png" alt="Photo"></p>');
+    const result = classifySunEditorHtml('<p><img src="/photo.png" alt="Photo"></p>');
     expect(result, JSON.stringify(result)).toMatchObject({
       compatible: true,
     });
@@ -69,7 +67,7 @@ describe('Tiptap visual HTML profile', () => {
       'aligncenter',
       'alignright',
     ]) {
-      const result = classifyTiptapHtml(
+      const result = classifySunEditorHtml(
         `<img class="wp-image-7 ${alignment}" src="/photo.png" alt="Photo">`,
       );
       expect(result, JSON.stringify(result)).toMatchObject({
@@ -93,14 +91,14 @@ describe('Tiptap visual HTML profile', () => {
       '<object data="https://objects.example/file.bin"></object>',
       '<style>@import url(https://styles.example/import.css)</style>',
     ].join('');
-    const prepared = prepareNetworkInertTiptapHtml(source);
+    const prepared = prepareNetworkInertSunEditorHtml(source);
     expect(prepared.html).not.toContain('https://assets.example/');
     expect(prepared.html).not.toContain('https://embed.example/');
     expect(prepared.html).not.toContain('https://styles.example/');
     expect(prepared.html).not.toContain('https://objects.example/');
-    expect(prepared.html).toContain('data:,zeropress-inert-resource');
+    expect(prepared.html).toContain('data:image/gif;base64,');
 
-    const result = classifyTiptapHtml(source);
+    const result = classifySunEditorHtml(source);
     expect(result, JSON.stringify(result)).toMatchObject({
       classification: 'review_required',
       reasons: [
@@ -116,16 +114,16 @@ describe('Tiptap visual HTML profile', () => {
     expect(result.canonicalHtml).toContain('https://embed.example/player/1');
     expect(result.canonicalHtml).toContain('https://assets.example/movie.mp4');
     expect(result.canonicalHtml).toContain('https://assets.example/poster.jpg');
-    expect(result.canonicalHtml).toContain('color: rgb(255, 0, 0)');
+    expect(result.canonicalHtml).toContain('color: rgb(255,0,0)');
     expect(result.canonicalHtml).not.toContain('background-image');
     expect(result.canonicalHtml).not.toContain(
       'id="__zeropress_inert_resource_1__"',
     );
-    expect(result.canonicalHtml).not.toContain('data:,zeropress-inert-resource');
+    expect(result.canonicalHtml).not.toContain('data:image/gif;base64,');
   });
 
   it('removes executable markup, event/style attributes, and unsafe URLs', () => {
-    const canonical = canonicalizeTiptapHtml([
+    const canonical = canonicalizeSunEditorHtml([
       '<p class="safe" style="color:red" onclick="attack()">Text ',
       '<a href="javascript:attack()" target="evil">link</a>',
       '<img src="data:text/html,attack" onerror="attack()" alt="Image">',
@@ -153,7 +151,7 @@ describe('Tiptap visual HTML profile', () => {
   });
 
   it('treats required new-window rel tokens as a safe additive normalization', () => {
-    const result = classifyTiptapHtml(
+    const result = classifySunEditorHtml(
       '<p><a href="https://example.com" target="_blank" rel="noopener">Example</a></p>',
     );
 
@@ -172,7 +170,7 @@ describe('Tiptap visual HTML profile', () => {
       '<h2 style="text-align: RIGHT"><span style="color: RGB(255, 0, 0)">Heading</span></h2>',
       '<p style="text-align: justify"><span style="color: #C2410C">Body</span></p>',
     ].join('');
-    const result = classifyTiptapHtml(source);
+    const result = classifySunEditorHtml(source);
 
     expect(result).toMatchObject({
       classification: 'safe',
@@ -181,29 +179,13 @@ describe('Tiptap visual HTML profile', () => {
     });
     if (result.classification === 'blocked') return;
     expect(result.canonicalHtml).toContain('text-align: right');
-    expect(result.canonicalHtml).toContain('color: rgb(255, 0, 0)');
+    expect(result.canonicalHtml).toContain('color: rgb(255,0,0)');
     expect(result.canonicalHtml).toContain('text-align: justify');
-    expect(result.canonicalHtml).toContain('color: rgb(194, 65, 12)');
-  });
-
-  it('exposes alignment and color commands through the shared visual profile', () => {
-    const editor = new Editor({
-      extensions: createTiptapVisualExtensions(),
-      content: '<p>Styled text</p>',
-    });
-    editor.commands.selectAll();
-
-    expect(editor.commands.setTextAlign('center')).toBe(true);
-    expect(editor.commands.setColor('#c2410c')).toBe(true);
-    expect(editor.getHTML()).toContain('text-align: center');
-    expect(editor.getHTML()).toContain('color: rgb(194, 65, 12)');
-    expect(editor.commands.unsetColor()).toBe(true);
-    expect(editor.getHTML()).not.toContain('color:');
-    editor.destroy();
+    expect(result.canonicalHtml).toContain('color: rgb(194,65,12)');
   });
 
   it('requires review when only unsupported presentation markup is removed', () => {
-    const result = classifyTiptapHtml(
+    const result = classifySunEditorHtml(
       '<p style="text-align:center; margin-left: 2rem"><span style="color:#f00; background-color:#000">Text</span></p><!-- editorial note -->',
     );
 
@@ -218,19 +200,19 @@ describe('Tiptap visual HTML profile', () => {
     });
     if (result.classification === 'blocked') return;
     expect(result.canonicalHtml).toContain('text-align: center');
-    expect(result.canonicalHtml).toContain('color: rgb(255, 0, 0)');
+    expect(result.canonicalHtml).toContain('color: rgb(255,0,0)');
     expect(result.canonicalHtml).not.toMatch(/margin-left|background-color/u);
   });
 
   it('classifies empty HTML canonically and enforces both visual limits', () => {
-    expect(canonicalizeTiptapHtml('<p></p>')).toBe('');
-    expect(classifyTiptapHtml('<p></p>')).toMatchObject({
+    expect(canonicalizeSunEditorHtml('<p></p>')).toBe('');
+    expect(classifySunEditorHtml('<p></p>')).toMatchObject({
       classification: 'safe',
       compatible: true,
       canonicalHtml: '',
     });
 
-    expect(classifyTiptapHtml(
+    expect(classifySunEditorHtml(
       'x'.repeat(CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS + 1),
     )).toMatchObject({
       classification: 'blocked',
@@ -239,7 +221,7 @@ describe('Tiptap visual HTML profile', () => {
     });
 
     const paragraphCount = Math.ceil(CONTENT_EDITOR_VISUAL_MAX_NODES / 2);
-    expect(classifyTiptapHtml('<p>x</p>'.repeat(paragraphCount))).toMatchObject({
+    expect(classifySunEditorHtml('<p>x</p>'.repeat(paragraphCount))).toMatchObject({
       classification: 'blocked',
       compatible: false,
       reasons: expect.arrayContaining(['node_limit_exceeded']),

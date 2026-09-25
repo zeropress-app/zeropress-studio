@@ -105,7 +105,7 @@ describe('Post contracts', () => {
       content: '',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
       excerpt: '',
       status: 'published',
       author: { id: 'site-author', display_name: 'Site Author' },

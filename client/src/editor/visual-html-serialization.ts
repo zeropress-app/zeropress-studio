@@ -8,7 +8,7 @@ type HtmlNode = {
   [key: string]: unknown;
 };
 
-// These Tiptap nodes contain block children. Formatting whitespace between
+// These SunEditor nodes contain block children. Formatting whitespace between
 // those children is ignored by the visual profile, unlike whitespace inside
 // paragraphs, preformatted text, and native media elements.
 const STRUCTURED_CONTAINER_TAGS = new Set([
@@ -25,6 +25,10 @@ const STRUCTURED_CONTAINER_TAGS = new Set([
   'thead',
   'tr',
   'ul',
+]);
+
+const BLOCK_CHILD_TAGS = new Set([
+  ...STRUCTURED_CONTAINER_TAGS, 'p', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr',
 ]);
 
 function isFormattingWhitespace(node: HtmlNode): boolean {
@@ -45,7 +49,8 @@ function formatNode(node: HtmlNode, depth: number): string {
   const children = (node.childNodes ?? []).filter((child) => (
     !isFormattingWhitespace(child)
   ));
-  if (children.length === 0) return `${indent}${serializeNode(node)}`;
+  if (children.length === 0 || children.some((child) =>
+    child.nodeName === '#text' || (child.tagName && !BLOCK_CHILD_TAGS.has(child.tagName)))) return `${indent}${serializeNode(node)}`;
 
   const shell = serializeNode({ ...node, childNodes: [] });
   const closingTag = `</${tag}>`;
@@ -60,11 +65,11 @@ function formatNode(node: HtmlNode, depth: number): string {
 }
 
 /**
- * Formats canonical Tiptap HTML at semantic block boundaries. It deliberately
+ * Formats canonical SunEditor HTML at semantic block boundaries. It deliberately
  * avoids line wrapping and never inserts whitespace inside inline-content,
  * preformatted, or native media nodes.
  */
-export function formatTiptapVisualHtml(html: string): string {
+export function formatSunEditorVisualHtml(html: string): string {
   if (html === '') return '';
   const fragment = parseFragment(html) as unknown as HtmlNode;
   return (fragment.childNodes ?? [])

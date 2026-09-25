@@ -1,23 +1,20 @@
-import {
-  generateHTML,
-  generateJSON,
-  type JSONContent,
-} from '@tiptap/core';
 import { parseFragment, serialize } from 'parse5';
 import {
   CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS,
   CONTENT_EDITOR_VISUAL_MAX_NODES,
 } from '../../../contracts/content-editor';
 import {
-  createTiptapVisualExtensions,
   isAllowedContentUrl,
+  normalizeLinkTarget,
+  normalizeLinkRel,
   normalizeContentTextAlignment,
   normalizeContentTextColor,
   parseContentStyleDeclarations,
-  TIPTAP_INERT_RESOURCE_MARKER_PREFIX,
-  TIPTAP_INERT_RESOURCE_URL,
-} from './tiptap-profile';
-import { formatTiptapVisualHtml } from './tiptap-html-serialization';
+  SUNEDITOR_INERT_RESOURCE_MARKER_PREFIX,
+  SUNEDITOR_INERT_RESOURCE_URL,
+} from './visual-html-policy';
+import { cleanSunEditorHtml } from './suneditor-runtime';
+import { formatSunEditorVisualHtml } from './visual-html-serialization';
 
 const BUILD_CORE_ALLOWED_TAGS = new Set([
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -74,7 +71,7 @@ const TEXT_BOUNDARY_TAGS = new Set([
   'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul',
 ]);
 
-export const TIPTAP_BLOCKING_REASONS = [
+export const SUNEDITOR_BLOCKING_REASONS = [
   'source_too_large',
   'canonical_too_large',
   'node_limit_exceeded',
@@ -82,16 +79,16 @@ export const TIPTAP_BLOCKING_REASONS = [
   'contract_data_lost',
   'conversion_error',
 ] as const;
-export type TiptapBlockingReason = typeof TIPTAP_BLOCKING_REASONS[number];
+export type SunEditorBlockingReason = typeof SUNEDITOR_BLOCKING_REASONS[number];
 
-export const TIPTAP_REVIEW_REASONS = [
+export const SUNEDITOR_REVIEW_REASONS = [
   'unsupported_elements_removed',
   'unsupported_attributes_removed',
 ] as const;
-export type TiptapReviewReason = typeof TIPTAP_REVIEW_REASONS[number];
-export type TiptapFallbackReason = TiptapBlockingReason | TiptapReviewReason;
+export type SunEditorReviewReason = typeof SUNEDITOR_REVIEW_REASONS[number];
+export type SunEditorFallbackReason = SunEditorBlockingReason | SunEditorReviewReason;
 
-export type TiptapCompatibilityResult =
+export type SunEditorCompatibilityResult =
   | {
       classification: 'safe';
       compatible: true;
@@ -106,7 +103,7 @@ export type TiptapCompatibilityResult =
       canonicalHtml: string;
       nodeCount: number;
       normalized: true;
-      reasons: TiptapReviewReason[];
+      reasons: SunEditorReviewReason[];
     }
   | {
       classification: 'blocked';
@@ -114,7 +111,7 @@ export type TiptapCompatibilityResult =
       canonicalHtml: null;
       nodeCount: number | null;
       normalized: false;
-      reasons: TiptapBlockingReason[];
+      reasons: SunEditorBlockingReason[];
     };
 
 type HtmlNode = {
@@ -294,12 +291,12 @@ function shouldStripBeforeBrowserParse(
 
 /**
  * Browser DOMParser can fetch resources referenced by otherwise detached HTML.
- * Tiptap's browser HTML helper uses DOMParser internally, so WXR preflight must
+ * SunEditor's browser HTML helper uses DOMParser internally, so WXR preflight must
  * remove every fetch-capable attribute before handing it the document. The
- * accepted resource attributes are restored only after Tiptap has serialized
+ * accepted resource attributes are restored only after SunEditor has serialized
  * into a string, using parse5 on both sides so restoration itself stays inert.
  */
-export function prepareNetworkInertTiptapHtml(html: string): {
+export function prepareNetworkInertSunEditorHtml(html: string): {
   html: string;
   restorations: ResourceRestoration[];
 } {
@@ -339,7 +336,7 @@ export function prepareNetworkInertTiptapHtml(html: string): {
     if (resourceAttributes.length > 0) {
       let marker = '';
       do {
-        marker = `${TIPTAP_INERT_RESOURCE_MARKER_PREFIX}${markerIndex}__`;
+        marker = `${SUNEDITOR_INERT_RESOURCE_MARKER_PREFIX}${markerIndex}__`;
         markerIndex += 1;
       } while (occupiedIds.has(marker));
       occupiedIds.add(marker);
@@ -351,7 +348,7 @@ export function prepareNetworkInertTiptapHtml(html: string): {
       for (const attribute of resourceAttributes) {
         attributes.push({
           name: attribute.name,
-          value: TIPTAP_INERT_RESOURCE_URL,
+          value: SUNEDITOR_INERT_RESOURCE_URL,
         });
       }
       restorations.push({ marker, originalId, attributes: resourceAttributes });
@@ -398,13 +395,13 @@ function restoreNetworkInertResources(
       }
     }
     if (restored.size > 0) {
-      throw new TypeError('Tiptap removed a protected resource attribute.');
+      throw new TypeError('SunEditor removed a protected resource attribute.');
     }
     node.attrs = attributes;
     remaining.delete(marker);
   });
   if (remaining.size > 0) {
-    throw new TypeError('Tiptap removed a protected resource element.');
+    throw new TypeError('SunEditor removed a protected resource element.');
   }
   return serialize(fragment);
 }
@@ -483,45 +480,69 @@ function collapseWhitespace(value: string): string {
   return value.replace(/\s+/gu, ' ').trim();
 }
 
-export function countProseMirrorNodes(node: JSONContent): number {
-  let count = 1;
-  for (const child of node.content ?? []) count += countProseMirrorNodes(child);
+export function countVisualHtmlNodes(html: string): number {
+  let count = 0;
+  walk(parseFragment(html) as unknown as HtmlNode, () => { count += 1; });
   return count;
 }
 
-function hasMeaningfulAttributes(node: JSONContent): boolean {
-  return Object.values(node.attrs ?? {}).some((value) => (
-    value !== null && value !== undefined && value !== ''
-  ));
-}
-
-function convertTiptapHtml(html: string): {
-  json: JSONContent;
-  canonicalHtml: string;
-} {
-  const prepared = prepareNetworkInertTiptapHtml(html);
-  const extensions = createTiptapVisualExtensions();
-  const json = generateJSON(prepared.html, extensions) as JSONContent;
-  const hasContent = (json.content ?? []).some((node: JSONContent) => (
-    node.type !== 'paragraph'
-    || (node.content?.length ?? 0) > 0
-    || hasMeaningfulAttributes(node)
-  ));
-  const generated = hasContent ? generateHTML(json, extensions) : '';
-  return {
-    json,
-    canonicalHtml: formatTiptapVisualHtml(restoreNetworkInertResources(
-      generated,
-      prepared.restorations,
-    )),
+/** Keep the same semantic HTML that the public renderer accepts. */
+export function sanitizeVisualHtml(html: string): string {
+  const fragment = parseFragment(html);
+  const sanitize = (parent: HtmlNode) => {
+    parent.childNodes = (parent.childNodes ?? []).flatMap((node): HtmlNode[] => {
+      if (node.nodeName === '#comment') return [];
+      if (!node.tagName) return [node];
+      if (['script', 'style', 'template', 'object', 'noscript', 'svg', 'math'].includes(node.tagName)) return [];
+      const tag = CANONICAL_TAGS.get(node.tagName) ?? node.tagName;
+      node.tagName = tag;
+      node.nodeName = tag;
+      sanitize(node);
+      if (!BUILD_CORE_ALLOWED_TAGS.has(tag)) return node.childNodes ?? [];
+      const attrs = node.attrs ?? [];
+      const target = normalizeLinkTarget(attrs.find((a) => a.name === 'target')?.value);
+      node.attrs = attrs.flatMap((attribute) => {
+        const { name, value } = attribute;
+        if (name === 'style') {
+          const style = safeStyleAttribute(tag, value);
+          return style ? [style] : [];
+        }
+        if (!isAllowedAttribute(tag, name)) return [];
+        if (['href', 'src', 'poster'].includes(name)
+          && !isAllowedContentUrl(value, name === 'href' ? 'link' : 'media')) return [];
+        if (name === 'srcset' && !value.split(',').every((item) =>
+          isAllowedContentUrl(item.trim().split(/\s+/u)[0], 'media'))) return [];
+        if (name === 'target') return target ? [{ name, value: target }] : [];
+        if (name === 'rel') {
+          const rel = normalizeLinkRel(value, target);
+          return rel ? [{ name, value: rel }] : [];
+        }
+        return [attribute];
+      });
+      if (tag === 'a' && target && !node.attrs.some((a) => a.name === 'rel')) {
+        node.attrs.push({ name: 'rel', value: normalizeLinkRel(null, target)! });
+      }
+      return [node];
+    });
   };
+  sanitize(fragment as unknown as HtmlNode);
+  return serialize(fragment);
 }
 
-export function canonicalizeTiptapHtml(html: string): string {
-  return convertTiptapHtml(html).canonicalHtml;
+function convertSunEditorHtml(html: string): { canonicalHtml: string } {
+  const prepared = prepareNetworkInertSunEditorHtml(sanitizeVisualHtml(html));
+  const generated = cleanSunEditorHtml(prepared.html);
+  const restored = restoreNetworkInertResources(generated, prepared.restorations);
+  const canonicalHtml = /^(?:\s*<p>(?:<br>)?<\/p>\s*)*$/u.test(restored)
+    ? '' : formatSunEditorVisualHtml(restored);
+  return { canonicalHtml };
 }
 
-export function classifyTiptapHtml(html: string): TiptapCompatibilityResult {
+export function canonicalizeSunEditorHtml(html: string): string {
+  return convertSunEditorHtml(html).canonicalHtml;
+}
+
+export function classifySunEditorHtml(html: string): SunEditorCompatibilityResult {
   if (html.length > CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS) {
     return {
       classification: 'blocked',
@@ -533,9 +554,9 @@ export function classifyTiptapHtml(html: string): TiptapCompatibilityResult {
     };
   }
   try {
-    const { json, canonicalHtml } = convertTiptapHtml(html);
-    const nodeCount = countProseMirrorNodes(json);
-    const reasons: TiptapBlockingReason[] = [];
+    const { canonicalHtml } = convertSunEditorHtml(html);
+    const nodeCount = countVisualHtmlNodes(canonicalHtml);
+    const reasons: SunEditorBlockingReason[] = [];
     if (canonicalHtml.length > CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS) {
       reasons.push('canonical_too_large');
     }
@@ -570,7 +591,7 @@ export function classifyTiptapHtml(html: string): TiptapCompatibilityResult {
         reasons: [...new Set(reasons)],
       };
     }
-    const reviewReasons: TiptapReviewReason[] = [];
+    const reviewReasons: SunEditorReviewReason[] = [];
     if (counterHasMissing(
       source.unsupportedElements,
       canonical.unsupportedElements,

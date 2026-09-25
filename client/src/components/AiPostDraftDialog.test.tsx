@@ -28,7 +28,7 @@ const candidate = {
   content: '<h2>Section</h2>\n<p>Generated body.</p>',
   document_type: 'html' as const,
   editor_mode: 'visual' as const,
-  editor_profile: 'tiptap-v1' as const,
+  editor_profile: 'suneditor-v1' as const,
 };
 
 beforeEach(async () => {

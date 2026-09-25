@@ -361,7 +361,7 @@ describe('Studio WXR core streaming parser', () => {
       public_id: 987,
       content: '<p>Before<br>Middle<br>After</p>',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
       status: 'published',
     })]);
   });
@@ -392,7 +392,7 @@ Bare second]]></content:encoded>
         '<p>Bare first<br>Bare second</p>',
       ].join('\n'),
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     })]);
   });
 
@@ -410,7 +410,7 @@ Bare second]]></content:encoded>
         <wp:comment_status>closed</wp:comment_status>
       </item>`;
     const compatible = '<pre>CPU: <a href="https://example.com/cpu">Intel Xeon</a></pre>';
-    const incompatible = '<picture><source srcset="/wide.png"><img src="/small.png" alt="Small"></picture>';
+    const incompatible = '<p><a href="javascript:alert(1)">Preserve source for review</a></p>';
     const reviewRequired = '<p style="color:red">Review presentation</p>';
     const plan = await parseWxrCoreImportFile(sourceFile(wxr(`
       ${item({ id: 301, title: 'Visual content', content: compatible })}
@@ -423,7 +423,7 @@ Bare second]]></content:encoded>
         public_id: 301,
         content: compatible,
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       }),
       expect.objectContaining({
         public_id: 302,
@@ -487,7 +487,7 @@ Bare second]]></content:encoded>
       public_id: 988,
       content: '<p>Keep\uFFFDBefore(After</p>',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
       status: 'published',
     })]);
   });

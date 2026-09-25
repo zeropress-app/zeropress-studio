@@ -95,7 +95,7 @@ function unwrapBlockParagraphs(source: string, blockPattern: string): string {
 
 /**
  * Resolves classic WordPress paragraph and soft-break semantics before the
- * Tiptap compatibility classifier sees WXR HTML. Gutenberg block markup has
+ * SunEditor compatibility classifier sees WXR HTML. Gutenberg block markup has
  * already declared its structure and bypasses this pass.
  */
 export function materializeWordPressClassicHtml(value: string): string {

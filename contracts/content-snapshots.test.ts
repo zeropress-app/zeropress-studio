@@ -20,7 +20,7 @@ import {
 } from './page-autosaves';
 
 const EMPTY_POST_SNAPSHOT = {
-  version: 2,
+  version: 3,
   content_type: 'post',
   draft: {
     title: '',
@@ -47,7 +47,7 @@ const EMPTY_POST_SNAPSHOT = {
 } as const;
 
 const EMPTY_PAGE_SNAPSHOT = {
-  version: 2,
+  version: 3,
   content_type: 'page',
   draft: {
     parent_id: null,
@@ -86,7 +86,7 @@ describe('common content snapshot contract', () => {
     }).success).toBe(false);
   });
 
-  it('reads v1 snapshots as safe source state while new writes require v2', () => {
+  it('reads v1 snapshots as safe source state while new writes require v3', () => {
     const legacyPost = {
       ...EMPTY_POST_SNAPSHOT,
       version: 1 as const,
@@ -102,11 +102,11 @@ describe('common content snapshot contract', () => {
     const parsedPost = postContentSnapshotSchema.parse(legacyPost);
     const parsedPage = pageContentSnapshotSchema.parse(legacyPage);
     expect(normalizePostContentSnapshot(parsedPost)).toMatchObject({
-      version: 2,
+      version: 3,
       draft: { editor_mode: 'source', editor_profile: null },
     });
     expect(normalizePageContentSnapshot(parsedPage)).toMatchObject({
-      version: 2,
+      version: 3,
       draft: { editor_mode: 'source', editor_profile: null },
     });
     expect(putPostAutosaveRequestSchema.safeParse({
@@ -121,6 +121,22 @@ describe('common content snapshot contract', () => {
       base_revision: null,
       snapshot: legacyPage,
     }).success).toBe(false);
+  });
+
+  it('restores previous visual snapshots as source without rewriting their HTML', () => {
+    const html = '<p>Original <strong>HTML</strong></p>';
+    const post = postContentSnapshotSchema.parse({ ...EMPTY_POST_SNAPSHOT, version: 2,
+      draft: { ...EMPTY_POST_SNAPSHOT.draft, content: html, document_type: 'html',
+        editor_mode: 'visual', editor_profile: 'tiptap-v1' } });
+    const page = pageContentSnapshotSchema.parse({ ...EMPTY_PAGE_SNAPSHOT, version: 2,
+      draft: { ...EMPTY_PAGE_SNAPSHOT.draft, content: html, document_type: 'html',
+        editor_mode: 'visual', editor_profile: 'tiptap-v1' } });
+    expect(post.version).toBe(2);
+    expect(page.version).toBe(2);
+    for (const restored of [normalizePostContentSnapshot(post), normalizePageContentSnapshot(page)]) {
+      expect(restored).toMatchObject({ version: 3,
+        draft: { content: html, editor_mode: 'source', editor_profile: null } });
+    }
   });
 
   it('requires presentation references to match authored relation IDs', () => {

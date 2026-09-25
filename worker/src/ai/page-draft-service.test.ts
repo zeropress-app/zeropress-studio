@@ -66,7 +66,7 @@ describe('AI Page draft service', () => {
       expect(result).toMatchObject({
         document_type: 'html',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       });
       expect(run.mock.calls[0][0]).toBe(AI_PAGE_DRAFT_MODEL);
       const options = run.mock.calls[0][1] as {

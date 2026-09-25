@@ -56,7 +56,7 @@ describe('AI Post draft contract', () => {
         ...base.data,
         document_type: 'html',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }).success).toBe(true);
     for (const target of [
@@ -75,7 +75,7 @@ describe('AI Post draft contract', () => {
         ...base.data,
         document_type: 'markdown',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }).success).toBe(false);
     expect(aiPostDraftSuccessSchema.safeParse({
@@ -86,7 +86,7 @@ describe('AI Post draft contract', () => {
         content: 'x'.repeat(AI_POST_DRAFT_CONTENT_MAX_LENGTH + 1),
         document_type: 'html',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }).success).toBe(false);
   });

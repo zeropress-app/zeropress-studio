@@ -76,6 +76,20 @@ export const legacyPageContentSnapshotSchema = z.object({
   references: pageSnapshotReferencesSchema,
 }).strict().superRefine(validatePageSnapshotReferences);
 
+// Version 2 records keep their original bytes and digest. Restoring them opens
+// the content in source mode so an engine change cannot silently rewrite it.
+const previousPageContentSnapshotSchema = z.object({
+  version: z.literal(2),
+  content_type: z.literal('page'),
+  draft: legacyPageSnapshotDraftSchema.extend({
+    editor_mode: contentEditorModeSchema,
+    editor_profile: z.literal('tiptap-v1').nullable(),
+  }).strict().superRefine((value, context) => validateContentEditorState({
+    ...value, editor_profile: value.editor_profile === 'tiptap-v1' ? 'suneditor-v1' : null,
+  }, context)),
+  references: pageSnapshotReferencesSchema,
+}).strict().superRefine(validatePageSnapshotReferences);
+
 export const currentPageContentSnapshotSchema = z.object({
   version: contentSnapshotVersionSchema,
   content_type: z.literal('page'),
@@ -85,16 +99,17 @@ export const currentPageContentSnapshotSchema = z.object({
 
 export const pageContentSnapshotSchema = z.union([
   legacyPageContentSnapshotSchema,
+  previousPageContentSnapshotSchema,
   currentPageContentSnapshotSchema,
 ]);
 
 export function normalizePageContentSnapshot(
   snapshot: PageContentSnapshot,
 ): CurrentPageContentSnapshot {
-  if (snapshot.version === 2) return snapshot;
+  if (snapshot.version === 3) return snapshot;
   return currentPageContentSnapshotSchema.parse({
     ...snapshot,
-    version: 2,
+    version: 3,
     draft: { ...snapshot.draft, ...sourceEditorState() },
   });
 }

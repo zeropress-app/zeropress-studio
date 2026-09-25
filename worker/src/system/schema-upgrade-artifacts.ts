@@ -1,3 +1,4 @@
+import visualEditorSql from '../../../database/schema-upgrades/002_to_003_visual_editor.sql?raw';
 import auditLogsSql from '../../../database/schema-upgrades/001_to_002_audit_logs.sql?raw';
 
 /**
@@ -18,4 +19,7 @@ export type StudioSchemaUpgradeArtifact = {
 export const STUDIO_SCHEMA_UPGRADE_ARTIFACTS = [{
   id: 'studio-001-to-002-audit-logs', fromVersion: 1, toVersion: 2,
   sql: auditLogsSql, sha256: '4580c5429aa244e90c8700a68571dd9e277c76ec841c6314fc97f8d3e44cd8a4',
+}, {
+  id: 'studio-002-to-003-visual-editor', fromVersion: 2, toVersion: 3,
+  sql: visualEditorSql, sha256: '1c9e08cdec341d6e8fd2b56f39b4115ac3d15f205e894d1a3e3de3b1e2d42ddd',
 }] as const satisfies readonly StudioSchemaUpgradeArtifact[];

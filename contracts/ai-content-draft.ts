@@ -36,7 +36,7 @@ export const aiContentDraftCandidateSchema = z.union([
     ...aiContentDraftCandidateShape,
     document_type: z.literal('html'),
     editor_mode: z.literal('visual'),
-    editor_profile: z.literal('tiptap-v1'),
+    editor_profile: z.literal('suneditor-v1'),
   }).strict(),
   z.object({
     ...aiContentDraftCandidateShape,

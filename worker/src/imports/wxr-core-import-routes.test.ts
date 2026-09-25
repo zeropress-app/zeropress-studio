@@ -114,7 +114,7 @@ const postChunk = {
     content: '<p>Hello</p>',
     document_type: 'html' as const,
     editor_mode: 'visual' as const,
-    editor_profile: 'tiptap-v1' as const,
+    editor_profile: 'suneditor-v1' as const,
     excerpt: 'Hello',
     status: 'published' as const,
     author_id: 'wordpress-author',

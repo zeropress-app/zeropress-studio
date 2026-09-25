@@ -139,7 +139,7 @@ function seedSecondPost(sqlite: DatabaseSync) {
 
 function postSnapshot(title: string, authorId = '') {
   return currentPostContentSnapshotSchema.parse({
-    version: 2,
+    version: 3,
     content_type: 'post',
     draft: {
       title,
@@ -170,7 +170,7 @@ function postSnapshot(title: string, authorId = '') {
 
 function pageSnapshot(title: string) {
   return currentPageContentSnapshotSchema.parse({
-    version: 2,
+    version: 3,
     content_type: 'page',
     draft: {
       parent_id: null,

@@ -330,7 +330,7 @@ function parseAiOutput(output: unknown, target: AiContentDraftTarget) {
     editor_mode: target.editor_mode,
     editor_profile: target.document_type === 'html'
       && target.editor_mode === 'visual'
-      ? 'tiptap-v1'
+      ? 'suneditor-v1'
       : null,
   });
   if (!candidate.success) throw new AiContentDraftResponseInvalidError();

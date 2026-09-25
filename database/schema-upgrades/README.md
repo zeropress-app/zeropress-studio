@@ -15,3 +15,9 @@ or Wrangler D1 migrations.
 [`001_to_002_audit_logs.sql`](001_to_002_audit_logs.sql) adds audit storage
 without modifying existing application rows. The transition registry includes
 its SHA-256 checksum.
+
+[`002_to_003_visual_editor.sql`](002_to_003_visual_editor.sql) updates the
+visual editor contract. Existing Post and Page HTML stays unchanged and opens
+in source mode. Use **Visual** to review its conversion before editing it with
+SunEditor. Existing autosaves and revisions remain available; restoring an
+older snapshot also opens it in source mode.

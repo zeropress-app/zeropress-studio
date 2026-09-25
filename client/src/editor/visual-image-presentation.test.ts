@@ -7,9 +7,9 @@ const CONTENT_EDITOR_CSS = readFileSync(fileURLToPath(new URL(
   import.meta.url,
 )), 'utf8');
 
-describe('Tiptap image presentation', () => {
+describe('SunEditor image presentation', () => {
   it('paints an opaque-image selection inside the replaced element', () => {
-    const selectedRule = /\.tiptap-editor-surface img\.ProseMirror-selectednode\s*\{([^}]*)\}/u
+    const selectedRule = /\.studio-visual-editor-surface img\[data-studio-selected\]\s*\{([^}]*)\}/u
       .exec(CONTENT_EDITOR_CSS)?.[1] ?? '';
     expect(selectedRule).toContain('outline: 3px solid var(--studio-primary)');
     expect(selectedRule).toContain('outline-offset: -3px');

@@ -6,7 +6,7 @@ import { createRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLocale } from '../i18n';
 import { CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS } from '../../../contracts/content-editor';
-import { classifyTiptapHtml } from '../editor/tiptap-compatibility';
+import { classifySunEditorHtml } from '../editor/suneditor-compatibility';
 import { ContentBodyEditor } from './ContentBodyEditor';
 import type { ContentBodyEditorHandle } from './ContentBodyEditor';
 
@@ -39,14 +39,14 @@ function renderEditor(input: Partial<{
   canonicalEditorState: {
     content: string;
     editor_mode: 'source' | 'visual';
-    editor_profile: 'tiptap-v1' | null;
+    editor_profile: 'suneditor-v1' | null;
   } | null;
   onChange: (value: string) => void;
   onDirty: () => void;
   onEditorStateChange: (state: {
     content: string;
     editor_mode: 'source' | 'visual';
-    editor_profile: 'tiptap-v1' | null;
+    editor_profile: 'suneditor-v1' | null;
   }) => void;
 }> = {}) {
   const onChange = input.onChange ?? vi.fn();
@@ -57,14 +57,14 @@ function renderEditor(input: Partial<{
       value={input.value ?? '<p>Hello</p>'}
       documentType="html"
       editorMode={input.editorMode ?? 'source'}
-      editorProfile={input.editorMode === 'visual' ? 'tiptap-v1' : null}
+      editorProfile={input.editorMode === 'visual' ? 'suneditor-v1' : null}
       maximumLength={2_000_000}
       disabled={input.disabled}
       canonicalClean={input.canonicalClean ?? true}
       canonicalEditorState={input.canonicalEditorState ?? {
         content: input.value ?? '<p>Hello</p>',
         editor_mode: input.editorMode ?? 'source',
-        editor_profile: input.editorMode === 'visual' ? 'tiptap-v1' : null,
+        editor_profile: input.editorMode === 'visual' ? 'suneditor-v1' : null,
       }}
       canonicalEditorContextClean={input.canonicalEditorContextClean ?? true}
       onChange={onChange}
@@ -85,7 +85,7 @@ describe('ContentBodyEditor', () => {
     });
     const content = await screen.findByRole('textbox', { name: 'Content' });
     expect(content).toHaveTextContent(token);
-    expect(content.parentElement).toHaveClass('tiptap-editor-content');
+    expect(content.closest('.studio-visual-editor-content')).toHaveClass('studio-visual-editor-content');
     expect(callbacks.onChange).not.toHaveBeenCalled();
     expect(callbacks.onDirty).not.toHaveBeenCalled();
   });
@@ -191,21 +191,13 @@ describe('ContentBodyEditor', () => {
     expect(contentClick.defaultPrevented).toBe(false);
   });
 
-  it('exposes paragraph alignment and text color controls in visual mode', async () => {
-    const callbacks = renderEditor({
-      editorMode: 'visual',
-      value: '<p><span style="color: rgb(194, 65, 12)">Hello</span></p>',
-    });
-
+  it('exposes SunEditor formatting and alignment tools', async () => {
+    renderEditor({ editorMode: 'visual' });
     await screen.findByRole('textbox', { name: 'Content' });
-    expect(screen.getByRole('button', { name: 'Align left' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Align center' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Align right' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Justify' })).toBeEnabled();
-    expect(screen.getByLabelText('Text color')).toHaveValue('#c2410c');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Align center' }));
-    await waitFor(() => expect(callbacks.onDirty).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'Bold' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Italic' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Align' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Font color' })).toBeEnabled();
   });
 
   it('keeps WXR canonical whitespace and resource attributes clean on hydration', async () => {
@@ -213,10 +205,10 @@ describe('ContentBodyEditor', () => {
       '<p> 이 문제를 설명합니다.</p>',
       '<img class="aligncenter wp-image-13269" alt="" width="627" height="448" src="https://media.example/photo.png">',
     ].join('');
-    const compatibility = classifyTiptapHtml(source);
+    const compatibility = classifySunEditorHtml(source);
     expect(compatibility.compatible, JSON.stringify(compatibility)).toBe(true);
     if (!compatibility.compatible) return;
-    expect(classifyTiptapHtml(compatibility.canonicalHtml)).toMatchObject({
+    expect(classifySunEditorHtml(compatibility.canonicalHtml)).toMatchObject({
       compatible: true,
       canonicalHtml: compatibility.canonicalHtml,
       normalized: false,
@@ -273,7 +265,7 @@ describe('ContentBodyEditor', () => {
     expect(onEditorStateChange).toHaveBeenCalledWith({
       content: '<p><strong>Hello</strong></p>',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
   });
 
@@ -304,7 +296,7 @@ describe('ContentBodyEditor', () => {
     expect(onEditorStateChange).toHaveBeenCalledWith({
       content: '<p>Hello</p>',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
   });
 
@@ -325,7 +317,7 @@ describe('ContentBodyEditor', () => {
     const onEditorStateChange = vi.fn();
     const user = userEvent.setup();
     renderEditor({
-      value: '<picture><source srcset="/wide.png"><img src="/small.png"></picture>',
+      value: '<p><a href="javascript:alert(1)">Unsafe link</a></p>',
       onEditorStateChange,
     });
 
@@ -367,11 +359,11 @@ describe('ContentBodyEditor', () => {
       const canonical: {
         content: string;
         editor_mode: 'source' | 'visual';
-        editor_profile: 'tiptap-v1' | null;
+        editor_profile: 'suneditor-v1' | null;
       } = {
         content: '<ol><li><p>Hello</p></li></ol>',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       };
       const [state, setState] = useState(canonical);
       const clean = JSON.stringify(state) === JSON.stringify(canonical);
@@ -422,7 +414,7 @@ describe('ContentBodyEditor', () => {
       const canonical: {
         content: string;
         editor_mode: 'source' | 'visual';
-        editor_profile: 'tiptap-v1' | null;
+        editor_profile: 'suneditor-v1' | null;
       } = {
         content: '<p><b>Hello</b></p>',
         editor_mode: 'source',
@@ -540,13 +532,13 @@ describe('ContentBodyEditor', () => {
           value={value}
           documentType="html"
           editorMode="visual"
-          editorProfile="tiptap-v1"
+          editorProfile="suneditor-v1"
           maximumLength={2_000_000}
           canonicalClean
           canonicalEditorState={{
             content: '<img src="/photo.png" alt="Photo">',
             editor_mode: 'visual',
-            editor_profile: 'tiptap-v1',
+            editor_profile: 'suneditor-v1',
           }}
           canonicalEditorContextClean
           onChange={(next) => {
@@ -562,10 +554,9 @@ describe('ContentBodyEditor', () => {
     const user = userEvent.setup();
     const { container } = render(<Harness />);
     const content = await screen.findByRole('textbox', { name: 'Content' });
-    const image = container.querySelector('.tiptap-editor-surface img');
+    const image = container.querySelector('.studio-visual-editor-surface img');
     expect(image).not.toBeNull();
-    fireEvent.focus(content);
-    await user.keyboard('{ArrowRight}');
+    fireEvent.click(content.querySelector('img')!);
 
     await user.click(await screen.findByRole('button', {
       name: 'Edit image link',
@@ -594,13 +585,13 @@ describe('ContentBodyEditor', () => {
           value={value}
           documentType="html"
           editorMode="visual"
-          editorProfile="tiptap-v1"
+          editorProfile="suneditor-v1"
           maximumLength={2_000_000}
           canonicalClean
           canonicalEditorState={{
             content: '<img class="wp-image-7 alignleft" src="/photo.png" alt="Photo">',
             editor_mode: 'visual',
-            editor_profile: 'tiptap-v1',
+            editor_profile: 'suneditor-v1',
           }}
           canonicalEditorContextClean
           onChange={(next) => {
@@ -616,8 +607,7 @@ describe('ContentBodyEditor', () => {
     const user = userEvent.setup();
     render(<Harness />);
     const content = await screen.findByRole('textbox', { name: 'Content' });
-    fireEvent.focus(content);
-    await user.keyboard('{ArrowRight}');
+    fireEvent.click(content.querySelector('img')!);
 
     expect(await screen.findByRole('button', { name: 'Align image left' }))
       .toHaveAttribute('aria-pressed', 'true');
@@ -652,13 +642,13 @@ describe('ContentBodyEditor', () => {
           value={value}
           documentType="html"
           editorMode="visual"
-          editorProfile="tiptap-v1"
+          editorProfile="suneditor-v1"
           maximumLength={2_000_000}
           canonicalClean
           canonicalEditorState={{
             content: value,
             editor_mode: 'visual',
-            editor_profile: 'tiptap-v1',
+            editor_profile: 'suneditor-v1',
           }}
           canonicalEditorContextClean
           onChange={(next) => {
@@ -671,11 +661,9 @@ describe('ContentBodyEditor', () => {
         />
       );
     }
-    const user = userEvent.setup();
     render(<Harness />);
     const content = await screen.findByRole('textbox', { name: 'Content' });
-    fireEvent.focus(content);
-    await user.keyboard('{ArrowRight}');
+    fireEvent.click(content.querySelector('img')!);
 
     expect(ref.current?.replaceSelectedImage({
       id: '1'.repeat(32),

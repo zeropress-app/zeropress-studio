@@ -383,7 +383,7 @@ describe('Page D1 repository', () => {
       content: '<p>About</p>',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     await createPage({
       db: d1,
@@ -413,9 +413,9 @@ describe('Page D1 repository', () => {
         json_extract(snapshot_json, '$.draft.editor_profile') AS editor_profile
       FROM page_revisions WHERE page_id = ?
     `).get(pageId)).toEqual({
-      snapshot_version: 2,
+      snapshot_version: 3,
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     await expect(updatePage({
       db: d1,
@@ -441,7 +441,7 @@ describe('Page D1 repository', () => {
       content: '',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
     });
     await createPage({
       db: d1,

@@ -241,7 +241,7 @@ describe('PageEditorPage', () => {
             content: '<h2>Why it matters</h2>\n<p>Supplied value.</p>',
             document_type: 'html',
             editor_mode: 'visual',
-            editor_profile: 'tiptap-v1',
+            editor_profile: 'suneditor-v1',
           },
         });
       }
@@ -382,7 +382,7 @@ describe('PageEditorPage', () => {
       content: '<p>Install</p>',
       document_type: 'html' as const,
       editor_mode: 'visual' as const,
-      editor_profile: 'tiptap-v1' as const,
+      editor_profile: 'suneditor-v1' as const,
     };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(noAutosave())
@@ -420,7 +420,7 @@ describe('PageEditorPage', () => {
       content: '<p>Install</p>',
       document_type: 'html',
       editor_mode: 'visual',
-      editor_profile: 'tiptap-v1',
+      editor_profile: 'suneditor-v1',
       allow_comments: false,
     });
   });
@@ -431,7 +431,7 @@ describe('PageEditorPage', () => {
       content: '<p>Guide</p>',
       document_type: 'html' as const,
       editor_mode: 'visual' as const,
-      editor_profile: 'tiptap-v1' as const,
+      editor_profile: 'suneditor-v1' as const,
     };
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(response({ success: true, data: visualPage }))

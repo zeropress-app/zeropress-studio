@@ -5,7 +5,7 @@ import {
 } from './revision-diff-presentation';
 
 describe('visual HTML revision diff projection', () => {
-  it('adds logical lines at Tiptap block boundaries and preserves inline HTML', () => {
+  it('adds logical lines at SunEditor block boundaries and preserves inline HTML', () => {
     const html = '<p>First <a href="/one" title="1 > 0"><strong>link</strong></a></p><h2>Heading</h2><ul><li>One</li><li>Two</li></ul><figure><img src="/image.png"><figcaption>Caption</figcaption></figure>';
 
     expect(projectVisualHtmlForRevisionDiff(html)).toBe([
@@ -37,13 +37,13 @@ describe('visual HTML revision diff projection', () => {
     expect(projectVisualHtmlForRevisionDiff(projected)).toBe(projected);
   });
 
-  it('projects only a pair of visual tiptap-v1 HTML revisions', () => {
+  it('projects only a pair of visual suneditor-v1 HTML revisions', () => {
     const compact = '<p>One</p><p>Two</p>';
     const visual = {
       content: compact,
       documentType: 'html' as const,
       editorMode: 'visual' as const,
-      editorProfile: 'tiptap-v1' as const,
+      editorProfile: 'suneditor-v1' as const,
     };
     expect(prepareRevisionDiffPresentation({
       original: visual,

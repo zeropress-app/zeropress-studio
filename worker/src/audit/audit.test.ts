@@ -158,7 +158,7 @@ describe('audit read authorization', () => {
   });
 });
 describe('released schema upgrade', () => {
-  it('upgrades schema 1 to the fresh schema 2 without modifying existing data', async () => {
+  it('upgrades the earliest supported schema to the fresh baseline and preserves existing data', async () => {
     const old = new DatabaseSync(':memory:'); const fresh = new DatabaseSync(':memory:');
     try {
       old.exec(readFileSync(new NodeURL('./fixtures/schema-1.sql', import.meta.url), 'utf8'));
@@ -172,17 +172,22 @@ describe('released schema upgrade', () => {
           administrator_email: actor.email, administrator_password: 'synthetic-password',
           backup_acknowledged: true, confirmation: DATABASE_UPGRADE_CONFIRMATION,
         }, now });
-      const upgraded = await applyNextStudioSchemaUpgrade({ db, request: {
+      let upgraded = await applyNextStudioSchemaUpgrade({ db, request: {
         operation_id: started.operation_id, step_id: started.next_step.id, confirmation: DATABASE_UPGRADE_CONFIRMATION,
       }, now });
+      while (upgraded.status !== 'completed') {
+        upgraded = await applyNextStudioSchemaUpgrade({ db, request: {
+          operation_id: started.operation_id, step_id: upgraded.next_step!.id, confirmation: DATABASE_UPGRADE_CONFIRMATION,
+        }, now });
+      }
       expect(upgraded.status).toBe('completed');
-      expect(old.prepare('SELECT schema_version FROM zeropress_schema_state').get()).toEqual({ schema_version: 2 });
+      expect(old.prepare('SELECT schema_version FROM zeropress_schema_state').get()).toEqual({ schema_version: STUDIO_SCHEMA_VERSION });
       fresh.exec(readFileSync(new NodeURL('../../../database/install/001_baseline.sql', import.meta.url), 'utf8'));
-      const catalog = (db: DatabaseSync) => db.prepare("SELECT name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all();
+      const catalog = (db: DatabaseSync) => db.prepare("SELECT name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all().map((row) => ({ ...row, sql: typeof row.sql === 'string' ? row.sql.replace(/"(\w+)"/gu, '$1') : row.sql }));
       expect(catalog(old)).toEqual(catalog(fresh));
       expect(old.prepare("SELECT value FROM site_settings WHERE key = 'test'").get()).toEqual({ value: 'preserved' });
       expect(old.prepare('SELECT count(*) AS count FROM audit_logs').get()).toEqual({ count: 0 });
-      expect([STUDIO_SCHEMA_VERSION, MIN_SUPPORTED_STUDIO_SCHEMA_VERSION]).toEqual([2, 1]);
+      expect([STUDIO_SCHEMA_VERSION, MIN_SUPPORTED_STUDIO_SCHEMA_VERSION]).toEqual([3, 1]);
     } finally { old.close(); fresh.close(); }
   });
 });

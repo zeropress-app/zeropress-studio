@@ -159,10 +159,10 @@ export function projectVisualHtmlForRevisionDiff(html: string): string {
   return output;
 }
 
-function isTiptapVisualHtml(source: RevisionDiffPresentationSource): boolean {
+function isSunEditorVisualHtml(source: RevisionDiffPresentationSource): boolean {
   return source.documentType === 'html'
     && source.editorMode === 'visual'
-    && source.editorProfile === 'tiptap-v1';
+    && source.editorProfile === 'suneditor-v1';
 }
 
 /**
@@ -174,7 +174,7 @@ export function prepareRevisionDiffPresentation(input: {
   original: RevisionDiffPresentationSource;
   modified: RevisionDiffPresentationSource;
 }): { original: string; modified: string } {
-  if (!isTiptapVisualHtml(input.original) || !isTiptapVisualHtml(input.modified)) {
+  if (!isSunEditorVisualHtml(input.original) || !isSunEditorVisualHtml(input.modified)) {
     return {
       original: input.original.content,
       modified: input.modified.content,

@@ -43,9 +43,11 @@ const definedClasses = new Set(
 const DYNAMIC_CLASSES = new Set([
   // State suffixes assembled as `is-${autosave.status}`.
   'is-idle', 'is-saving', 'is-saved', 'is-failed', 'is-disabled',
-  // Assigned at runtime by ProseMirror and imperative NodeViews.
-  'ProseMirror-selectednode', 'tiptap-embed-placeholder',
-  // Tiptap image attributes serialize to WordPress-compatible HTML classes.
+  // Assigned by the visual editor runtime and its media placeholders.
+  'studio-visual-embed-placeholder', 'studio-visual-editor-surface',
+  'sun-editor', 'sun-editor-editable', 'se-container', 'se-toolbar',
+  'se-btn-module-border', 'se-menu-list', 'se-tooltip', 'se-tooltip-inner', 'se-tooltip-text',
+  // SunEditor image attributes serialize to WordPress-compatible HTML classes.
   'alignleft', 'aligncenter', 'alignright',
 ]);
 

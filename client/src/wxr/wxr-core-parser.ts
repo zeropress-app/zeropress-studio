@@ -77,9 +77,9 @@ import {
 } from '../../../contracts/wxr-import';
 import { computeImportedHtmlExcerpt } from '../../../contracts/document-excerpt';
 import {
-  classifyTiptapHtml,
-  type TiptapFallbackReason,
-} from '../editor/tiptap-compatibility';
+  classifySunEditorHtml,
+  type SunEditorFallbackReason,
+} from '../editor/suneditor-compatibility';
 import { materializeWordPressClassicHtml } from './wordpress-content';
 
 const WXR_NAMESPACE = 'http://wordpress.org/export/1.2/';
@@ -303,7 +303,7 @@ export type WxrCoreImportPlan = {
     visual: number;
     source: number;
     source_fallbacks: Array<{
-      reason: TiptapFallbackReason;
+      reason: SunEditorFallbackReason;
       count: number;
       affected: string[];
     }>;
@@ -2105,19 +2105,19 @@ function createPlan(
   const editorCompatibility = {
     visual: 0,
     source: 0,
-    fallbacks: new Map<TiptapFallbackReason, {
+    fallbacks: new Map<SunEditorFallbackReason, {
       count: number;
       affected: string[];
     }>(),
   };
   const classifyImportedContent = (content: string, label: string) => {
-    const result = classifyTiptapHtml(content);
+    const result = classifySunEditorHtml(content);
     if (result.compatible) {
       editorCompatibility.visual += 1;
       return {
         content: result.canonicalHtml,
         editor_mode: 'visual' as const,
-        editor_profile: 'tiptap-v1' as const,
+        editor_profile: 'suneditor-v1' as const,
       };
     }
     editorCompatibility.source += 1;

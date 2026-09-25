@@ -49,7 +49,7 @@ describe('AI Page draft contract', () => {
         ...base.data,
         document_type: 'html',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }).success).toBe(true);
     expect(aiPageDraftSuccessSchema.safeParse({
@@ -58,7 +58,7 @@ describe('AI Page draft contract', () => {
         ...base.data,
         document_type: 'markdown',
         editor_mode: 'visual',
-        editor_profile: 'tiptap-v1',
+        editor_profile: 'suneditor-v1',
       },
     }).success).toBe(false);
   });

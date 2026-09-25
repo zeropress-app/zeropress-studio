@@ -316,7 +316,7 @@ describe('Post routes', () => {
       target_id: post.id,
       base_revision: post.revision,
       snapshot: {
-        version: 2,
+        version: 3,
         content_type: 'post',
         draft: {
           ...authored,
@@ -599,7 +599,7 @@ describe('Post routes', () => {
       deletePost,
     });
     const autosaveSnapshot = {
-      version: 2,
+      version: 3,
       content_type: 'post',
       draft: { ...authored, title: post.title, excerpt: post.excerpt },
       references: {

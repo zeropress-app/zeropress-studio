@@ -16,10 +16,10 @@ import type {
 } from '../../../contracts/content-editor';
 import type { Media } from '../../../contracts/media';
 import {
-  classifyTiptapHtml,
-  type TiptapCompatibilityResult,
-} from '../editor/tiptap-compatibility';
-import { formatTiptapVisualHtml } from '../editor/tiptap-html-serialization';
+  classifySunEditorHtml,
+  type SunEditorCompatibilityResult,
+} from '../editor/suneditor-compatibility';
+import { formatSunEditorVisualHtml } from '../editor/visual-html-serialization';
 import {
   createContentMediaSnippet,
   insertTextAtSelection,
@@ -27,7 +27,7 @@ import {
 import { Button, Dialog, Field, Notice, Spinner } from './primitives';
 import { RevisionSourceComparison } from './RevisionSourceComparison';
 import type { MonacoSourceEditorHandle } from './MonacoSourceEditor';
-import type { TiptapVisualEditorHandle } from './TiptapVisualEditor';
+import type { SunEditorVisualEditorHandle } from './SunEditorVisualEditor';
 import type {
   ContentAiSelection,
   SourceContentAiSelection,
@@ -38,9 +38,9 @@ const LazyMonacoSourceEditor = lazy(async () => {
   return { default: module.MonacoSourceEditor };
 });
 
-const LazyTiptapVisualEditor = lazy(async () => {
-  const module = await import('./TiptapVisualEditor');
-  return { default: module.TiptapVisualEditor };
+const LazySunEditorVisualEditor = lazy(async () => {
+  const module = await import('./SunEditorVisualEditor');
+  return { default: module.SunEditorVisualEditor };
 });
 
 export type ContentBodyEditorHandle = {
@@ -85,13 +85,13 @@ type Transition =
   | { kind: 'source'; content: string }
   | {
       kind: 'visual';
-      result: Extract<TiptapCompatibilityResult, {
+      result: Extract<SunEditorCompatibilityResult, {
         classification: 'safe' | 'review_required';
       }>;
     }
   | {
       kind: 'incompatible';
-      result: Extract<TiptapCompatibilityResult, { classification: 'blocked' }>;
+      result: Extract<SunEditorCompatibilityResult, { classification: 'blocked' }>;
     };
 
 type CanonicalEditorState = {
@@ -122,7 +122,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
   const { t } = useTranslation('contentEditor');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sourceRef = useRef<MonacoSourceEditorHandle>(null);
-  const visualRef = useRef<TiptapVisualEditorHandle>(null);
+  const visualRef = useRef<SunEditorVisualEditorHandle>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
   const [transition, setTransition] = useState<Transition | null>(null);
   const [modeNotice, setModeNotice] = useState(false);
@@ -224,15 +224,15 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
       && next === canonical.editor_mode
     ) {
       const reversesVisualToSource = canonical.editor_mode === 'visual'
-        && canonical.editor_profile === 'tiptap-v1'
+        && canonical.editor_profile === 'suneditor-v1'
         && input.editorMode === 'source'
         && input.editorProfile === null
-        && input.value === formatTiptapVisualHtml(canonical.content);
+        && input.value === formatSunEditorVisualHtml(canonical.content);
       const canonicalVisual = canonical.editor_mode === 'source'
         && canonical.editor_profile === null
         && input.editorMode === 'visual'
-        && input.editorProfile === 'tiptap-v1'
-        ? classifyTiptapHtml(canonical.content)
+        && input.editorProfile === 'suneditor-v1'
+        ? classifySunEditorHtml(canonical.content)
         : null;
       const reversesSourceToVisual = canonicalVisual !== null
         && canonicalVisual.classification !== 'blocked'
@@ -249,11 +249,11 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
     if (next === 'source') {
       setTransition({
         kind: 'source',
-        content: formatTiptapVisualHtml(input.value),
+        content: formatSunEditorVisualHtml(input.value),
       });
       return;
     }
-    const result = classifyTiptapHtml(input.value);
+    const result = classifySunEditorHtml(input.value);
     setTransition(result.classification === 'blocked'
       ? { kind: 'incompatible', result }
       : { kind: 'visual', result });
@@ -270,7 +270,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
       : {
           content: transition.result.canonicalHtml,
           editor_mode: 'visual',
-          editor_profile: 'tiptap-v1',
+          editor_profile: 'suneditor-v1',
         });
     setTransition(null);
   }
@@ -335,7 +335,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
               <span>{t('loading')}</span>
             </div>
           )}>
-            <LazyTiptapVisualEditor
+            <LazySunEditorVisualEditor
               key={visualRetry}
               ref={visualRef}
               content={input.value}
@@ -504,7 +504,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
                 originalEditorMode="source"
                 modifiedEditorMode="visual"
                 originalEditorProfile={null}
-                modifiedEditorProfile="tiptap-v1"
+                modifiedEditorProfile="suneditor-v1"
               />
             ) : null}
           </div>

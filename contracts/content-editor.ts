@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CONTENT_EDITOR_PROFILE = 'tiptap-v1' as const;
+export const CONTENT_EDITOR_PROFILE = 'suneditor-v1' as const;
 export const CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS = 131_072;
 export const CONTENT_EDITOR_VISUAL_MAX_NODES = 5_000;
 
@@ -30,7 +30,7 @@ export function validateContentEditorState(
       context.addIssue({
         code: 'custom',
         path: ['editor_mode'],
-        message: 'Visual editing requires HTML and the tiptap-v1 profile.',
+        message: 'Visual editing requires HTML and the suneditor-v1 profile.',
       });
     }
     if (value.content.length > CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS) {
