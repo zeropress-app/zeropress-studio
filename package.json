@@ -1,7 +1,7 @@
 {
   "name": "@zeropress/studio",
   "description": "Self-hosted content management and publishing control for ZeroPress",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
