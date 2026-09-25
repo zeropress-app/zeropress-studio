@@ -40,8 +40,10 @@ export const newsletters = {
   },
   overview: {
     title: 'Subscription settings',
-    description: 'Set the public signup copy and whether new subscriptions are accepted.',
-    fields: { status: 'Signup availability', title: 'Signup title', description: 'Signup description (optional)' },
+    description: 'Manage newsletter availability and the public signup text.',
+    enableLabel: 'Enable newsletter',
+    enableDescription: 'Turning this off stops new subscriptions and newsletter email delivery.',
+    fields: { title: 'Signup title', description: 'Signup description (optional)' },
     saved: 'Subscription settings saved.',
     updated: 'Updated {{date}}',
   },

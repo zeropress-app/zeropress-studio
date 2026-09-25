@@ -40,8 +40,10 @@ export const newsletters = {
   },
   overview: {
     title: '구독 설정',
-    description: '공개 가입 화면의 문구와 신규 구독 접수 여부를 설정합니다.',
-    fields: { status: '가입 접수 상태', title: '가입 제목', description: '가입 설명 (선택)' },
+    description: '뉴스레터 사용 여부와 공개 가입 화면의 문구를 설정합니다.',
+    enableLabel: '뉴스레터 사용',
+    enableDescription: '끄면 신규 구독과 뉴스레터 메일 발송을 중지합니다.',
+    fields: { title: '가입 제목', description: '가입 설명 (선택)' },
     saved: '구독 설정을 저장했습니다.',
     updated: '업데이트: {{date}}',
   },

@@ -311,48 +311,38 @@ function OverviewPanel(input: {
             <Notice tone="success">{t('overview.saved')}</Notice>
           ) : null}
           <ErrorNotice failure={failure} />
-          <div className="newsletter-form-grid">
-            <Field label={t('overview.fields.title')}>
-              {(control) => (
-                <input
-                  {...control}
-                  value={title}
-                  maxLength={200}
-                  disabled={saving}
-                  onChange={(event) => setTitle(event.target.value)}
-                />
-              )}
-            </Field>
-            <Field label={t('overview.fields.status')}>
-              {(control) => (
-                <select
-                  {...control}
-                  value={status}
-                  disabled={saving}
-                  onChange={(event) => (
-                    setStatus(event.target.value as typeof status)
-                  )}
-                >
-                  <option value="active">{t('status.active')}</option>
-                  <option value="archived">{t('status.archived')}</option>
-                </select>
-              )}
-            </Field>
-            <div className="newsletter-field-wide">
-              <Field label={t('overview.fields.description')}>
-                {(control) => (
-                  <textarea
-                    {...control}
-                    rows={4}
-                    maxLength={2000}
-                    value={description}
-                    disabled={saving}
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
-                )}
-              </Field>
-            </div>
-          </div>
+          <SwitchGroup>
+            <Switch
+              label={t('overview.enableLabel')}
+              description={t('overview.enableDescription')}
+              checked={status === 'active'}
+              disabled={saving}
+              onChange={(enabled) => setStatus(enabled ? 'active' : 'archived')}
+            />
+          </SwitchGroup>
+          <Field label={t('overview.fields.title')}>
+            {(control) => (
+              <input
+                {...control}
+                value={title}
+                maxLength={200}
+                disabled={saving}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            )}
+          </Field>
+          <Field label={t('overview.fields.description')}>
+            {(control) => (
+              <textarea
+                {...control}
+                rows={4}
+                maxLength={2000}
+                value={description}
+                disabled={saving}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            )}
+          </Field>
         </div>
       </Panel>
     </form>

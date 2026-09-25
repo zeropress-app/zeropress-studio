@@ -10,6 +10,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
+import type { NewsletterSummary } from '../../contracts/newsletters';
 import type { CurrentSessionSuccess } from '../../contracts/session';
 import { NewslettersPage } from './NewslettersPage';
 import { changeLocale } from './i18n';
@@ -55,6 +56,110 @@ beforeEach(async () => {
 });
 
 describe('NewslettersPage', () => {
+  it.each([
+    {
+      locale: 'en',
+      from: 'archived',
+      to: 'active',
+      label: 'Enable newsletter',
+      description: 'Turning this off stops new subscriptions and newsletter email delivery.',
+      save: 'Save',
+    },
+    {
+      locale: 'ko',
+      from: 'active',
+      to: 'archived',
+      label: '뉴스레터 사용',
+      description: '끄면 신규 구독과 뉴스레터 메일 발송을 중지합니다.',
+      save: '저장',
+    },
+  ] as const)('saves newsletter activation only on submit ($locale, $from → $to)', async (input) => {
+    await changeLocale(input.locale);
+    const newsletter: NewsletterSummary = {
+      id: '3'.repeat(32),
+      slug: 'default',
+      title: 'Product updates',
+      description: 'Release notes',
+      status: input.from,
+      fields_count: 0,
+      subscriptions_count: 0,
+      pending_count: 0,
+      subscribed_count: 0,
+      unsubscribed_count: 0,
+      created_at_iso: '2026-08-01T00:00:00.000Z',
+      updated_at_iso: '2026-08-01T00:00:00.000Z',
+    };
+    let completeSave!: (response: Response) => void;
+    const saveRequest = vi.fn((_init: RequestInit) => new Promise<Response>((resolve) => {
+      completeSave = resolve;
+    }));
+    vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
+      if (path === `/api/newsletters/${newsletter.id}` && init?.method === 'PATCH') {
+        return saveRequest(init);
+      }
+      if (path === '/api/newsletters/runtime') {
+        return Promise.resolve(json({
+          success: true,
+          data: {
+            confirmation_enabled: false,
+            mail_configured: false,
+            ready: false,
+            updated_at_iso: newsletter.updated_at_iso,
+          },
+        }));
+      }
+      if (path.startsWith('/api/newsletters?')) {
+        return Promise.resolve(json({
+          success: true,
+          data: {
+            items: [newsletter],
+            pagination: { page: 1, per_page: 100, total: 1, total_pages: 1 },
+          },
+        }));
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${path}`);
+    }));
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewslettersPage data={session} onSessionEnded={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const control = await screen.findByRole('switch', { name: input.label });
+    expect(control).toHaveProperty('checked', input.from === 'active');
+    expect(control).toHaveAccessibleDescription(input.description);
+    const saveButton = screen.getByRole('button', { name: input.save });
+    expect(saveButton).toBeDisabled();
+    if (input.locale === 'en') {
+      control.focus();
+      await user.keyboard(' ');
+    } else {
+      await user.click(screen.getByText(input.label));
+    }
+    expect(control).toHaveProperty('checked', input.to === 'active');
+    expect(saveButton).toBeEnabled();
+    expect(saveRequest).not.toHaveBeenCalled();
+
+    await user.click(saveButton);
+    expect(saveRequest).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(saveRequest.mock.calls[0]![0].body))).toEqual({
+      title: newsletter.title,
+      description: newsletter.description,
+      status: input.to,
+      expected_updated_at_iso: newsletter.updated_at_iso,
+    });
+    expect(control).toBeDisabled();
+    expect(saveButton).toBeDisabled();
+    completeSave(json({
+      success: true,
+      data: { ...newsletter, status: input.to, updated_at_iso: '2026-08-01T00:01:00.000Z' },
+    }));
+    await waitFor(() => expect(control).toBeEnabled());
+    expect(control).toHaveProperty('checked', input.to === 'active');
+    expect(screen.getByRole('button', { name: input.save })).toBeDisabled();
+  });
+
   it('manages only the default subscription channel while preserving multi-slug data', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string) => {
       if (path === '/api/newsletters/runtime') {
