@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
@@ -95,6 +95,41 @@ beforeEach(async () => {
 });
 
 describe('TaxonomyPage', () => {
+  it.each(['backdrop', 'Escape', 'Cancel'] as const)('protects taxonomy edits when dismissed through %s', async (dismissal) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(termList([category])));
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('button', { name: 'Edit Product News' });
+    const creating = dismissal === 'Cancel';
+    const openEditor = () => user.click(screen.getByRole('button', {
+      name: creating ? 'New category' : 'Edit Product News',
+    }));
+    await openEditor();
+    const editor = screen.getByRole('dialog');
+    const field = within(editor).getByRole('textbox', { name: 'Description (optional)' });
+    await user.type(field, ' changed');
+    async function dismiss() {
+      if (dismissal === 'backdrop') fireEvent.mouseDown(editor.parentElement!);
+      else if (dismissal === 'Escape') await user.keyboard('{Escape}');
+      else await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    }
+    await dismiss();
+    await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+    expect(field).toHaveValue(`${creating ? '' : category.description} changed`);
+    await dismiss();
+    // Escape closes only the discard confirmation, preserving the editor beneath it.
+    await user.keyboard('{Escape}');
+    expect(field).toBeVisible();
+    expect(field).toHaveValue(`${creating ? '' : category.description} changed`);
+    await dismiss();
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await openEditor();
+    expect(screen.getByRole('textbox', { name: 'Description (optional)' })).toHaveValue(creating ? '' : category.description);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('creates a public Category with a suggested editable slug', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(termList([]))

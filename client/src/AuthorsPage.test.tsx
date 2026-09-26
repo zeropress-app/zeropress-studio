@@ -2,6 +2,7 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -123,6 +124,50 @@ beforeEach(async () => {
 });
 
 describe('AuthorsPage', () => {
+  it.each(['backdrop', 'Escape', 'Cancel'] as const)('protects an author draft when dismissed through %s', async (dismissal) => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(authorList([author]))
+      .mockResolvedValueOnce(userOptions(author.id)));
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('button', { name: `Actions for ${author.display_name}` });
+    const creating = dismissal === 'Cancel';
+    async function openEditor() {
+      if (creating) await user.click(screen.getByRole('button', { name: 'New author' }));
+      else {
+        await user.click(screen.getByRole('button', { name: `Actions for ${author.display_name}` }));
+        await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
+      }
+    }
+    await openEditor();
+    const editor = screen.getByRole('dialog');
+    const field = within(editor).getByRole('textbox', { name: 'Display name' });
+    await user.type(field, ' changed');
+    async function dismiss() {
+      if (dismissal === 'backdrop') fireEvent.mouseDown(editor.parentElement!);
+      else if (dismissal === 'Escape') await user.keyboard('{Escape}');
+      else await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    }
+    await dismiss();
+    const confirmation = screen.getByRole('dialog', { name: 'Discard unsaved changes?' });
+    const keepEditing = within(confirmation).getByRole('button', { name: 'Keep editing' });
+    expect(keepEditing).toHaveFocus();
+    await user.tab();
+    expect(within(confirmation).getByRole('button', { name: 'Discard changes' })).toHaveFocus();
+    await user.tab();
+    expect(keepEditing).toHaveFocus();
+    await user.click(keepEditing);
+    if (dismissal !== 'Cancel') expect(field).toHaveFocus();
+    expect(field).toHaveValue(`${creating ? '' : author.display_name} changed`);
+    await dismiss();
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await openEditor();
+    expect(screen.getByRole('textbox', { name: 'Display name' })).toHaveValue(creating ? '' : author.display_name);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('uses a Media reference search link as the initial Author filter', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(authorList([author]))

@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { Folder, Link2, Pencil, Plus, RefreshCw, Save, Search, Tags, Trash2, Type } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useDiscardChangesDialog } from './hooks/useDiscardChangesDialog';
 import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
 import type { ApiErrorCode } from '../../contracts/api';
 import {
@@ -108,6 +109,15 @@ export function TaxonomyPage(input: {
   const nameRef = useRef<HTMLInputElement>(null);
   const runningRef = useRef(running);
   runningRef.current = running;
+  const editingTerm = action?.kind === 'edit' ? action.term : null;
+  const editGuard = useDiscardChangesDialog({
+    open: action !== null && action.kind !== 'delete',
+    dirty: name !== (editingTerm?.name ?? '')
+      || slug !== (editingTerm?.slug ?? '')
+      || description !== (editingTerm?.description ?? ''),
+    busy: running,
+    onClose: closeAction,
+  });
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(
     i18n.resolvedLanguage,
     { dateStyle: 'medium', timeStyle: 'short' },
@@ -615,7 +625,7 @@ export function TaxonomyPage(input: {
         <Dialog
           open
           busy={running}
-          onClose={closeAction}
+          onClose={editGuard.requestClose}
           title={t(titleKey(action.kind, taxonomy))}
           description={t(action.kind === 'create'
             ? 'dialog.createDescription'
@@ -680,7 +690,7 @@ export function TaxonomyPage(input: {
                 ref={cancelRef}
                 type="button"
                 disabled={running}
-                onClick={closeAction}
+                onClick={editGuard.requestClose}
               >
                 {t('dialog.cancel')}
               </Button>
@@ -705,6 +715,7 @@ export function TaxonomyPage(input: {
           </form>
         </Dialog>
       ) : null}
+      {editGuard.confirmation}
     </main>
   );
 }

@@ -522,6 +522,51 @@ describe('Dialog', () => {
     expect(container.hasAttribute('aria-hidden')).toBe(false);
   });
 
+  it('handles Escape only in the top dialog and restores focus to its parent', async () => {
+    function Nested() {
+      const [outer, setOuter] = useState(true);
+      const [inner, setInner] = useState(false);
+      return <>
+        <Dialog open={outer} title="Outer" onClose={() => setOuter(false)}
+          actions={<Button type="button" onClick={() => setInner(true)}>Open inner</Button>} />
+        <Dialog open={inner} title="Inner" onClose={() => setInner(false)}
+          actions={<Button type="button" onClick={() => setInner(false)}>Keep editing</Button>} />
+      </>;
+    }
+    render(<Nested />);
+    const user = userEvent.setup();
+    const trigger = screen.getByRole('button', { name: 'Open inner' });
+    await user.click(trigger);
+    expect(screen.getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Outer' })).toBeVisible();
+    expect(trigger).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('restores scrolling when an editor and its confirmation close together', async () => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'auto';
+    function Stacked() {
+      const [open, setOpen] = useState(true);
+      return <>
+        <Dialog open={open} title="Editor" onClose={() => setOpen(false)} />
+        <Dialog open={open} title="Discard changes?" onClose={() => setOpen(false)}
+          actions={<Button type="button" onClick={() => setOpen(false)}>Discard</Button>} />
+      </>;
+    }
+    try {
+      const { container } = render(<Stacked />);
+      expect(document.body.style.overflow).toBe('hidden');
+      await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      expect(document.body.style.overflow).toBe('auto');
+      expect(container).not.toHaveAttribute('inert');
+    } finally {
+      document.body.style.overflow = previousOverflow;
+    }
+  });
+
   it('keeps the background locked until the last nested dialog closes', async () => {
     // A modal may open another modal, such as a navigation warning above a save confirmation.
     function Stacked() {

@@ -42,6 +42,8 @@ const FOCUSABLE_SELECTOR = [
  * back to body and focus inside a dialog.
  */
 let lastFocusedOutsideDialog: HTMLElement | null = null;
+const openDialogs: HTMLElement[] = [];
+let originalBodyOverflow = '';
 
 if (typeof document !== 'undefined') {
   document.addEventListener('focusin', (event) => {
@@ -91,8 +93,15 @@ export function useDialogBehavior(input: {
   useEffect(() => {
     if (!open) return;
 
-    const previouslyFocused = lastFocusedOutsideDialog;
-    const previousOverflow = document.body.style.overflow;
+    const container = dialogRef.current;
+    if (!container) return;
+    const active = document.activeElement;
+    const previouslyFocused = active instanceof HTMLElement
+      && openDialogs.some((dialog) => dialog.contains(active))
+      ? active
+      : lastFocusedOutsideDialog;
+    if (openDialogs.length === 0) originalBodyOverflow = document.body.style.overflow;
+    openDialogs.push(container);
     document.body.style.overflow = 'hidden';
     // Lock the background before moving focus. inert blurs the trigger, but
     // module-level tracking has already captured the return target.
@@ -118,6 +127,8 @@ export function useDialogBehavior(input: {
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      // A nested confirmation owns Escape and Tab until it closes.
+      if (openDialogs.at(-1) !== container) return;
       if (event.key === 'Escape') {
         if (!busyRef.current) onCloseRef.current();
         return;
@@ -153,7 +164,9 @@ export function useDialogBehavior(input: {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      const index = openDialogs.indexOf(container);
+      if (index !== -1) openDialogs.splice(index, 1);
+      if (openDialogs.length === 0) document.body.style.overflow = originalBodyOverflow;
       document.removeEventListener('keydown', handleKeyDown);
       // Unlock the background before restoring focus. An inert element cannot receive
       // focus, so reversing this order would silently prevent restoration.

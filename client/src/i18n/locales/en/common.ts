@@ -1,4 +1,10 @@
 export const common = {
+  discardChanges: {
+    title: 'Discard unsaved changes?',
+    description: 'Your changes in this window have not been saved.',
+    keepEditing: 'Keep editing',
+    discard: 'Discard changes',
+  },
   language: {
     label: 'Language',
     english: 'English',

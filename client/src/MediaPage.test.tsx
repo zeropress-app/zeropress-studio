@@ -190,6 +190,37 @@ beforeEach(async () => {
 });
 
 describe('MediaPage', () => {
+  it.each(['backdrop', 'Escape', 'Cancel'] as const)('protects Media metadata when dismissed through %s', async (dismissal) => {
+    vi.stubGlobal('fetch', mediaFetchSequence([mediaList([media])]));
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('button', { name: 'Actions for hero.jpg' });
+    const creating = dismissal === 'Cancel';
+    async function openEditor() {
+      if (creating) await user.click(screen.getByRole('button', { name: 'Register external asset' }));
+      else await chooseMediaAction(user, 'hero.jpg', 'Edit');
+    }
+    await openEditor();
+    const editor = screen.getByRole('dialog');
+    const field = within(editor).getByRole('textbox', { name: /^Alternative text/u });
+    await user.type(field, ' changed');
+    async function dismiss() {
+      if (dismissal === 'backdrop') fireEvent.mouseDown(editor.parentElement!);
+      else if (dismissal === 'Escape') await user.keyboard('{Escape}');
+      else await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    }
+    await dismiss();
+    await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+    expect(field).toHaveValue(`${creating ? '' : media.alt} changed`);
+    await dismiss();
+    await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await openEditor();
+    expect(screen.getByRole('textbox', { name: /^Alternative text/u })).toHaveValue(creating ? '' : media.alt);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('keeps one list select-all control outside the header and preserves selection across views', async () => {
     const secondMedia = { ...media, id: '5'.repeat(32), filename: 'second.jpg' };
     vi.stubGlobal('fetch', mediaFetchSequence([mediaList([media, secondMedia])]));

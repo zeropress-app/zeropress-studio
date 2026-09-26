@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDiscardChangesDialog } from './hooks/useDiscardChangesDialog';
 import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -128,6 +129,16 @@ export function AuthorsPage(input: {
   );
   const runningRef = useRef(running);
   runningRef.current = running;
+  const editingAuthor = action?.kind === 'edit' ? action.author : null;
+  const editGuard = useDiscardChangesDialog({
+    open: action !== null && action.kind !== 'delete',
+    dirty: displayName !== (editingAuthor?.display_name ?? '')
+      || id !== (editingAuthor?.id ?? '')
+      || linkedUserId !== (editingAuthor?.user?.id ?? '')
+      || (avatar?.id ?? null) !== (editingAuthor?.avatar?.id ?? null),
+    busy: running,
+    onClose: closeAction,
+  });
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(
     i18n.resolvedLanguage,
     { dateStyle: 'medium', timeStyle: 'short' },
@@ -648,7 +659,7 @@ export function AuthorsPage(input: {
         <Dialog
           open
           busy={running}
-          onClose={closeAction}
+          onClose={editGuard.requestClose}
           kicker={t(action.kind === 'create'
             ? 'dialog.createKicker'
             : 'dialog.editKicker')}
@@ -769,7 +780,7 @@ export function AuthorsPage(input: {
                 ref={cancelRef}
                 type="button"
                 disabled={running}
-                onClick={closeAction}
+                onClick={editGuard.requestClose}
               >
                 {t('dialog.cancel')}
               </Button>
@@ -788,6 +799,7 @@ export function AuthorsPage(input: {
           </form>
         </Dialog>
       ) : null}
+      {editGuard.confirmation}
       {avatarPickerOpen && action && action.kind !== 'delete' ? (
         <MediaPickerDialog
           purpose="author_avatar"

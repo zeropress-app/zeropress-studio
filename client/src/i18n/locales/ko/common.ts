@@ -1,4 +1,10 @@
 export const common = {
+  discardChanges: {
+    title: '저장하지 않은 변경을 폐기할까요?',
+    description: '이 창에서 변경한 내용은 아직 저장되지 않았습니다.',
+    keepEditing: '계속 편집',
+    discard: '변경 폐기',
+  },
   language: {
     label: '언어',
     english: 'English',

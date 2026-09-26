@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDiscardChangesDialog } from './hooks/useDiscardChangesDialog';
 import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
 import { Link } from 'react-router';
 import {
@@ -239,6 +240,21 @@ export function MediaPage(input: {
   const [referencePage, setReferencePage] = useState(1);
   const [referenceAttempt, setReferenceAttempt] = useState(0);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const editingMedia = mediaAction?.kind === 'edit' ? mediaAction.media : null;
+  const metadataGuard = useDiscardChangesDialog({
+    open: mediaAction?.kind === 'create' || mediaAction?.kind === 'edit',
+    dirty: mediaKind !== (editingMedia?.kind ?? 'image')
+      || filename !== (editingMedia?.filename ?? '')
+      || mimeType !== (editingMedia?.mime_type ?? 'image/jpeg')
+      || source !== (editingMedia ? mediaLocationLabel(editingMedia.location) : '')
+      || sizeBytes !== String(editingMedia?.size_bytes ?? '')
+      || width !== String(editingMedia?.width ?? '')
+      || height !== String(editingMedia?.height ?? '')
+      || durationMs !== String(editingMedia?.duration_ms ?? '')
+      || alt !== (editingMedia?.alt ?? ''),
+    busy: running,
+    onClose: () => { setMediaAction(null); setFailure(null); },
+  });
   const editingNativeUpload = mediaAction?.kind === 'edit'
     && mediaAction.media.location.type === 'r2'
     && mediaAction.media.location.key.startsWith('uploads/');
@@ -1609,7 +1625,7 @@ export function MediaPage(input: {
         <Dialog
           open
           busy={running}
-          onClose={() => setMediaAction(null)}
+          onClose={metadataGuard.requestClose}
           size="wide"
           kicker={t(mediaAction.kind === 'create' ? 'dialog.createKicker' : 'dialog.editKicker')}
           title={t(mediaAction.kind === 'create' ? 'dialog.createTitle' : 'dialog.editTitle')}
@@ -1718,7 +1734,7 @@ export function MediaPage(input: {
             ) : null}
             {failure ? <Notice tone="error">{failureMessage(failure)}</Notice> : null}
             <DialogActions>
-              <Button ref={cancelRef} type="button" disabled={running} onClick={() => setMediaAction(null)}>
+              <Button ref={cancelRef} type="button" disabled={running} onClick={metadataGuard.requestClose}>
                 {t('dialog.cancel')}
               </Button>
               <Button type="submit" variant="primary" disabled={running}>
@@ -1730,6 +1746,8 @@ export function MediaPage(input: {
           </form>
         </Dialog>
       ) : null}
+
+      {metadataGuard.confirmation}
 
       {collectionAction?.kind === 'manage' ? (
         <Dialog
