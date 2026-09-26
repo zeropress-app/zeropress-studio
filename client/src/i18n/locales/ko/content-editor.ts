@@ -4,16 +4,9 @@ export const contentEditor = {
   visualMode: '시각적 편집',
   sourceModeDescription: '저장되는 HTML을 직접 편집합니다.',
   visualModeDescription: '서식을 보면서 본문을 편집합니다.',
-  saveBeforeModeChange: 'HTML 편집 방식을 변경하기 전에 현재 문서를 저장하세요.',
-  switchToSource: {
-    title: 'HTML 원본 편집으로 전환할까요?',
-    description: 'HTML을 직접 편집합니다. 읽기 쉽도록 줄바꿈을 정리하며, 내용과 표시 모습은 유지됩니다.',
-    confirm: 'HTML 원본 사용',
-  },
   switchToVisual: {
     title: '시각적 편집기를 사용할까요?',
     description: '전환 후 내용을 검토하고 문서를 저장하세요.',
-    unchanged: 'HTML을 변경하지 않고 전환할 수 있습니다.',
     normalized: '전환하면 아래와 같이 HTML이 변경됩니다.',
     diffLabel: '변환 전후 HTML 비교',
     diffLoading: 'HTML 비교 화면을 불러오는 중…',

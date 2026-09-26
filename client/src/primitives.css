@@ -1597,6 +1597,26 @@
   width: min(1180px, 100%);
 }
 
+.studio-dialog-comparison {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-height: calc(100dvh - 40px);
+}
+
+.studio-dialog-comparison > :not(.studio-dialog-comparison-body) {
+  flex-shrink: 0;
+}
+
+.studio-dialog-comparison-body {
+  min-height: 0;
+  overflow: auto;
+  /* Leave room for focus rings in the scrolling comparison. */
+  margin: 0 -4px;
+  padding: 4px;
+}
+
 .studio-dialog-kicker {
   margin: 0 0 6px;
   color: var(--studio-primary);

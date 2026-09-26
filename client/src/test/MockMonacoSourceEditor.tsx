@@ -38,7 +38,7 @@ export const MockMonacoSourceEditor = forwardRef<
     },
     insertText(value) {
       const textarea = textareaRef.current;
-      if (!textarea || inputRef.current.disabled) return false;
+      if (!textarea || inputRef.current.disabled) return { ok: false, reason: 'unavailable' };
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const next = `${inputRef.current.value.slice(0, start)}${value}${inputRef.current.value.slice(end)}`;
@@ -47,10 +47,10 @@ export const MockMonacoSourceEditor = forwardRef<
         && next.length > inputRef.current.maximumLength
       ) {
         inputRef.current.onLimitExceeded?.();
-        return false;
+        return { ok: false, reason: 'source_limit' };
       }
       inputRef.current.onChange(next);
-      return true;
+      return { ok: true };
     },
   }));
 

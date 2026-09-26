@@ -2,6 +2,7 @@
 import { StrictMode, createRef } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS, CONTENT_EDITOR_VISUAL_MAX_NODES } from '../../../contracts/content-editor';
 import { changeLocale } from '../i18n';
 import { SunEditorVisualEditor, type SunEditorVisualEditorHandle } from './SunEditorVisualEditor';
 
@@ -84,5 +85,55 @@ describe('SunEditor integration', () => {
     expect(saved).not.toMatch(/attack\(|javascript:|<script/u);
     expect(surface.querySelector('iframe')).toBeNull();
     expect(surface.querySelector('[data-studio-embed]')).toHaveTextContent('IFRAME');
+  });
+});
+
+const imageMedia = {
+  id: '1'.repeat(32), kind: 'image' as const, filename: 'sample.png', mime_type: 'image/png',
+  location: { type: 'r2' as const, key: 'sample.png' }, size_bytes: 10,
+  width: 30, height: 20, duration_ms: null, alt: 'Sample image', collection: null,
+  usage: { posts: 0, pages: 0, authors: 0, branding: 0 }, revision: '2'.repeat(32),
+  created_at_iso: '2026-09-26T00:00:00.000Z', updated_at_iso: '2026-09-26T00:00:00.000Z',
+};
+
+describe('visual Media insertion', () => {
+  it('inserts once, returns success, and supports undo and redo', async () => {
+    const { ref, surface, onChange } = setup('<p>Before</p>');
+    await screen.findByRole('button', { name: 'Undo' });
+    act(() => {
+      expect(ref.current!.insertMedia(imageMedia)).toEqual({ ok: true });
+    });
+    expect(surface.querySelectorAll('img')).toHaveLength(1);
+    expect(onChange).toHaveBeenCalledWith(expect.stringContaining('alt="Sample image"'));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(ref.current!.flush()).toBe('<p>Before</p>');
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(surface.querySelectorAll('img')).toHaveLength(1);
+  });
+
+  it('accepts replacing a selected image with the same Media', () => {
+    const { ref, surface } = setup('<p>Before</p>');
+    act(() => { ref.current!.insertMedia(imageMedia); });
+    fireEvent.click(surface.querySelector('img')!);
+    act(() => {
+      expect(ref.current!.replaceSelectedImage(imageMedia)).toEqual({ ok: true });
+    });
+    expect(surface.querySelectorAll('img')).toHaveLength(1);
+  });
+
+  it.each([
+    `<p>${'x'.repeat(CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS - 12)}</p>`,
+    '<p>x</p>'.repeat((CONTENT_EDITOR_VISUAL_MAX_NODES - 2) / 2),
+  ])('rejects Media that exceeds a visual limit and preserves accepted content', async (content) => {
+    const { ref, surface, onChange } = setup(content);
+    await screen.findByRole('button', { name: 'Redo' });
+    const before = ref.current!.flush();
+    act(() => {
+      expect(ref.current!.insertMedia(imageMedia)).toEqual({ ok: false, reason: 'visual_limit' });
+    });
+    expect(ref.current!.flush()).toBe(before);
+    expect(surface.querySelectorAll('img')).toHaveLength(0);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
   });
 });

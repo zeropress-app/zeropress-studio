@@ -73,10 +73,18 @@ test.describe('public beta authoring smoke', () => {
       await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
       await page.setViewportSize({ width: 320, height: 800 });
       await expect(save).toBeVisible();
-      const overflow = await page.evaluate(() => (
+      const bold = page.getByRole('button', { name: 'Bold', exact: true });
+      await bold.hover();
+      const tooltip = bold.locator('.se-tooltip-text');
+      await expect(tooltip).toBeVisible();
+      await expect.poll(() => bold.evaluate((button) => {
+        const anchor = button.getBoundingClientRect();
+        const label = button.querySelector('.se-tooltip-text')!.getBoundingClientRect();
+        return Math.abs(anchor.x + anchor.width / 2 - label.x - label.width / 2);
+      })).toBeLessThanOrEqual(1);
+      await expect.poll(() => page.evaluate(() => (
         document.documentElement.scrollWidth - document.documentElement.clientWidth
-      ));
-      expect(overflow).toBeLessThanOrEqual(1);
+      ))).toBeLessThanOrEqual(1);
     });
   }
 
@@ -90,7 +98,12 @@ test.describe('public beta authoring smoke', () => {
     await content.click();
     await page.keyboard.type('Formatted text');
     await content.press('ControlOrMeta+A');
-    await page.getByRole('button', { name: 'Font color', exact: true }).click();
+    const colorButton = page.getByRole('button', { name: 'Font color', exact: true });
+    await colorButton.click();
+    const paletteBox = await page.locator('.se-color-pallet:visible').first().boundingBox();
+    const colorBox = await colorButton.boundingBox();
+    expect(paletteBox!.x).toBeLessThanOrEqual(colorBox!.x + colorBox!.width);
+    expect(paletteBox!.x + paletteBox!.width).toBeGreaterThan(colorBox!.x);
     await page.locator('.se-color-pallet button[data-value="#ef4444"]:visible').click();
     await page.locator('button[data-command="align"]').click();
     await page.locator('.se-list-align button[data-command="center"]').click();
@@ -116,16 +129,71 @@ test.describe('public beta authoring smoke', () => {
     await expect(content.locator('td').first().locator('p')).toHaveCSS('text-align', 'right');
     await expect(content.locator('span[style]').first()).toHaveCSS('color', 'rgb(239, 68, 68)');
     await page.getByRole('button', { name: 'HTML source', exact: true }).click();
-    await page.getByRole('button', { name: 'Use HTML source', exact: true }).click();
     await page.getByRole('button', { name: 'Save Page', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save Page', exact: true })).toBeDisabled();
     await page.reload();
     await page.getByRole('button', { name: 'Visual', exact: true }).click();
-    await page.getByRole('button', { name: 'Use visual editor', exact: true }).click();
     await expect(content.locator('td').first()).toHaveText('Table value');
     await expect(content.locator('td').first().locator('p')).toHaveCSS('text-align', 'right');
     await expect(content.locator('span[style]').first()).toHaveCSS('color', 'rgb(239, 68, 68)');
     expect(errors).toEqual([]);
+  });
+
+  test('inserts Media and reviews source conversion without discarding an unsaved draft', async ({ page, studioRuntime }) => {
+    await signInAsAdministrator(page, studioRuntime);
+    await page.route('**/api/media**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === '/api/media/collections') {
+        await route.fulfill({ json: { success: true, data: { items: [], total_media_count: 1, unfiled_media_count: 1 } } });
+      } else if (url.pathname === '/api/media') {
+        await route.fulfill({ json: { success: true, data: {
+          items: [{ id: '1'.repeat(32), kind: 'image', filename: 'sample.svg', mime_type: 'image/svg+xml',
+            location: { type: 'external', url: 'https://media.example.test/sample.svg' },
+            size_bytes: 100, width: 30, height: 20, duration_ms: null, alt: 'Synthetic sample', collection: null,
+            usage: { posts: 0, pages: 0, authors: 0, branding: 0 }, revision: '2'.repeat(32),
+            created_at_iso: '2026-09-26T00:00:00.000Z', updated_at_iso: '2026-09-26T00:00:00.000Z' }],
+          pagination: { page: 1, per_page: 50, total: 1, total_pages: 1 },
+          delivery: { media_origin: '', r2_preview_available: false },
+        } } });
+      } else await route.continue();
+    });
+    await page.route('https://media.example.test/**', (route) => route.fulfill({
+      contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="20"><rect width="30" height="20" fill="blue"/></svg>',
+    }));
+    await page.goto('/pages/new');
+    const content = page.getByRole('textbox', { name: 'Content', exact: true });
+    await content.fill('Unsaved draft');
+    await content.press('End');
+    await page.getByRole('button', { name: 'Insert Media', exact: true }).click();
+    await page.getByRole('button', { name: 'Insert sample.svg', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Insert Media into content' })).toBeHidden();
+    await expect(content.locator('img')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(content).toHaveText('Unsaved draft');
+    await page.getByRole('button', { name: 'Redo', exact: true }).click();
+    await expect(content.locator('img')).toHaveCount(1);
+    await page.getByRole('button', { name: 'HTML source', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Content', exact: true })).toBeVisible();
+    await content.press('ControlOrMeta+A');
+    await page.keyboard.insertText('<p><b>Unsaved conversion sample</b></p>');
+    await page.getByRole('button', { name: 'Visual', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Use the visual editor?' });
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Compare the original and converted HTML' })).toBeVisible();
+    const box = await dialog.boundingBox();
+    expect(box!.width).toBeGreaterThan(page.viewportSize()!.width - 70);
+    await page.mouse.click(4, 4);
+    await expect(dialog).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 800 });
+    const confirm = dialog.getByRole('button', { name: 'Use visual editor', exact: true });
+    await expect(confirm).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    await confirm.click();
+    await expect(content.locator('strong')).toHaveText('Unsaved conversion sample');
+    await page.getByRole('button', { name: 'HTML source', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Content', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Visual', exact: true }).click();
+    await expect(content.locator('strong')).toHaveText('Unsaved conversion sample');
   });
 
 });

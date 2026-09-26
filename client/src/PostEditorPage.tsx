@@ -1,3 +1,4 @@
+import type { ContentInsertionResult } from './lib/content-media-insertion';
 import {
   useCallback,
   useEffect,
@@ -692,11 +693,11 @@ export function PostEditorPage(input: {
     setFailure(null);
   }
 
-  function insertContentMedia(media: Media): boolean {
+  function insertContentMedia(media: Media): ContentInsertionResult {
     const inserted = contentMediaMode === 'replace-image'
-      ? contentEditorRef.current?.replaceSelectedImage(media) ?? false
-      : contentEditorRef.current?.insertMedia(media) ?? false;
-    if (inserted) setContentMediaMode(null);
+      ? contentEditorRef.current?.replaceSelectedImage(media) ?? { ok: false as const, reason: 'unavailable' as const }
+      : contentEditorRef.current?.insertMedia(media) ?? { ok: false as const, reason: 'unavailable' as const };
+    if (inserted.ok) setContentMediaMode(null);
     return inserted;
   }
 
@@ -1404,7 +1405,6 @@ export function PostEditorPage(input: {
                   editorProfile={draft.editor_profile}
                   maximumLength={POST_CONTENT_MAX_LENGTH}
                   disabled={saving || recoveryDecisionRequired}
-                  canonicalClean={!hasChanges}
                   canonicalEditorState={canonicalDraft ? {
                     content: canonicalDraft.content,
                     editor_mode: canonicalDraft.editor_mode,

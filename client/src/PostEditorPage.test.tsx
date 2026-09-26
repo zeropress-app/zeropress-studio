@@ -575,7 +575,7 @@ describe('PostEditorPage', () => {
       .toBeInTheDocument();
   });
 
-  it('inserts a registered attachment at the current Markdown cursor', async () => {
+  it.each(['markdown', 'visual'])('inserts a registered attachment and closes the picker in %s mode', async (mode) => {
     const attachment = {
       id: '6'.repeat(32),
       kind: 'document',
@@ -608,24 +608,27 @@ describe('PostEditorPage', () => {
     renderEditor('create');
 
     await screen.findByRole('textbox', { name: 'Content' });
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Document type' }),
-      'markdown',
-    );
-    const content = await screen.findByRole('textbox', {
-      name: 'Content',
-    }) as HTMLTextAreaElement;
+    if (mode === 'markdown') {
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Document type' }), 'markdown');
+    }
+    const content = await screen.findByRole('textbox', { name: 'Content' });
     await user.type(content, 'Before after');
-    content.setSelectionRange(7, 7);
-    fireEvent.select(content);
+    if (content instanceof HTMLTextAreaElement) {
+      content.setSelectionRange(7, 7);
+      fireEvent.select(content);
+    }
     await user.click(screen.getByRole('button', { name: 'Insert Media' }));
     await user.click(await screen.findByRole('button', {
       name: 'Insert guide.pdf',
     }));
 
-    expect(content).toHaveValue(
-      'Before [guide.pdf](<https://media.example/uploads/guide.pdf>)after',
-    );
+    expect(screen.queryByRole('dialog', { name: 'Insert Media into content' })).not.toBeInTheDocument();
+    if (mode === 'markdown') {
+      expect(content).toHaveValue('Before [guide.pdf](<https://media.example/uploads/guide.pdf>)after');
+    } else {
+      expect(content.querySelector('a')).toHaveAttribute('href', 'https://media.example/uploads/guide.pdf');
+      expect(content.querySelectorAll('a')).toHaveLength(1);
+    }
     expect(String(fetchMock.mock.calls[5]?.[0])).toContain('kind=all');
   });
 
@@ -720,7 +723,6 @@ describe('PostEditorPage', () => {
     await screen.findByRole('textbox', { name: 'Content' });
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
-    await user.click(screen.getByRole('button', { name: 'Use HTML source' }));
     expect(screen.getByRole('button', { name: 'Save Post' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Visual' }));

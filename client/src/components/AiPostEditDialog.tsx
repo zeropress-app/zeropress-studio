@@ -234,7 +234,8 @@ export function AiPostEditDialog(input: {
   return (
     <Dialog
       open={input.open}
-      size="wide"
+      size={proposal ? 'comparison' : 'wide'}
+      closeOnBackdrop={!proposal}
       onClose={close}
       busy={generating}
       kicker={t('aiEdit.kicker')}

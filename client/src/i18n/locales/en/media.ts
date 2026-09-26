@@ -48,7 +48,11 @@ export const media = {
     emptyDescription: 'Change the filters or register an asset on the Media screen.',
     insert: 'Insert',
     insertNamed: 'Insert {{filename}}',
-    tooLong: 'This insertion would exceed the 2,000,000-character content limit.',
+    errors: {
+      source_limit: 'This insertion would exceed the source content limit.',
+      visual_limit: 'This insertion would exceed the visual editor size or element limit. Shorten the content or use HTML source editing.',
+      unavailable: 'The editor or selected image is no longer available. Close this window and select the insertion point or image again.',
+    },
     replaceKicker: 'REPLACE CONTENT IMAGE',
     replaceTitle: 'Replace the selected image',
     replaceDescription: 'Choose a replacement image. Its alignment and link settings will be kept.',

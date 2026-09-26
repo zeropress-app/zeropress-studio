@@ -846,6 +846,6 @@
   transform: translateX(-50%);
 }
 
-.studio-visual-editor .sun-editor .se-tooltip .se-tooltip-text {
+.studio-visual-editor .sun-editor .se-tooltip .se-tooltip-inner .se-tooltip-text {
   left: 0;
 }

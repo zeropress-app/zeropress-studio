@@ -1,3 +1,4 @@
+import type { ContentInsertionResult } from '../lib/content-media-insertion';
 import {
   Component,
   Suspense,
@@ -17,6 +18,7 @@ import type {
 import type { Media } from '../../../contracts/media';
 import {
   classifySunEditorHtml,
+  equivalentVisualHtml,
   type SunEditorCompatibilityResult,
 } from '../editor/suneditor-compatibility';
 import { formatSunEditorVisualHtml } from '../editor/visual-html-serialization';
@@ -45,8 +47,8 @@ const LazySunEditorVisualEditor = lazy(async () => {
 
 export type ContentBodyEditorHandle = {
   flush: () => string;
-  insertMedia: (media: Media) => boolean;
-  replaceSelectedImage: (media: Media) => boolean;
+  insertMedia: (media: Media) => ContentInsertionResult;
+  replaceSelectedImage: (media: Media) => ContentInsertionResult;
   focus: () => void;
   captureAiSelection: () => ContentAiSelection | null;
   buildAiCandidate: (
@@ -82,9 +84,9 @@ class ContentEditorErrorBoundary extends Component<{
 }
 
 type Transition =
-  | { kind: 'source'; content: string }
   | {
       kind: 'visual';
+      original: string;
       result: Extract<SunEditorCompatibilityResult, {
         classification: 'safe' | 'review_required';
       }>;
@@ -107,7 +109,6 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
   editorProfile: ContentEditorProfile;
   maximumLength: number;
   disabled?: boolean;
-  canonicalClean: boolean;
   canonicalEditorState: CanonicalEditorState | null;
   canonicalEditorContextClean: boolean;
   onChange: (value: string) => void;
@@ -125,7 +126,6 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
   const visualRef = useRef<SunEditorVisualEditorHandle>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
   const [transition, setTransition] = useState<Transition | null>(null);
-  const [modeNotice, setModeNotice] = useState(false);
   const [sourceLimitRejected, setSourceLimitRejected] = useState(false);
   const [sourceRetry, setSourceRetry] = useState(0);
   const [sourceRuntimeUnavailable, setSourceRuntimeUnavailable] = useState(false);
@@ -140,7 +140,8 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
     };
   }
 
-  function insertSourceMedia(media: Media): boolean {
+  function insertSourceMedia(media: Media): ContentInsertionResult {
+    if (input.disabled || !textareaRef.current) return { ok: false, reason: 'unavailable' };
     const insertion = insertTextAtSelection({
       value: input.value,
       insertion: createContentMediaSnippet(media, input.documentType),
@@ -149,7 +150,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
     });
     if (insertion.value.length > input.maximumLength) {
       setSourceLimitRejected(true);
-      return false;
+      return { ok: false, reason: 'source_limit' };
     }
     setSourceLimitRejected(false);
     input.onChange(insertion.value);
@@ -158,7 +159,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
       textareaRef.current?.setSelectionRange(insertion.cursor, insertion.cursor);
       selectionRef.current = { start: insertion.cursor, end: insertion.cursor };
     }, 0);
-    return true;
+    return { ok: true };
   }
 
   function sourceSelection(): SourceContentAiSelection | null {
@@ -188,13 +189,13 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
       ? visualRef.current?.flush() ?? input.value
       : sourceRef.current?.flush() ?? input.value,
     insertMedia: (media) => input.editorMode === 'visual'
-      ? visualRef.current?.insertMedia(media) ?? false
+      ? visualRef.current?.insertMedia(media) ?? { ok: false, reason: 'unavailable' }
       : sourceRef.current?.insertText(
         createContentMediaSnippet(media, input.documentType),
       ) ?? insertSourceMedia(media),
     replaceSelectedImage: (media) => input.editorMode === 'visual'
-      ? visualRef.current?.replaceSelectedImage(media) ?? false
-      : false,
+      ? visualRef.current?.replaceSelectedImage(media) ?? { ok: false, reason: 'unavailable' }
+      : { ok: false, reason: 'unavailable' },
     focus: () => input.editorMode === 'visual'
       ? visualRef.current?.focus()
       : sourceRef.current?.focus() ?? textareaRef.current?.focus(),
@@ -215,8 +216,10 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
   }));
 
   function requestMode(next: ContentEditorMode) {
-    setModeNotice(false);
-    if (next === input.editorMode) return;
+    if (next === input.editorMode || input.disabled) return;
+    const content = input.editorMode === 'visual'
+      ? visualRef.current?.flush() ?? input.value
+      : sourceRef.current?.flush() ?? input.value;
     const canonical = input.canonicalEditorState;
     if (
       canonical
@@ -227,7 +230,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
         && canonical.editor_profile === 'suneditor-v1'
         && input.editorMode === 'source'
         && input.editorProfile === null
-        && input.value === formatSunEditorVisualHtml(canonical.content);
+        && content === formatSunEditorVisualHtml(canonical.content);
       const canonicalVisual = canonical.editor_mode === 'source'
         && canonical.editor_profile === null
         && input.editorMode === 'visual'
@@ -236,42 +239,41 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
         : null;
       const reversesSourceToVisual = canonicalVisual !== null
         && canonicalVisual.classification !== 'blocked'
-        && input.value === canonicalVisual.canonicalHtml;
+        && content === canonicalVisual.canonicalHtml;
       if (reversesVisualToSource || reversesSourceToVisual) {
         input.onEditorStateChange(canonical);
         return;
       }
     }
-    if (!input.canonicalClean) {
-      setModeNotice(true);
-      return;
-    }
     if (next === 'source') {
-      setTransition({
-        kind: 'source',
-        content: formatSunEditorVisualHtml(input.value),
+      input.onEditorStateChange({
+        content: formatSunEditorVisualHtml(content),
+        editor_mode: 'source',
+        editor_profile: null,
       });
       return;
     }
-    const result = classifySunEditorHtml(input.value);
+    const result = classifySunEditorHtml(content);
+    if (result.classification === 'safe' && equivalentVisualHtml(content, result.canonicalHtml)) {
+      input.onEditorStateChange({
+        content: result.canonicalHtml,
+        editor_mode: 'visual',
+        editor_profile: 'suneditor-v1',
+      });
+      return;
+    }
     setTransition(result.classification === 'blocked'
       ? { kind: 'incompatible', result }
-      : { kind: 'visual', result });
+      : { kind: 'visual', original: content, result });
   }
 
   function confirmTransition() {
     if (!transition || transition.kind === 'incompatible') return;
-    input.onEditorStateChange(transition.kind === 'source'
-      ? {
-          content: transition.content,
-          editor_mode: 'source',
-          editor_profile: null,
-        }
-      : {
-          content: transition.result.canonicalHtml,
-          editor_mode: 'visual',
-          editor_profile: 'suneditor-v1',
-        });
+    input.onEditorStateChange({
+      content: transition.result.canonicalHtml,
+      editor_mode: 'visual',
+      editor_profile: 'suneditor-v1',
+    });
     setTransition(null);
   }
 
@@ -311,7 +313,6 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
           </small>
         </div>
       ) : null}
-      {modeNotice ? <Notice tone="info">{t('saveBeforeModeChange')}</Notice> : null}
       {visual ? (
         <ContentEditorErrorBoundary
           resetKey={visualRetry}
@@ -434,24 +435,15 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
       )}
       <Dialog
         open={transition !== null}
-        size={transition?.kind === 'visual' && transition.result.normalized
-          ? 'wide'
-          : undefined}
+        size={transition?.kind === 'visual' ? 'comparison' : undefined}
+        closeOnBackdrop={false}
         onClose={() => setTransition(null)}
-        title={t(transition?.kind === 'source'
-          ? 'switchToSource.title'
-          : transition?.kind === 'incompatible'
-            ? 'incompatible.title'
-            : reviewRequired
-              ? 'reviewRequired.title'
-              : 'switchToVisual.title')}
-        description={t(transition?.kind === 'source'
-          ? 'switchToSource.description'
-          : transition?.kind === 'incompatible'
-            ? 'incompatible.description'
-            : reviewRequired
-              ? 'reviewRequired.description'
-              : 'switchToVisual.description')}
+        title={t(transition?.kind === 'incompatible'
+          ? 'incompatible.title'
+          : reviewRequired ? 'reviewRequired.title' : 'switchToVisual.title')}
+        description={t(transition?.kind === 'incompatible'
+          ? 'incompatible.description'
+          : reviewRequired ? 'reviewRequired.description' : 'switchToVisual.description')}
         actions={transition?.kind === 'incompatible' ? (
           <Button type="button" onClick={() => setTransition(null)}>
             {t('incompatible.close')}
@@ -462,9 +454,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
               {t('linkDialog.cancel')}
             </Button>
             <Button type="button" variant="primary" onClick={confirmTransition}>
-              {t(transition?.kind === 'source'
-                ? 'switchToSource.confirm'
-                : reviewRequired
+              {t(reviewRequired
                   ? 'reviewRequired.confirm'
                   : 'switchToVisual.confirm')}
             </Button>
@@ -476,9 +466,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
             <Notice tone={reviewRequired ? 'warning' : 'info'}>
               {t(reviewRequired
                 ? 'reviewRequired.summary'
-                : transition.result.normalized
-                  ? 'switchToVisual.normalized'
-                  : 'switchToVisual.unchanged')}
+                : 'switchToVisual.normalized')}
             </Notice>
             {transition.result.classification === 'review_required' ? (
               <ul className="content-editor-compatibility-reasons">
@@ -497,7 +485,7 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
                   leftSource: t('switchToVisual.sourceLabel'),
                   rightSource: t('switchToVisual.canonicalLabel'),
                 }}
-                original={input.value}
+                original={transition.original}
                 modified={transition.result.canonicalHtml}
                 originalDocumentType="html"
                 modifiedDocumentType="html"

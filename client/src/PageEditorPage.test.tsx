@@ -442,7 +442,6 @@ describe('PageEditorPage', () => {
     await screen.findByRole('textbox', { name: 'Content' });
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
-    await user.click(screen.getByRole('button', { name: 'Use HTML source' }));
     expect(screen.getByRole('button', { name: 'Save Page' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Visual' }));

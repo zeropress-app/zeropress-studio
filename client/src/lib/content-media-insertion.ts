@@ -3,6 +3,10 @@ import {
   type Media,
 } from '../../../contracts/media';
 
+export type ContentInsertionResult =
+  | { ok: true }
+  | { ok: false; reason: 'source_limit' | 'visual_limit' | 'unavailable' };
+
 export type ContentDocumentType = 'markdown' | 'html' | 'plaintext';
 
 export function contentMediaSource(media: Media): string {

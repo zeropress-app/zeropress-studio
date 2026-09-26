@@ -1,3 +1,4 @@
+import type { ContentInsertionResult } from '../lib/content-media-insertion';
 import {
   forwardRef,
   useEffect,
@@ -13,7 +14,7 @@ import type { MonacoSourceLanguage } from '../editor/monaco-runtime';
 export type MonacoSourceEditorHandle = {
   flush: () => string;
   focus: () => void;
-  insertText: (value: string) => boolean;
+  insertText: (value: string) => ContentInsertionResult;
   getSelectionRange: () => { start: number; end: number } | null;
 };
 
@@ -71,7 +72,7 @@ export const MonacoSourceEditor = forwardRef<
   useImperativeHandle(ref, () => ({
     flush: () => runtimeRef.current?.getValue() ?? inputRef.current.value,
     focus: () => runtimeRef.current?.focus(),
-    insertText: (value) => runtimeRef.current?.insertText(value) ?? false,
+    insertText: (value) => runtimeRef.current?.insertText(value) ?? { ok: false, reason: 'unavailable' },
     getSelectionRange: () => runtimeRef.current?.getSelectionRange() ?? null,
   }));
 

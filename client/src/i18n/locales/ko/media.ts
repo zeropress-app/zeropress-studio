@@ -48,7 +48,11 @@ export const media = {
     emptyDescription: '필터를 변경하거나 미디어 화면에서 asset을 등록하세요.',
     insert: '삽입',
     insertNamed: '{{filename}} 삽입',
-    tooLong: '삽입하면 본문 2,000,000자 제한을 초과합니다.',
+    errors: {
+      source_limit: '미디어를 삽입하면 원본 본문 크기 제한을 초과합니다.',
+      visual_limit: '미디어를 삽입하면 시각 편집기의 크기 또는 요소 수 제한을 초과합니다. 본문을 줄이거나 HTML 소스 편집을 사용하세요.',
+      unavailable: '편집기 또는 선택한 이미지를 찾을 수 없습니다. 이 창을 닫고 삽입 위치나 이미지를 다시 선택하세요.',
+    },
     replaceKicker: '본문 이미지 교체',
     replaceTitle: '선택한 이미지 교체',
     replaceDescription: '교체할 이미지를 선택하세요. 정렬과 링크 설정은 유지됩니다.',

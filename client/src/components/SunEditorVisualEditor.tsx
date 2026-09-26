@@ -1,3 +1,4 @@
+import type { ContentInsertionResult } from '../lib/content-media-insertion';
 import {
   forwardRef, useEffect, useImperativeHandle, useRef, useState,
 } from 'react';
@@ -20,8 +21,8 @@ import type { VisualContentAiSelection } from '../editor/content-ai-selection';
 
 export type SunEditorVisualEditorHandle = {
   flush: () => string;
-  insertMedia: (media: Media) => boolean;
-  replaceSelectedImage: (media: Media) => boolean;
+  insertMedia: (media: Media) => ContentInsertionResult;
+  replaceSelectedImage: (media: Media) => ContentInsertionResult;
   focus: () => void;
   captureAiSelection: () => VisualContentAiSelection | null;
   buildAiCandidate: (selection: VisualContentAiSelection, replacement: string) => string | null;
@@ -61,18 +62,18 @@ export const SunEditorVisualEditor = forwardRef<SunEditorVisualEditorHandle, {
     surfaceRef.current?.querySelectorAll('img').forEach((image) => { image.tabIndex = 0; });
   }
 
-  function captureChange(): boolean {
+  function captureChange(): 'changed' | 'unchanged' | 'limit' | 'unavailable' {
     const surface = surfaceRef.current;
-    if (!surface || inputRef.current.disabled) return false;
+    if (!surface || inputRef.current.disabled) return 'unavailable';
     prepareImageControls();
     const html = exportVisualDocument(surface.innerHTML, embedsRef.current);
     const before = acceptedRef.current;
-    if (html === before.html) return false;
+    if (html === before.html) return 'unchanged';
     if (html.length > CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS
       || countVisualHtmlNodes(html) > CONTENT_EDITOR_VISUAL_MAX_NODES) {
       surface.innerHTML = before.raw;
       setLimitRejected(true);
-      return false;
+      return 'limit';
     }
     acceptedRef.current = { html, raw: surface.innerHTML, authored: html };
     setLimitRejected(false);
@@ -82,7 +83,7 @@ export const SunEditorVisualEditor = forwardRef<SunEditorVisualEditorHandle, {
       timerRef.current = null;
       inputRef.current.onChange(acceptedRef.current.authored);
     }, 300);
-    return true;
+    return 'changed';
   }
 
   function flush(): string {
@@ -255,35 +256,76 @@ export const SunEditorVisualEditor = forwardRef<SunEditorVisualEditorHandle, {
     }
   }
 
-  function insertMedia(media: Media): boolean {
+  function applyMediaEdit(edit: () => void): ContentInsertionResult {
     const editor = editorRef.current;
-    if (!editor || inputRef.current.disabled) return false;
-    restoreSelection();
-    editor.$.html.insert(prepareVisualDocument(
-      createContentMediaSnippet(media, 'html'), embedsRef.current,
-    ));
-    const changed = captureChange();
+    const surface = surfaceRef.current;
+    if (!editor || !surface || inputRef.current.disabled) return { ok: false, reason: 'unavailable' };
     flush();
-    return changed;
+    restoreSelection();
+    const range = editor.$.selection.getRange();
+    if (!surface.contains(range.commonAncestorContainer)) return { ok: false, reason: 'unavailable' };
+    const start = selectionPoint(surface, range.startContainer, range.startOffset);
+    const end = selectionPoint(surface, range.endContainer, range.endOffset);
+    const imagePoint = selectedImageRef.current && surface.contains(selectedImageRef.current)
+      ? selectionPoint(surface, selectedImageRef.current, 0) : null;
+    const before = acceptedRef.current;
+    editor.$.history.push(false);
+    // Native insertion normally records history and emits onChange synchronously.
+    // Validate first so a rejected insertion never enters undo/redo history.
+    editor.$.history.pause();
+    let result: ContentInsertionResult;
+    try {
+      edit();
+      result = captureChange() === 'limit'
+        ? { ok: false, reason: 'visual_limit' } : { ok: true };
+    } catch {
+      surface.innerHTML = before.raw;
+      acceptedRef.current = before;
+      result = { ok: false, reason: 'unavailable' };
+    } finally {
+      editor.$.history.resume();
+    }
+    if (result.ok) {
+      setLimitRejected(false);
+      editor.$.history.push(false);
+      flush();
+    } else {
+      const restored = document.createRange();
+      restored.setStart(selectionNode(surface, start), start.offset);
+      restored.setEnd(selectionNode(surface, end), end.offset);
+      editor.$.selection.setRange(restored);
+      savedRangeRef.current = restored.cloneRange();
+      selectedImageRef.current = imagePoint
+        ? selectionNode(surface, imagePoint) as HTMLImageElement : null;
+    }
+    return result;
   }
 
-  function replaceSelectedImage(media: Media): boolean {
+  function insertMedia(media: Media): ContentInsertionResult {
+    return applyMediaEdit(() => {
+      editorRef.current!.$.html.insert(prepareVisualDocument(
+        createContentMediaSnippet(media, 'html'), embedsRef.current,
+      ));
+    });
+  }
+
+  function replaceSelectedImage(media: Media): ContentInsertionResult {
     const image = selectedImageRef.current;
-    if (inputRef.current.disabled || media.kind !== 'image' || !image || !surfaceRef.current?.contains(image)) return false;
-    image.src = contentMediaSource(media);
-    image.alt = media.alt;
-    image.removeAttribute('srcset');
-    image.removeAttribute('sizes');
-    for (const name of ['width', 'height'] as const) {
-      if (media[name] === null) image.removeAttribute(name);
-      else image.setAttribute(name, String(media[name]));
+    if (media.kind !== 'image' || !image || !surfaceRef.current?.contains(image)) {
+      return { ok: false, reason: 'unavailable' };
     }
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    const changed = captureChange();
-    editorRef.current?.$.history.push(false);
-    flush();
-    return changed;
+    return applyMediaEdit(() => {
+      image.src = contentMediaSource(media);
+      image.alt = media.alt;
+      image.removeAttribute('srcset');
+      image.removeAttribute('sizes');
+      for (const name of ['width', 'height'] as const) {
+        if (media[name] === null) image.removeAttribute(name);
+        else image.setAttribute(name, String(media[name]));
+      }
+      image.loading = 'lazy';
+      image.decoding = 'async';
+    });
   }
 
   function captureAiSelection(): VisualContentAiSelection | null {

@@ -34,7 +34,6 @@ function renderEditor(input: Partial<{
   value: string;
   editorMode: 'source' | 'visual';
   disabled: boolean;
-  canonicalClean: boolean;
   canonicalEditorContextClean: boolean;
   canonicalEditorState: {
     content: string;
@@ -60,7 +59,6 @@ function renderEditor(input: Partial<{
       editorProfile={input.editorMode === 'visual' ? 'suneditor-v1' : null}
       maximumLength={2_000_000}
       disabled={input.disabled}
-      canonicalClean={input.canonicalClean ?? true}
       canonicalEditorState={input.canonicalEditorState ?? {
         content: input.value ?? '<p>Hello</p>',
         editor_mode: input.editorMode ?? 'source',
@@ -100,7 +98,6 @@ describe('ContentBodyEditor', () => {
       editorMode="source"
       editorProfile={null}
       maximumLength={2_000_000}
-      canonicalClean
       canonicalEditorState={{
         content: 'Before selected words after',
         editor_mode: 'source',
@@ -300,17 +297,18 @@ describe('ContentBodyEditor', () => {
     });
   });
 
-  it('does not load a diff when source HTML is already canonical', async () => {
+  it.each([
+    '<p>Hello</p>',
+    '<p><span style="color: rgb(0, 0, 255);">Blue</span></p>',
+    '<p>Photo</p><img src="/image.png" alt="Photo" width="30" height="20">',
+  ])('switches equivalent source HTML immediately: %s', async (value) => {
     const user = userEvent.setup();
-    renderEditor({ value: '<p>Hello</p>' });
-
+    const { onEditorStateChange } = renderEditor({ value });
     await user.click(screen.getByRole('button', { name: 'Visual' }));
-
-    expect(screen.getByRole('dialog', { name: 'Use the visual editor?' }))
-      .toBeInTheDocument();
-    expect(screen.getByText(/You can switch without changing the HTML/iu))
-      .toBeInTheDocument();
-    expect(screen.queryByTestId('normalization-diff')).not.toBeInTheDocument();
+    expect(onEditorStateChange).toHaveBeenCalledWith({
+      content: classifySunEditorHtml(value).canonicalHtml,
+      editor_mode: 'visual', editor_profile: 'suneditor-v1',
+    });
   });
 
   it('keeps incompatible HTML in source mode without changing it', async () => {
@@ -330,14 +328,34 @@ describe('ContentBodyEditor', () => {
     expect(onEditorStateChange).not.toHaveBeenCalled();
   });
 
-  it('requires a clean canonical save before either editing-mode transition', async () => {
+  it('flushes a pending visual edit before switching to source', async () => {
     const user = userEvent.setup();
-    renderEditor({ canonicalClean: false });
+    const { onEditorStateChange } = renderEditor({ editorMode: 'visual' });
+    const surface = await screen.findByRole('textbox', { name: 'Content' });
+    surface.innerHTML = '<p>Unsaved input 🌱</p>';
+    fireEvent.input(surface);
+    await user.click(screen.getByRole('button', { name: 'HTML source' }));
+    expect(onEditorStateChange).toHaveBeenCalledWith({
+      content: '<p>Unsaved input 🌱</p>', editor_mode: 'source', editor_profile: null,
+    });
+  });
 
+  it('reviews unsaved source changes and preserves them when cancelled', async () => {
+    const user = userEvent.setup();
+    const { onEditorStateChange } = renderEditor({
+      value: '<p><b>Unsaved text</b></p>',
+      canonicalEditorState: { content: '<p>Saved text</p>', editor_mode: 'source', editor_profile: null },
+      canonicalEditorContextClean: false,
+    });
     await user.click(screen.getByRole('button', { name: 'Visual' }));
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByText(/Save the current document/iu)).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('studio-dialog-comparison');
+    fireEvent.mouseDown(dialog.parentElement!);
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(screen.getByTestId('normalization-diff')).toHaveTextContent('<p><b>Unsaved text</b></p>');
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue('<p><b>Unsaved text</b></p>');
+    expect(onEditorStateChange).not.toHaveBeenCalled();
   });
 
   it('makes the active editing mode unavailable as an action', async () => {
@@ -376,7 +394,6 @@ describe('ContentBodyEditor', () => {
             editorMode={state.editor_mode}
             editorProfile={state.editor_profile}
             maximumLength={2_000_000}
-            canonicalClean={clean}
             canonicalEditorState={canonical}
             canonicalEditorContextClean
             onChange={(content) => setState((current) => ({ ...current, content }))}
@@ -391,7 +408,6 @@ describe('ContentBodyEditor', () => {
     await screen.findByRole('textbox', { name: 'Content' });
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
-    await user.click(screen.getByRole('button', { name: 'Use HTML source' }));
     expect(screen.getByTestId('mode-dirty')).toHaveTextContent('true');
     expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue([
       '<ol>',
@@ -403,7 +419,6 @@ describe('ContentBodyEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Visual' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Save the current document/iu)).not.toBeInTheDocument();
     expect(screen.getByTestId('mode-dirty')).toHaveTextContent('false');
     expect(screen.getByRole('button', { name: 'Visual' })).toBeDisabled();
   });
@@ -421,7 +436,6 @@ describe('ContentBodyEditor', () => {
         editor_profile: null,
       };
       const [state, setState] = useState(canonical);
-      const clean = JSON.stringify(state) === JSON.stringify(canonical);
       return (
         <ContentBodyEditor
           value={state.content}
@@ -429,7 +443,6 @@ describe('ContentBodyEditor', () => {
           editorMode={state.editor_mode}
           editorProfile={state.editor_profile}
           maximumLength={2_000_000}
-          canonicalClean={clean}
           canonicalEditorState={canonical}
           canonicalEditorContextClean
           onChange={(content) => setState((current) => ({ ...current, content }))}
@@ -464,7 +477,6 @@ describe('ContentBodyEditor', () => {
     await screen.findByRole('textbox', { name: 'Content' });
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
-    await user.click(screen.getByRole('button', { name: 'Use HTML source' }));
 
     expect(onEditorStateChange).toHaveBeenCalledWith({
       content: '<p>Hello</p>',
@@ -484,7 +496,6 @@ describe('ContentBodyEditor', () => {
     await screen.findByRole('textbox', { name: 'Content' });
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
-    await user.click(screen.getByRole('button', { name: 'Use HTML source' }));
 
     expect(onEditorStateChange).toHaveBeenCalledWith(expect.objectContaining({
       editor_mode: 'source',
@@ -534,7 +545,6 @@ describe('ContentBodyEditor', () => {
           editorMode="visual"
           editorProfile="suneditor-v1"
           maximumLength={2_000_000}
-          canonicalClean
           canonicalEditorState={{
             content: '<img src="/photo.png" alt="Photo">',
             editor_mode: 'visual',
@@ -587,7 +597,6 @@ describe('ContentBodyEditor', () => {
           editorMode="visual"
           editorProfile="suneditor-v1"
           maximumLength={2_000_000}
-          canonicalClean
           canonicalEditorState={{
             content: '<img class="wp-image-7 alignleft" src="/photo.png" alt="Photo">',
             editor_mode: 'visual',
@@ -644,7 +653,6 @@ describe('ContentBodyEditor', () => {
           editorMode="visual"
           editorProfile="suneditor-v1"
           maximumLength={2_000_000}
-          canonicalClean
           canonicalEditorState={{
             content: value,
             editor_mode: 'visual',
@@ -681,7 +689,7 @@ describe('ContentBodyEditor', () => {
       revision: '2'.repeat(32),
       created_at_iso: '2026-08-21T00:00:00.000Z',
       updated_at_iso: '2026-08-21T00:00:00.000Z',
-    })).toBe(true);
+    })).toEqual({ ok: true });
     await waitFor(() => expect(observed.at(-1)).toContain(
       'src="/__zeropress_media__/uploads/2026/08/new.png"',
     ));

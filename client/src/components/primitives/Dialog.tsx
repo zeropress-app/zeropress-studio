@@ -30,7 +30,8 @@ export function Dialog(input: {
   kicker?: string;
   /** Prevent Escape and backdrop dismissal while an action is in progress. */
   busy?: boolean;
-  size?: 'default' | 'wide' | 'editor';
+  size?: 'default' | 'wide' | 'editor' | 'comparison';
+  closeOnBackdrop?: boolean;
   backdrop?: 'dim' | 'blur';
   /** Start long read-only content at the title. Defaults to the first focusable element. */
   initialFocus?: 'first-control' | 'title';
@@ -71,7 +72,7 @@ export function Dialog(input: {
         input.backdrop === 'blur' && 'studio-dialog-backdrop-blur',
       )}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) input.onClose();
+        if (event.target === event.currentTarget && !busy && input.closeOnBackdrop !== false) input.onClose();
       }}
     >
       <section
@@ -80,6 +81,7 @@ export function Dialog(input: {
           'studio-dialog',
           input.size === 'wide' && 'studio-dialog-wide',
           input.size === 'editor' && 'studio-dialog-editor',
+          input.size === 'comparison' && 'studio-dialog-comparison',
         )}
         role="dialog"
         aria-modal="true"
@@ -101,7 +103,9 @@ export function Dialog(input: {
             {input.description}
           </p>
         ) : null}
-        {input.children}
+        {input.size === 'comparison'
+          ? <div className="studio-dialog-comparison-body">{input.children}</div>
+          : input.children}
         {input.actions ? <DialogActions>{input.actions}</DialogActions> : null}
       </section>
     </div>

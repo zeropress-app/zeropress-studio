@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Media } from '../../../contracts/media';
+import type { ContentInsertionResult } from '../lib/content-media-insertion';
 import { MediaPickerDialog } from './MediaPickerDialog';
 
 export function ContentMediaInsertDialog(input: {
   onClose: () => void;
-  onInsert: (media: Media) => boolean;
+  onInsert: (media: Media) => ContentInsertionResult;
   onSessionEnded: () => void;
   showManageLink?: boolean;
   aiGenerationCsrfToken?: string;
@@ -13,7 +14,7 @@ export function ContentMediaInsertDialog(input: {
   mode?: 'insert' | 'replace-image';
 }) {
   const { t } = useTranslation('media');
-  const [insertionFailed, setInsertionFailed] = useState(false);
+  const [failure, setFailure] = useState<Extract<ContentInsertionResult, { ok: false }>['reason'] | null>(null);
 
   return (
     <MediaPickerDialog
@@ -44,10 +45,10 @@ export function ContentMediaInsertDialog(input: {
       showManageLink={input.showManageLink}
       aiGenerationCsrfToken={input.aiGenerationCsrfToken}
       mediaManagementCsrfToken={input.mediaManagementCsrfToken}
-      errorMessage={insertionFailed ? t('contentInsertion.tooLong') : null}
+      errorMessage={failure ? t(`contentInsertion.errors.${failure}`) : null}
       onSelect={(media) => {
-        setInsertionFailed(false);
-        if (!input.onInsert(media)) setInsertionFailed(true);
+        const result = input.onInsert(media);
+        setFailure(result.ok ? null : result.reason);
       }}
     />
   );

@@ -1,3 +1,4 @@
+import type { ContentInsertionResult } from '../lib/content-media-insertion';
 import {
   Selection,
   editor,
@@ -31,7 +32,7 @@ export type MonacoSourceEditorRuntimeHandle = {
   focus: () => void;
   getValue: () => string;
   getSelectionRange: () => { start: number; end: number } | null;
-  insertText: (value: string) => boolean;
+  insertText: (value: string) => ContentInsertionResult;
   setDisabled: (disabled: boolean) => void;
   setDocumentType: (documentType: MonacoSourceLanguage) => void;
   setMaximumLength: (maximumLength?: number) => void;
@@ -144,16 +145,16 @@ export function createMonacoSourceEditor(input: {
       };
     },
     insertText(value) {
-      if (sourceEditor.getOption(editor.EditorOption.readOnly)) return false;
+      if (sourceEditor.getOption(editor.EditorOption.readOnly)) return { ok: false, reason: 'unavailable' };
       const selection = sourceEditor.getSelection();
-      if (!selection) return false;
+      if (!selection) return { ok: false, reason: 'unavailable' };
       const selectedLength = model.getValueLengthInRange(selection);
       if (
         maximumLength !== undefined
         && model.getValueLength() - selectedLength + value.length > maximumLength
       ) {
         input.onLimitExceeded();
-        return false;
+        return { ok: false, reason: 'source_limit' };
       }
       const insertionOffset = model.getOffsetAt(selection.getStartPosition());
       sourceEditor.executeEdits('zeropress-media-insertion', [{
@@ -169,7 +170,7 @@ export function createMonacoSourceEditor(input: {
         end.column,
       ));
       sourceEditor.focus();
-      return true;
+      return { ok: true };
     },
     setDisabled(disabled) {
       sourceEditor.updateOptions({ readOnly: disabled, domReadOnly: disabled });

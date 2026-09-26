@@ -28,7 +28,7 @@ vi.mock('../editor/monaco-source-editor', () => ({
 beforeEach(() => {
   for (const callback of Object.values(runtime)) callback.mockReset();
   runtime.getValue.mockReturnValue('<p>Hello</p>');
-  runtime.insertText.mockReturnValue(true);
+  runtime.insertText.mockReturnValue({ ok: true });
   runtime.create.mockReturnValue({
     dispose: runtime.dispose,
     focus: runtime.focus,
@@ -103,7 +103,7 @@ describe('MonacoSourceEditor', () => {
     expect(ref.current?.flush()).toBe('<p>Hello</p>');
     runtime.getSelectionRange.mockReturnValue({ start: 3, end: 8 });
     expect(ref.current?.getSelectionRange()).toEqual({ start: 3, end: 8 });
-    expect(ref.current?.insertText(' media ')).toBe(true);
+    expect(ref.current?.insertText(' media ')).toEqual({ ok: true });
     expect(runtime.insertText).toHaveBeenCalledWith(' media ');
 
     view.unmount();

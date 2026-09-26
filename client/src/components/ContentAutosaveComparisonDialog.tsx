@@ -34,7 +34,8 @@ export function ContentAutosaveComparisonDialog(input: {
   return (
     <Dialog
       open
-      size="wide"
+      size="comparison"
+      closeOnBackdrop={false}
       onClose={input.onClose}
       title={input.title}
       description={input.description}

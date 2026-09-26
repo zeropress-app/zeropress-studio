@@ -245,7 +245,8 @@ export function ContentRevisionHistoryDialog(input: {
   return (
     <Dialog
       open
-      size="wide"
+      size="comparison"
+      closeOnBackdrop={false}
       onClose={input.onClose}
       busy={restoring}
       title={input.copy.title}

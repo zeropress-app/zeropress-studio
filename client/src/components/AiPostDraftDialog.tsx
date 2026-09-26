@@ -340,7 +340,6 @@ function AiContentDraftDialog(input: PostDialogInput | PageDialogInput) {
                 editorProfile={candidate.editor_profile}
                 maximumLength={AI_CONTENT_DRAFT_CONTENT_MAX_LENGTH}
                 disabled
-                canonicalClean
                 canonicalEditorState={{
                   content: candidate.content,
                   editor_mode: candidate.editor_mode,

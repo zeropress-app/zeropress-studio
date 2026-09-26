@@ -4,16 +4,9 @@ export const contentEditor = {
   visualMode: 'Visual',
   sourceModeDescription: 'Edit the stored HTML directly.',
   visualModeDescription: 'Edit your content with formatting visible.',
-  saveBeforeModeChange: 'Save the current document before changing its HTML editing mode.',
-  switchToSource: {
-    title: 'Switch to HTML source editing?',
-    description: 'Edit the HTML directly. Line breaks are added for readability; the content and appearance stay the same.',
-    confirm: 'Use HTML source',
-  },
   switchToVisual: {
     title: 'Use the visual editor?',
     description: 'Review and save your document after switching.',
-    unchanged: 'You can switch without changing the HTML.',
     normalized: 'Switching will apply the HTML changes shown below.',
     diffLabel: 'Compare the original and converted HTML',
     diffLoading: 'Loading the HTML comparison…',

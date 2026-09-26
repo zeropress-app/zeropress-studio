@@ -8,6 +8,7 @@ import {
 import {
   canonicalizeSunEditorHtml,
   classifySunEditorHtml,
+  equivalentVisualHtml,
   prepareNetworkInertSunEditorHtml,
 } from './suneditor-compatibility';
 import {
@@ -226,5 +227,27 @@ describe('SunEditor visual HTML profile', () => {
       compatible: false,
       reasons: expect.arrayContaining(['node_limit_exceeded']),
     });
+  });
+});
+
+describe('equivalent visual HTML', () => {
+  it('ignores attribute order, supported CSS serialization and block indentation', () => {
+    const original = '<p><span style="color: rgb(0, 0, 255);">Text</span></p><img src="/image.png" alt="Photo" width="30" height="20">';
+    const result = classifySunEditorHtml(original);
+    expect(result.classification).toBe('safe');
+    expect(equivalentVisualHtml(original, result.canonicalHtml!)).toBe(true);
+    expect(equivalentVisualHtml('<ol><li><p>Item</p></li></ol>', '<ol>\n  <li>\n    <p>Item</p>\n  </li>\n</ol>')).toBe(true);
+  });
+
+  it.each([
+    ['<p><b>Text</b></p>', '<p><strong>Text</strong></p>'],
+    ['<p>Before <strong>bold</strong></p>', '<p>Before<strong>bold</strong></p>'],
+    ['<a href="/a">A</a> <a href="/b">B</a>', '<a href="/a">A</a><a href="/b">B</a>'],
+    ['<pre> a\n b</pre>', '<pre>a\nb</pre>'],
+    ['<pre><div> <p>A</p> </div></pre>', '<pre><div><p>A</p></div></pre>'],
+    ['<p><span>A</span>B</p>', '<p>A<span>B</span></p>'],
+    ['<img src="/a" alt="Image">', '<img src="/b" alt="Image">'],
+  ])('keeps meaningful structure, text and resource changes reviewable: %s', (before, after) => {
+    expect(equivalentVisualHtml(before, after)).toBe(false);
   });
 });

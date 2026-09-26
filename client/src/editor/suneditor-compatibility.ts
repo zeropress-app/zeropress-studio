@@ -466,6 +466,39 @@ function analyzeHtml(html: string): HtmlAnalysis {
   return analysis;
 }
 
+/** Compare formatting, not raw serialization; preserve node order and text whitespace. */
+export function equivalentVisualHtml(original: string, converted: string): boolean {
+  const containers = new Set([
+    '#document-fragment', 'blockquote', 'div', 'figure', 'li', 'ol', 'ul',
+    'table', 'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
+  ]);
+  const blocks = new Set([...containers, 'p', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr']);
+  function signature(node: HtmlNode, preserveWhitespace = false): unknown {
+    preserveWhitespace ||= node.tagName === 'pre' || node.tagName === 'code';
+    let children = node.childNodes ?? [];
+    if (!preserveWhitespace && containers.has(node.nodeName ?? '')) {
+      children = children.filter((child, index, siblings) => {
+        if (child.nodeName !== '#text' || !/^[\t\n\r ]*$/u.test(child.value ?? '')) return true;
+        return !blocks.has(siblings[index - 1]?.tagName ?? '')
+          && !blocks.has(siblings[index + 1]?.tagName ?? '');
+      });
+    }
+    const attributes = (node.attrs ?? []).map(({ name, value }) => {
+      if (name === 'style') {
+        const style = analyzeContentStyle(node.tagName ?? '', value);
+        if (style.unsupported.length === 0) {
+          value = JSON.stringify([...style.supported].sort(([a], [b]) => a.localeCompare(b)));
+        }
+      }
+      return [name, value];
+    }).sort(([a], [b]) => a.localeCompare(b));
+    return [node.nodeName, node.value, attributes,
+      children.map((child) => signature(child, preserveWhitespace))];
+  }
+  return JSON.stringify(signature(parseFragment(original) as unknown as HtmlNode))
+    === JSON.stringify(signature(parseFragment(converted) as unknown as HtmlNode));
+}
+
 function counterHasMissing(
   source: Map<string, number>,
   output: Map<string, number>,
