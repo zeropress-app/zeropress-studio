@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { apiErrorSchema } from '../../../contracts/api';
-import { auditLogListSuccessSchema, auditLogDetailSuccessSchema, type AuditLogQuery } from '../../../contracts/audit-logs';
+import { auditLogListSuccessSchema, auditLogDetailSuccessSchema, auditLogEventsSuccessSchema, type AuditLogQuery } from '../../../contracts/audit-logs';
 import { studioFetch } from './studio-fetch';
 async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal): Promise<T> {
   const response = await studioFetch(path, { credentials: 'same-origin', cache: 'no-store',
@@ -13,4 +13,8 @@ export function requestAuditLogs(query: AuditLogQuery, signal: AbortSignal) {
 }
 export function requestAuditLog(id: string, signal: AbortSignal) {
   return request(`/api/audit-logs/${encodeURIComponent(id)}`, z.union([auditLogDetailSuccessSchema, apiErrorSchema]), signal);
+}
+export function requestAuditLogEvents(id: string, cursor: string | undefined, signal: AbortSignal) {
+  const params = new URLSearchParams(cursor ? { cursor } : {});
+  return request(`/api/audit-logs/${encodeURIComponent(id)}/events?${params}`, z.union([auditLogEventsSuccessSchema, apiErrorSchema]), signal);
 }

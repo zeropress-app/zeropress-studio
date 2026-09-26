@@ -30,6 +30,7 @@ const operations: Record<string, AuditAction> = {
   start_edge_target_reconciliation: 'operations_reconcile',
   step_edge_target_reconciliation: 'operations_reconcile',
   rebuild_content_search_index: 'operations_search',
+  start_content_search_index_rebuild: 'operations_search',
   complete_content_search_index_rebuild: 'operations_search',
   advance_content_search_index_rebuild: 'operations_search',
   apply_content_search_index_rebuild_step: 'operations_search',
@@ -58,9 +59,18 @@ export function operationsEvent(
     initiator,
     operation_id: typeof values.operation_id === 'string' ? values.operation_id : undefined,
   };
+  if (action === 'operations_search') {
+    if (values.search_phase === 'posts' || values.search_phase === 'pages' || values.search_phase === 'verify') {
+      metadata.search_phase = values.search_phase;
+    }
+    for (const key of ['processed_posts', 'processed_pages', 'total_posts', 'total_pages'] as const) {
+      const value = values[key];
+      if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) metadata[key] = value;
+    }
+  }
   return {
     action,
-    target: {
+    target: action === 'operations_search' ? { type: 'database', id: 'studio' } : {
       type: String(values.resource ?? 'DB'),
       id: typeof values.target_id === 'string' ? values.target_id
         : typeof values.created_user_id === 'string' ? values.created_user_id : undefined,

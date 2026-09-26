@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { auditLogQuerySchema, auditLogListSuccessSchema, auditLogDetailSuccessSchema } from '../../../contracts/audit-logs';
+import { auditLogQuerySchema, auditLogListSuccessSchema, auditLogDetailSuccessSchema, auditLogEventsQuerySchema, auditLogEventsSuccessSchema } from '../../../contracts/audit-logs';
 import { requireStudioCapability } from '../auth/authorization';
 import type { ResolveUserSession } from '../auth/session-repository';
 import { errorResponse } from '../lib/http';
 import { logOperationalFailure } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
-import { InvalidAuditCursor, listAuditLogs, readAuditLog } from './repository';
+import { InvalidAuditCursor, listAuditLogs, readAuditLog, readAuditLogEvents } from './repository';
 export function createAuditRoutes(dependencies: { resolveSession?: ResolveUserSession } = {}) {
   const routes = new Hono<StudioHonoEnvironment>();
   routes.use('*', async (c, next) => {
@@ -19,6 +19,18 @@ export function createAuditRoutes(dependencies: { resolveSession?: ResolveUserSe
     if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
     try { return c.json(auditLogListSuccessSchema.parse({ success: true, data: await listAuditLogs(c.env.DB, parsed.data) })); }
     catch (error) {
+      if (error instanceof InvalidAuditCursor) return errorResponse(c, 400, 'VALIDATION_ERROR');
+      logOperationalFailure('AUDIT_READ_FAILED', { metadata: { resource: 'DB' } });
+      return errorResponse(c, 503, 'SYSTEM_NOT_AVAILABLE');
+    }
+  });
+  routes.get('/:id/events', async (c) => {
+    const parsed = auditLogEventsQuerySchema.safeParse(c.req.query());
+    if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    try {
+      const events = await readAuditLogEvents(c.env.DB, c.req.param('id'), parsed.data.cursor);
+      return events ? c.json(auditLogEventsSuccessSchema.parse({ success: true, data: events })) : errorResponse(c, 404, 'NOT_FOUND');
+    } catch (error) {
       if (error instanceof InvalidAuditCursor) return errorResponse(c, 400, 'VALIDATION_ERROR');
       logOperationalFailure('AUDIT_READ_FAILED', { metadata: { resource: 'DB' } });
       return errorResponse(c, 503, 'SYSTEM_NOT_AVAILABLE');

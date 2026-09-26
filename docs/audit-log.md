@@ -6,6 +6,15 @@ category, or result. A record's details include its connection information and
 an option to find other records with the same IP hash. Deleted accounts remain
 searchable by their recorded name and email.
 
+Each search-index rebuild appears once, with its latest recorded result. Open
+its details to browse the start, processing steps and completion or failure;
+select a step to see its actor, connection and recorded counts. Earlier records
+are also grouped when they share an operation ID. A start or progress record
+does not confirm completion.
+
+For grouped rebuilds, date and result filters use the latest record. Actor and
+IP filters also search earlier steps, including callers who resumed the work.
+
 ## Recorded activity
 
 - Successful sign-in, sign-out, and sensitive-action reauthentication.

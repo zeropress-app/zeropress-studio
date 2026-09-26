@@ -44,40 +44,90 @@ function filterKey(query: AuditLogQuery): string {
 function encodeCursor(values: string[]): string {
   return btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(values))));
 }
-function decodeCursor(cursor: string, query: AuditLogQuery): [string, string] {
+function decodeCursor(cursor: string, scope: string): [string, string] {
   try {
     const value: unknown = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(cursor), (v) => v.charCodeAt(0))));
-    if (!Array.isArray(value) || value.length !== 3 || value[0] !== filterKey(query)
+    if (!Array.isArray(value) || value.length !== 3 || value[0] !== scope
       || typeof value[1] !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value[1])
       || typeof value[2] !== 'string' || !/^[a-f0-9-]{36}$/.test(value[2])) throw new Error();
     return [value[1], value[2]];
   } catch { throw new InvalidAuditCursor(); }
 }
 export async function listAuditLogs(db: D1Database, query: AuditLogQuery, now = new Date()) {
-  const clauses = ['occurred_at > ?'];
+  const clauses = ['activity_rank = 1'];
   const values: string[] = [cutoff(now, AUDIT_RETENTION_DAYS)];
   for (const [field, operator, value] of [
     ['occurred_at', '>=', query.from], ['occurred_at', '<=', query.to],
-    ['category', '=', query.category], ['outcome', '=', query.outcome], ['ip_hash', '=', query.ip_hash],
+    ['category', '=', query.category], ['outcome', '=', query.outcome],
   ]) {
     if (value) { clauses.push(`${field} ${operator} ?`); values.push(value); }
   }
-  if (query.actor) {
-    clauses.push('(instr(lower(actor_name), lower(?)) > 0 OR instr(lower(actor_email), lower(?)) > 0 OR actor_id = ?)');
-    values.push(query.actor, query.actor, query.actor);
+  // Date and result select the latest event; actor/IP can match any step of that work.
+  if (query.actor || query.ip_hash) {
+    const matches: string[] = [];
+    if (query.actor) {
+      matches.push('(instr(lower(actor_name), lower(?)) > 0 OR instr(lower(actor_email), lower(?)) > 0 OR actor_id = ?)');
+      values.push(query.actor, query.actor, query.actor);
+    }
+    if (query.ip_hash) { matches.push('ip_hash = ?'); values.push(query.ip_hash); }
+    clauses.push(`activity_key IN (SELECT activity_key FROM retained WHERE ${matches.join(' AND ')})`);
   }
   if (query.cursor) {
-    const [time, id] = decodeCursor(query.cursor, query);
+    const [time, id] = decodeCursor(query.cursor, filterKey(query));
     clauses.push('(occurred_at < ? OR (occurred_at = ? AND id < ?))'); values.push(time, time, id);
   }
-  const result = await db.prepare(`SELECT * FROM audit_logs WHERE ${clauses.join(' AND ')}
+  // Group before pagination, including historical events written before grouping existed.
+  const result = await db.prepare(`WITH retained AS (
+      SELECT *, CASE WHEN action = 'operations_search'
+        AND json_type(metadata_json, '$.operation_id') = 'text'
+        AND length(json_extract(metadata_json, '$.operation_id')) > 0
+        THEN 'search:' || json_extract(metadata_json, '$.operation_id')
+        ELSE 'event:' || id END AS activity_key
+      FROM audit_logs WHERE occurred_at > ?
+    ), ranked AS (
+      SELECT *, ROW_NUMBER() OVER (PARTITION BY activity_key ORDER BY occurred_at DESC,
+        CASE json_extract(metadata_json, '$.stage') WHEN 'completed' THEN 2 WHEN 'step' THEN 1 ELSE 0 END DESC,
+        COALESCE(json_extract(metadata_json, '$.processed_posts'), 0) + COALESCE(json_extract(metadata_json, '$.processed_pages'), 0) DESC,
+        id DESC) AS activity_rank,
+        COUNT(*) OVER (PARTITION BY activity_key) AS event_count
+      FROM retained
+    ) SELECT * FROM ranked WHERE ${clauses.join(' AND ')}
     ORDER BY occurred_at DESC, id DESC LIMIT 51`).bind(...values).all<Row>();
-  const rows = result.results.slice(0, 50).map((row) => decodeRow(row, now));
+  const rows = result.results.slice(0, 50).map((row) => ({ ...decodeRow(row, now), event_count: Number(row.event_count) }));
   const last = rows.at(-1);
   return {
     items: rows.map(({ network: _network, ...event }) => event),
     next_cursor: result.results.length > 50 && last
       ? encodeCursor([filterKey(query), last.occurred_at, last.id]) : null,
+  };
+}
+export async function readAuditLogEvents(db: D1Database, id: string, cursor?: string, now = new Date()) {
+  const record = await readAuditLog(db, id, now);
+  if (!record) return null;
+  const operationId = record.action === 'operations_search' ? record.metadata.operation_id : undefined;
+  const scope = operationId ? `search:${operationId}` : `event:${id}`;
+  const clauses = ['occurred_at > ?'];
+  const values = [cutoff(now, AUDIT_RETENTION_DAYS)];
+  if (operationId) {
+    clauses.push("action = 'operations_search' AND json_extract(metadata_json, '$.operation_id') = ?");
+    values.push(operationId);
+  } else { clauses.push('id = ?'); values.push(id); }
+  if (cursor) {
+    const [time, eventId] = decodeCursor(cursor, scope);
+    clauses.push('(occurred_at < ? OR (occurred_at = ? AND id < ?))');
+    values.push(time, time, eventId);
+  }
+  const result = await db.prepare(`SELECT * FROM audit_logs WHERE ${clauses.join(' AND ')}
+    ORDER BY occurred_at DESC, id DESC LIMIT 51`).bind(...values).all<Row>();
+  const items = result.results.slice(0, 50).map((row) => {
+    const { network: _network, ...event } = decodeRow(row, now);
+    return event;
+  });
+  const last = items.at(-1);
+  return {
+    items,
+    next_cursor: result.results.length > 50 && last
+      ? encodeCursor([scope, last.occurred_at, last.id]) : null,
   };
 }
 export async function readAuditLog(db: D1Database, id: string, now = new Date()) {

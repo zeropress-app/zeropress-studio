@@ -96,7 +96,7 @@ describe('administrator content-search rebuild routes', () => {
     });
     expect(audit.events).toMatchObject([{
       action: 'operations_search', actor: { kind: 'user', name: 'Current Admin' },
-      metadata: { stage: 'started', operation_id: OPERATION },
+      metadata: { stage: 'started', operation_id: OPERATION, search_phase: 'posts', processed_posts: 5, total_posts: 8 },
     }]);
   });
   it('continues the shared checkpoint and keeps the original initiator separate from the current actor', async () => {
@@ -111,6 +111,7 @@ describe('administrator content-search rebuild routes', () => {
       actor: { id: session().user.id, name: 'Current Admin' },
       metadata: {
         stage: 'completed', operation_id: OPERATION,
+        search_phase: 'posts', processed_posts: 5, processed_pages: 0, total_posts: 8, total_pages: 1,
         initiator: { id: INITIATOR.userId, email: INITIATOR.userEmail },
       },
     }]);

@@ -32,6 +32,9 @@ export const auditMetadataSchema = z.object({
   operation_id: text.optional(), stage: z.enum(['started', 'step', 'completed', 'cancelled']).optional(),
   operation: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).optional(),
   initiator: auditActorSchema.optional(),
+  search_phase: z.enum(['posts', 'pages', 'verify']).optional(),
+  processed_posts: count.optional(), processed_pages: count.optional(),
+  total_posts: count.optional(), total_pages: count.optional(),
   fields: z.array(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_.-]{0,99}$/)).max(100).optional(),
   credential: z.enum(['retained', 'replaced', 'removed']).optional(),
   credentials: z.array(z.object({ field: z.enum(['resend_api_key', 'cloudflare_api_token']), action: z.enum(['replace', 'remove']) })).max(2).optional(),
@@ -82,7 +85,7 @@ const ACTION_METADATA_FIELDS = {
   operations_reset: OPERATION_FIELDS,
   operations_edge: OPERATION_FIELDS,
   operations_reconcile: OPERATION_FIELDS,
-  operations_search: OPERATION_FIELDS,
+  operations_search: [...OPERATION_FIELDS, 'search_phase', 'processed_posts', 'processed_pages', 'total_posts', 'total_pages'],
   operations_access: OPERATION_FIELDS,
 } satisfies Record<AuditAction, readonly (keyof AuditMetadata)[]>;
 
@@ -107,9 +110,15 @@ export const auditNetworkSchema = z.object({
 export const auditLogDetailSchema = auditLogSchema.extend({ network: auditNetworkSchema });
 export type AuditLog = z.infer<typeof auditLogSchema>;
 export type AuditLogDetail = z.infer<typeof auditLogDetailSchema>;
+export const auditLogListItemSchema = auditLogSchema.extend({ event_count: count.min(1).default(1) });
+export type AuditLogListItem = z.infer<typeof auditLogListItemSchema>;
 export const auditLogListSuccessSchema = z.object({ success: z.literal(true), data: z.object({
+  items: z.array(auditLogListItemSchema), next_cursor: z.string().nullable(),
+}) });
+export const auditLogEventsSuccessSchema = z.object({ success: z.literal(true), data: z.object({
   items: z.array(auditLogSchema), next_cursor: z.string().nullable(),
 }) });
+export const auditLogEventsQuerySchema = z.object({ cursor: z.string().max(2048).optional() });
 export const auditLogDetailSuccessSchema = z.object({ success: z.literal(true), data: auditLogDetailSchema });
 export const auditLogQuerySchema = z.object({
   from: z.iso.datetime().transform((value) => new Date(value).toISOString()).optional(),

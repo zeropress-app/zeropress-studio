@@ -26,6 +26,21 @@ export const auditLog = {
   "operationsToken": "Operations 토큰",
   "sameIp": "같은 IP의 기록 보기",
   "sameIpActive": "조회 중인 IP 해시:",
+  "studioDatabase": "Studio 데이터베이스",
+  "steps": "작업 단계",
+  "moreSteps": "이전 단계 더 보기",
+  "eventCount": "단계 기록 {{count}}건",
+  "stages": {
+    "started": "시작됨",
+    "step": "진행 기록",
+    "completed": "완료됨",
+    "cancelled": "취소됨"
+  },
+  "searchPhases": {
+    "posts": "글",
+    "pages": "페이지",
+    "verify": "검증"
+  },
   "categories": {
     "auth": "인증",
     "account": "계정·보안",
@@ -49,6 +64,11 @@ export const auditLog = {
     "stage": "단계",
     "operation": "작업 코드",
     "initiator": "최초 실행자",
+    "search_phase": "재구축 단계",
+    "processed_posts": "처리한 글",
+    "processed_pages": "처리한 페이지",
+    "total_posts": "시작 시 전체 글",
+    "total_pages": "시작 시 전체 페이지",
     "fields": "설정 항목",
     "credential": "자격증명 변경",
     "phase": "가져오기 단계",

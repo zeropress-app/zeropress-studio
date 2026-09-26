@@ -26,6 +26,21 @@ export const auditLog = {
   "operationsToken": "Operations token",
   "sameIp": "Show records from this IP",
   "sameIpActive": "Filtering by IP hash:",
+  "studioDatabase": "Studio database",
+  "steps": "Operation steps",
+  "moreSteps": "Load earlier steps",
+  "eventCount": "{{count}} step records",
+  "stages": {
+    "started": "Started",
+    "step": "Progress recorded",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "searchPhases": {
+    "posts": "Posts",
+    "pages": "Pages",
+    "verify": "Verification"
+  },
   "categories": {
     "auth": "Authentication",
     "account": "Accounts and security",
@@ -49,6 +64,11 @@ export const auditLog = {
     "stage": "Stage",
     "operation": "Operation",
     "initiator": "Initial actor",
+    "search_phase": "Rebuild phase",
+    "processed_posts": "Posts processed",
+    "processed_pages": "Pages processed",
+    "total_posts": "Total Posts at start",
+    "total_pages": "Total Pages at start",
     "fields": "Settings fields",
     "credential": "Credential change",
     "phase": "Import phase",

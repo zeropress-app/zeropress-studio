@@ -6,6 +6,11 @@
 .audit-log-details dt { font-weight: 600; }
 .audit-log-details dd { margin: 0; overflow-wrap: anywhere; }
 .audit-log-hash { overflow-wrap: anywhere; }
+.audit-log-event-count { display: block; margin-top: .25rem; }
+.audit-log-steps { margin-block: 1.5rem; }
+.audit-log-step-list { display: grid; gap: .5rem; max-height: 18rem; overflow: auto; list-style: none; margin: .75rem 0; padding: .375rem; }
+.audit-log-step-list button { display: flex; flex-wrap: wrap; gap: .5rem 1rem; width: 100%; min-width: 0; padding: .5rem; border: 1px solid transparent; text-align: start; justify-content: flex-start; overflow-wrap: anywhere; }
+.audit-log-step-list button[aria-pressed="true"] { border-color: currentColor; }
 @media (max-width: 480px) {
   .audit-log-details { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
   .audit-log-details dd { margin-bottom: .75rem; }

@@ -158,6 +158,9 @@ export function createContentSearchIndexRoutes(
         metadata: {
           resource: 'DB', action: 'rebuild_content_search_index',
           operation_id: status.operation_id, phase: status.phase,
+          search_phase: status.phase,
+          processed_posts: status.processed_posts, processed_pages: status.processed_pages,
+          total_posts: status.total_posts, total_pages: status.total_pages,
           ...operationsInitiatorMetadata(initiator),
         },
       });
@@ -190,6 +193,7 @@ export function createContentSearchIndexRoutes(
         metadata: {
           operation: 'apply_content_search_index_rebuild_step', stage: 'step',
           operation_id: parsed.data.operation_id,
+          search_phase: parsed.data.expected_phase,
           initiator: {
             kind: 'user', id: initiator.userId, email: initiator.userEmail, name: null,
           },
@@ -203,7 +207,9 @@ export function createContentSearchIndexRoutes(
           action: status.state === 'ready'
             ? 'complete_content_search_index_rebuild' : 'advance_content_search_index_rebuild',
           operation_id: parsed.data.operation_id, phase: status.phase,
+          search_phase: parsed.data.expected_phase,
           processed_posts: status.processed_posts, processed_pages: status.processed_pages,
+          total_posts: status.total_posts, total_pages: status.total_pages,
           ...operationsInitiatorMetadata(initiator),
         },
       });

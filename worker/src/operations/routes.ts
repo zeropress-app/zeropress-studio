@@ -957,6 +957,12 @@ function contentSearchRebuildErrorResponse(
   c: Context<StudioHonoEnvironment>,
   error: ContentSearchRebuildError,
 ): Response {
+  const attempt = c.get('audit')?.attempt;
+  if (error.issue === 'integrity_failed' && attempt) {
+    recordAudit(c, { ...attempt, outcome: 'failed', metadata: {
+      ...attempt.metadata, error_code: 'CONTENT_SEARCH_INDEX_REBUILD_NOT_AVAILABLE',
+    } });
+  }
   return errorResponse(
     c,
     409,
@@ -2535,6 +2541,11 @@ export function createOperationsRoutes(
           action: 'rebuild_content_search_index',
           operation_id: contentSearchIndex.operation_id,
           phase: contentSearchIndex.phase,
+          search_phase: contentSearchIndex.phase,
+          processed_posts: contentSearchIndex.processed_posts,
+          processed_pages: contentSearchIndex.processed_pages,
+          total_posts: contentSearchIndex.total_posts,
+          total_pages: contentSearchIndex.total_pages,
           ...operationsInitiatorMetadata(initiator),
         },
       });
@@ -2582,6 +2593,14 @@ export function createOperationsRoutes(
         db: c.env.DB,
         operationId: parsed.data.operation_id,
       });
+      beginAudit(c, {
+        action: 'operations_search', target: { type: 'database', id: 'studio' },
+        metadata: {
+          operation: 'apply_content_search_index_rebuild_step', stage: 'step',
+          operation_id: parsed.data.operation_id, search_phase: parsed.data.expected_phase,
+          initiator: { kind: 'user', id: initiator.userId, email: initiator.userEmail, name: null },
+        },
+      });
       const contentSearchIndex =
         await executeApplyContentSearchIndexRebuildStep({
           db: c.env.DB,
@@ -2600,8 +2619,11 @@ export function createOperationsRoutes(
               : 'advance_content_search_index_rebuild',
             operation_id: parsed.data.operation_id,
             phase: contentSearchIndex.phase,
+            search_phase: parsed.data.expected_phase,
             processed_posts: contentSearchIndex.processed_posts,
             processed_pages: contentSearchIndex.processed_pages,
+            total_posts: contentSearchIndex.total_posts,
+            total_pages: contentSearchIndex.total_pages,
             ...operationsInitiatorMetadata(initiator),
           },
         },
