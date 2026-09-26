@@ -226,6 +226,14 @@ export const wxrImport = {
     COMMENT_PARENT_NOT_FOUND: '같은 대상에서 가져온 부모 댓글을 찾을 수 없습니다.',
     REVISION_CONFLICT: '가져오기가 갱신하는 동안 레코드가 변경되었습니다.',
   },
+  leaving: {
+    title: '가져오기 화면을 나갈까요?',
+    description: '현재 처리 중인 묶음이 끝나면 가져오기를 중단합니다. 이미 가져온 데이터는 유지됩니다.',
+    finishingDescription: '사이트 설정을 저장하고 있습니다. 결과를 확인한 뒤 이동합니다.',
+    stay: '머무르기', stop: '중단 후 이동', finish: '완료 후 이동', leave: '이동',
+    waiting: '현재 단계가 끝나기를 기다리는 중…',
+    failed: '현재 단계가 실패했습니다. 이 화면에서 결과를 확인하거나 이동할 수 있습니다.',
+  },
   actions: {
     stop: '가져오기 중단',
     stopping: '중단 중…',

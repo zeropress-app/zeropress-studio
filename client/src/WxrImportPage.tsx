@@ -56,6 +56,7 @@ import {
   StatusPill,
 } from './components/primitives';
 import { useEdgeIntegration } from './EdgeIntegrationContext';
+import { UnsavedChangesGuard } from './components/UnsavedChangesGuard';
 import {
   useStudioDocumentTitle,
   type StudioSiteIdentity,
@@ -338,14 +339,15 @@ export function WxrImportPage(input: {
 
   useStudioDocumentTitle(t('documentTitle'));
 
-  useEffect(() => {
-    if (!importing) return;
-    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener('beforeunload', warnBeforeLeaving);
-    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
-  }, [importing]);
+  const importCompletion = useRef<Promise<boolean> | null>(null);
+
+  async function stopBeforeLeaving(): Promise<boolean> {
+    const completion = importCompletion.current;
+    if (!completion) return true;
+    stopRequested.current = true;
+    setImportState('stopping');
+    return await completion;
+  }
 
   useEffect(() => () => {
     parseGeneration.current += 1;
@@ -528,6 +530,9 @@ export function WxrImportPage(input: {
     ) return;
     const controller = new AbortController();
     importController.current = controller;
+    let finishImport!: (successful: boolean) => void;
+    importCompletion.current = new Promise((resolve) => { finishImport = resolve; });
+    let successful = false;
     stopRequested.current = false;
     const generalDocument = settingsLoadState.generalDocument;
     const routingDocument = settingsLoadState.routingDocument;
@@ -585,6 +590,7 @@ export function WxrImportPage(input: {
         });
         if (stopRequested.current) {
           setImportState('stopped');
+          successful = true;
           return;
         }
       }
@@ -636,10 +642,13 @@ export function WxrImportPage(input: {
         routingSettingsResult: response.data.routing_settings.result,
       });
       setImportState('completed');
+      successful = true;
     } catch (error) {
       if (!controller.signal.aborted) setFailure(parseFailure(error));
     } finally {
       importController.current = null;
+      importCompletion.current = null;
+      finishImport(successful);
     }
   }
 
@@ -1451,6 +1460,22 @@ export function WxrImportPage(input: {
           </Panel>
         ) : null}
       </div>
+      <UnsavedChangesGuard
+        active={importing}
+        onLeave={stopBeforeLeaving}
+        copy={{
+          kicker: t('kicker'),
+          title: t('leaving.title'),
+          description: t(progress?.currentPhase === 'site_settings'
+            ? 'leaving.finishingDescription' : 'leaving.description'),
+          stay: t('leaving.stay'),
+          leave: !importing ? t('leaving.leave')
+            : t(progress?.currentPhase === 'site_settings'
+              ? 'leaving.finish' : 'leaving.stop'),
+          leaving: t('leaving.waiting'),
+          leaveError: t('leaving.failed'),
+        }}
+      />
     </main>
   );
 }

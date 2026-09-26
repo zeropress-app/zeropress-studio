@@ -3,7 +3,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, createMemoryRouter, RouterProvider, Link } from 'react-router';
 import { EdgeIntegrationProvider } from './EdgeIntegrationContext';
 import { changeLocale } from './i18n';
 import {
@@ -676,4 +676,52 @@ describe('WXR import page', () => {
       expect.objectContaining({ request: expect.objectContaining({ phase: 'comments' }) }),
     );
   });
+});
+
+
+it.each([
+  { method: 'link', failed: false }, { method: 'back', failed: false },
+  { method: 'link', failed: true },
+])('waits for a chunk before $method navigation (failed: $failed)', async ({ method, failed }) => {
+  const chunk = deferred<Awaited<ReturnType<typeof requestWxrCoreImportChunk>>>();
+  vi.mocked(parseWxrCoreImportFile).mockResolvedValue(authorPlan(101));
+  vi.mocked(requestWxrCoreImportChunk).mockReturnValueOnce(chunk.promise);
+  const router = createMemoryRouter([
+    { path: '/posts', element: <h1>Post list</h1> },
+    { path: '/import/wordpress', element: <><Link to="/posts">Go to Posts</Link><WxrImportPage data={{ csrf_token: 'c'.repeat(43) }} onSessionEnded={vi.fn()} /></> },
+  ], { initialEntries: ['/posts', '/import/wordpress'], initialIndex: 1 });
+  const view = render(<RouterProvider router={router} />);
+  const user = userEvent.setup();
+  try {
+    await user.upload(screen.getByLabelText('Choose WordPress WXR XML file'), new File(['<rss />'], 'export.xml', { type: 'application/xml' }));
+    const confirmation = within((await screen.findByRole('heading', { name: 'Ready to import' })).closest('section')!);
+    await user.click(confirmation.getByRole('checkbox'));
+    await user.click(confirmation.getByRole('button', { name: 'Import WordPress data' }));
+    await waitFor(() => expect(requestWxrCoreImportChunk).toHaveBeenCalledOnce());
+    const signal = vi.mocked(requestWxrCoreImportChunk).mock.calls[0]![0].signal!;
+    const leave = async () => {
+      if (method === 'back') await act(async () => { void router.navigate(-1); });
+      else await user.click(screen.getByRole('link', { name: 'Go to Posts' }));
+    };
+    await leave();
+    await user.click(screen.getByRole('button', { name: 'Stay here' }));
+    expect(signal.aborted).toBe(false);
+    expect(router.state.location.pathname).toBe('/import/wordpress');
+    await leave();
+    await user.click(screen.getByRole('button', { name: 'Stop and leave' }));
+    expect(screen.getByRole('button', { name: 'Waiting for the current step…' })).toBeDisabled();
+    expect(signal.aborted).toBe(false);
+    await act(async () => chunk.resolve(failed
+      ? { success: false, error: { code: 'INTERNAL_ERROR' } } : chunkSuccess(100)));
+    if (failed) {
+      expect(await screen.findByText('The current step failed. Stay here to review the import result, or leave.')).toBeVisible();
+      expect(router.state.location.pathname).toBe('/import/wordpress');
+      await user.click(screen.getByRole('button', { name: 'Stay here' }));
+      expect(screen.getByText('The import was interrupted')).toBeVisible();
+    } else {
+      expect(await screen.findByRole('heading', { name: 'Post list' })).toBeVisible();
+    }
+    expect(requestWxrCoreImportChunk).toHaveBeenCalledOnce();
+    expect(requestWxrImportSettingsFinalize).not.toHaveBeenCalled();
+  } finally { view.unmount(); router.dispose(); }
 });

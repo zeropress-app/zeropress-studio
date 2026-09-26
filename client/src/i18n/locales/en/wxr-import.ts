@@ -226,6 +226,14 @@ export const wxrImport = {
     COMMENT_PARENT_NOT_FOUND: 'The imported parent comment is unavailable on the same target.',
     REVISION_CONFLICT: 'The record changed while the import was updating it.',
   },
+  leaving: {
+    title: 'Leave the import?',
+    description: 'The current batch will finish before the import stops. Data already imported will be kept.',
+    finishingDescription: 'Site settings are being saved. Wait for the result before leaving.',
+    stay: 'Stay here', stop: 'Stop and leave', finish: 'Finish and leave', leave: 'Leave',
+    waiting: 'Waiting for the current step…',
+    failed: 'The current step failed. Stay here to review the import result, or leave.',
+  },
   actions: {
     stop: 'Stop import',
     stopping: 'Stopping…',
