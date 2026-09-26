@@ -355,7 +355,7 @@ function NotificationsPanel(input: {
   const recipientId = recipient?.id ?? null;
   const dirty = settings !== null && recipientId !== baselineId;
   useEffect(() => {
-    input.onDirtyChange(dirty && !saving);
+    input.onDirtyChange(dirty || saving);
   }, [dirty, input.onDirtyChange, saving]);
 
   async function save() {
@@ -474,13 +474,13 @@ function NotificationsPanel(input: {
         </div>
       </Panel>
       <UnsavedChangesGuard
-        active={dirty && !saving}
+        active={dirty || saving} busy={saving}
         copy={{
           kicker: t('discard.kicker'),
           title: t('discard.title'),
           description: t('discard.description'),
           stay: t('discard.stay'),
-          leave: t('discard.leave'),
+          leave: t('discard.leave'), leaving: t('actions.saving'),
         }}
       />
       <Dialog
@@ -594,7 +594,7 @@ function SettingsPanel(input: {
     || draft.status !== input.form.status
     || draft.submitLabel.trim() !== input.form.submit_label
     || draft.successMessage.trim() !== (input.form.success_message ?? '');
-  useEffect(() => input.onDirtyChange(dirty && !saving), [dirty, input.onDirtyChange, saving]);
+  useEffect(() => input.onDirtyChange(dirty || saving), [dirty, input.onDirtyChange, saving]);
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!dirty || saving) return;
@@ -784,7 +784,7 @@ function SettingsPanel(input: {
           </dl>
         </div>
       </Panel>
-      <UnsavedChangesGuard active={dirty && !saving} copy={{ kicker: t('discard.kicker'), title: t('discard.title'), description: t('discard.description'), stay: t('discard.stay'), leave: t('discard.leave') }} />
+      <UnsavedChangesGuard active={dirty || saving} busy={saving} copy={{ kicker: t('discard.kicker'), title: t('discard.title'), description: t('discard.description'), stay: t('discard.stay'), leave: t('discard.leave'), leaving: t('actions.saving') }} />
       {confirmDelete ? <ConfirmationDialog title={t('settings.deleteTitle')} description={t('settings.deleteDescription')} target={input.form.title} busy={saving} failure={failure} onClose={() => { setConfirmDelete(false); setFailure(null); }} onConfirm={() => void remove()} /> : null}
     </form>
   );
@@ -829,7 +829,7 @@ function FieldsPanel(input: {
     return () => controller.abort();
   }, [input.form.id, input.onSessionEnded]);
   const dirty = JSON.stringify(items) !== baseline;
-  useEffect(() => input.onDirtyChange(dirty && !saving), [dirty, input.onDirtyChange, saving]);
+  useEffect(() => input.onDirtyChange(dirty || saving), [dirty, input.onDirtyChange, saving]);
 
   function nextFieldKey() {
     let index = items.length + 1;
@@ -1054,7 +1054,7 @@ function FieldsPanel(input: {
           )}
         </div>
       </Panel>
-      <UnsavedChangesGuard active={dirty && !saving} copy={{ kicker: t('discard.kicker'), title: t('discard.title'), description: t('discard.description'), stay: t('discard.stay'), leave: t('discard.leave') }} />
+      <UnsavedChangesGuard active={dirty || saving} busy={saving} copy={{ kicker: t('discard.kicker'), title: t('discard.title'), description: t('discard.description'), stay: t('discard.stay'), leave: t('discard.leave'), leaving: t('actions.saving') }} />
       <Dialog
         open={editor !== null}
         onClose={() => setEditor(null)}

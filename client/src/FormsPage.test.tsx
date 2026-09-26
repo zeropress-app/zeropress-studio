@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -55,6 +56,8 @@ beforeEach(async () => { localStorage.clear(); await changeLocale('en'); });
 describe('FormsPage', () => {
   it('uses the Form rail, required-field editor, and User notification recipient', async () => {
     let savedFields: unknown = null;
+    let finishSave!: () => void;
+    const saving = new Promise<void>((resolve) => { finishSave = resolve; });
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path.includes('/submissions?')) return Promise.resolve(json({ success: true, data: { items: [submission], pagination: { page: 1, per_page: 20, total: 1, total_pages: 1 }, status_counts: { all: 1, unread: 1, read: 0, archived: 0, spam: 0 } } }));
       if (path.includes('/notification-settings')) return Promise.resolve(json({
@@ -70,7 +73,7 @@ describe('FormsPage', () => {
       }));
       if (path.includes('/fields') && init?.method === 'PUT') {
         savedFields = JSON.parse(String(init.body));
-        return Promise.resolve(json({
+        return saving.then(() => json({
           success: true,
           data: {
             items: [{
@@ -116,6 +119,9 @@ describe('FormsPage', () => {
     // Unsaved field changes deliberately lock internal view switching.
     expect(screen.getByRole('tab', { name: /^Submissions/u })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.getByRole('tab', { name: 'Notifications' })).toBeDisabled();
+    expect(screen.getByLabelText('Select a Form')).toBeDisabled();
+    await act(async () => { finishSave(); });
     await waitFor(() => expect(savedFields).toMatchObject({
       fields: [{ field_key: 'field_1', label: 'Message', required: true }],
     }));

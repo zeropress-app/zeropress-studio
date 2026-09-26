@@ -234,13 +234,15 @@ export function SettingsScreen(input: {
         <EdgeSettingsLayout>{content}</EdgeSettingsLayout>
       )}
       <UnsavedChangesGuard
-        active={input.dirty && !saving}
+        active={input.dirty || saving}
+        busy={saving}
         copy={{
           kicker: t('shared.discard.kicker'),
-          title: t('shared.discard.title'),
-          description: t('shared.discard.description'),
+          title: t(saving ? 'shared.discard.savingTitle' : 'shared.discard.title'),
+          description: t(saving ? 'shared.discard.savingDescription' : 'shared.discard.description'),
           stay: t('shared.discard.stay'),
           leave: t('shared.discard.leave'),
+          leaving: t('shared.actions.saving'),
         }}
       />
     </main>

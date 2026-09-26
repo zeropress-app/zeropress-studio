@@ -16,6 +16,8 @@ export const settings = {
     },
     discard: {
       kicker: '저장하지 않은 변경',
+      savingTitle: '변경 사항을 저장하고 있습니다',
+      savingDescription: '저장이 끝난 뒤 페이지를 이동해 주세요.',
       title: '저장하지 않고 나갈까요?',
       description: '이 페이지에서 변경한 내용은 폐기됩니다.',
       stay: '계속 편집',

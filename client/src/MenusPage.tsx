@@ -705,10 +705,11 @@ export function MenusPage(input: {
   return (
     <main id="studio-main-content" aria-labelledby="menus-title">
       <UnsavedChangesGuard
-        active={(hasChanges || itemDialogDirty || menuDialogDirty) && !running}
+        active={hasChanges || itemDialogDirty || menuDialogDirty || running}
+        busy={running}
         copy={{
           kicker: t('unsaved.kicker'), title: t('unsaved.title'), description: t('unsaved.description'),
-          stay: t('unsaved.stay'), leave: t('unsaved.leave'),
+          stay: t('unsaved.stay'), leave: t('unsaved.leave'), leaving: t('editor.saving'),
         }}
       />
       <PageHeader titleId="menus-title" kicker={t('kicker')} title={t('title')} description={t('description')} />

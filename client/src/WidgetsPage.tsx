@@ -1285,15 +1285,15 @@ export function WidgetsPage(input: {
       aria-labelledby="widgets-title"
     >
       <UnsavedChangesGuard
-        active={(
-          hasChanges || itemDialogDirty || areaDialogDirty
-        ) && !running}
+        active={hasChanges || itemDialogDirty || areaDialogDirty || running}
+        busy={running}
         copy={{
           kicker: t('unsaved.kicker'),
           title: t('unsaved.title'),
           description: t('unsaved.description'),
           stay: t('unsaved.stay'),
           leave: t('unsaved.leave'),
+          leaving: t('editor.saving'),
         }}
       />
       <PageHeader

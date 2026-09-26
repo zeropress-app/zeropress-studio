@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Link, MemoryRouter, Route, Routes } from 'react-router';
+import { createMemoryRouter, Link, MemoryRouter, Route, RouterProvider, Routes } from 'react-router';
 import type { CurrentSessionSuccess } from '../../contracts/session';
 import { GeneralSettingsPage } from './GeneralSettingsPage';
 import { changeLocale } from './i18n';
@@ -87,6 +87,72 @@ beforeEach(async () => {
 });
 
 describe('GeneralSettingsPage', () => {
+  it.each([
+    { method: 'link', succeeded: true },
+    { method: 'history', succeeded: true },
+    { method: 'link', succeeded: false },
+    { method: 'history', succeeded: false },
+  ])('keeps a pending save mounted during $method navigation (success: $succeeded)', async ({ method, succeeded }) => {
+    let finishSave!: (response: Response) => void;
+    const pendingSave = new Promise<Response>((resolve) => { finishSave = resolve; });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ success: true, data: initialDocument }))
+      .mockReturnValueOnce(pendingSave);
+    vi.stubGlobal('fetch', fetchMock);
+    const router = createMemoryRouter([
+      { path: '/elsewhere', element: <main>Elsewhere</main> },
+      {
+        path: '/settings/site/general',
+        element: <>
+          <Link to="/elsewhere">Go elsewhere</Link>
+          <GeneralSettingsPage data={session} onSessionEnded={vi.fn()} />
+        </>,
+      },
+    ], { initialEntries: ['/elsewhere', '/settings/site/general'] });
+    render(<RouterProvider router={router} />);
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole('textbox', { name: 'Site title' }), ' changed');
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    if (method === 'link') {
+      await user.click(screen.getByRole('link', { name: 'Go elsewhere' }));
+    } else {
+      await act(async () => { void router.navigate(-1); });
+    }
+    const dialog = screen.getByRole('dialog', { name: 'Saving changes' });
+    expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Keep editing' })).toBeEnabled();
+    expect(router.state.location.pathname).toBe('/settings/site/general');
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+
+    await act(async () => {
+      finishSave(succeeded
+        ? response({ success: true, data: {
+          ...initialDocument,
+          settings: { ...initialDocument.settings, title: 'ZeroPress changed' },
+          revision: '3'.repeat(32),
+          updated_at_iso: '2026-08-01T03:00:00.000Z',
+        } })
+        : response({ success: false, error: { code: 'SYSTEM_NOT_AVAILABLE' } }, 500));
+    });
+    expect(router.state.location.pathname).toBe('/settings/site/general');
+    if (succeeded) {
+      expect(await screen.findByText('General settings saved.')).toBeVisible();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('link', { name: 'Go elsewhere' }));
+      expect(await screen.findByText('Elsewhere')).toBeVisible();
+    } else {
+      await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+      expect(screen.getByRole('textbox', { name: 'Site title' })).toHaveValue('ZeroPress changed');
+      expect(screen.getByText('Studio could not save General Settings. Your edits remain in this form.')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Save settings' })).toBeEnabled();
+    }
+    router.dispose();
+  });
+
   it('loads materialized settings and saves a complete revision-bound document', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response({

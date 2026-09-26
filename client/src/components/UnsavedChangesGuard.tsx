@@ -17,6 +17,7 @@ import {
 
 type UnsavedChangesGuardProps = {
   active: boolean;
+  busy?: boolean;
   onLeave?: () => boolean | Promise<boolean>;
   onDiscard?: () => boolean | Promise<boolean>;
   copy: {
@@ -57,7 +58,8 @@ function GuardDialog(input: UnsavedChangesGuardProps & {
   const [failedAction, setFailedAction] = useState<'leave' | 'discard' | null>(
     null,
   );
-  const busy = runningAction !== null;
+  const actionRunning = runningAction !== null;
+  const busy = actionRunning || Boolean(input.busy);
 
   useEffect(() => {
     if (input.open) return;
@@ -65,10 +67,17 @@ function GuardDialog(input: UnsavedChangesGuardProps & {
     setFailedAction(null);
   }, [input.open]);
 
+  useEffect(() => {
+    if (input.open && !input.active && !actionRunning && !failedAction) {
+      input.onStay();
+    }
+  }, [input.open, input.active, input.onStay, actionRunning, failedAction]);
+
   async function runAction(
     kind: 'leave' | 'discard',
     action: (() => boolean | Promise<boolean>) | undefined,
   ) {
+    if (busy) return;
     setRunningAction(kind);
     setFailedAction(null);
     let mayLeave = false;
@@ -89,7 +98,7 @@ function GuardDialog(input: UnsavedChangesGuardProps & {
     <Dialog
       open={input.open}
       onClose={input.onStay}
-      busy={busy}
+      busy={actionRunning}
       kicker={input.copy.kicker}
       title={input.copy.title}
       description={input.copy.description}
@@ -99,7 +108,7 @@ function GuardDialog(input: UnsavedChangesGuardProps & {
           <Button
             ref={cancelRef}
             type="button"
-            disabled={busy}
+            disabled={actionRunning}
             onClick={input.onStay}
           >
             {input.copy.stay}
@@ -122,7 +131,7 @@ function GuardDialog(input: UnsavedChangesGuardProps & {
             disabled={busy}
             onClick={() => void runAction('leave', input.onLeave)}
           >
-            {runningAction === 'leave'
+            {runningAction === 'leave' || input.busy
               ? input.copy.leaving ?? input.copy.leave
               : input.copy.leave}
           </Button>

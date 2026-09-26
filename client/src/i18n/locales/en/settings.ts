@@ -16,6 +16,8 @@ export const settings = {
     },
     discard: {
       kicker: 'UNSAVED CHANGES',
+      savingTitle: 'Saving changes',
+      savingDescription: 'Wait for saving to finish before leaving this page.',
       title: 'Leave without saving?',
       description: 'Changes made on this page will be discarded.',
       stay: 'Keep editing',
