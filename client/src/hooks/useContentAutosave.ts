@@ -37,6 +37,7 @@ export function createContentDraftId(): string {
 
 export function useContentAutosave<TSnapshot>(input: {
   active: boolean;
+  sessionKey: string;
   snapshot: TSnapshot | null;
   externalSnapshotDirty?: boolean;
   prepareSnapshot?: () => TSnapshot | null;
@@ -55,6 +56,7 @@ export function useContentAutosave<TSnapshot>(input: {
   const timerRef = useRef<number | null>(null);
   const inFlightRef = useRef<Promise<boolean> | null>(null);
   const pausedRef = useRef(false);
+  const sessionKeyRef = useRef(input.sessionKey);
   const conflictRef = useRef(false);
   const activeRef = useRef(input.active);
   activeRef.current = input.active;
@@ -86,6 +88,7 @@ export function useContentAutosave<TSnapshot>(input: {
     if (pausedRef.current || conflictRef.current) return false;
     if (inFlightRef.current) {
       await inFlightRef.current;
+      if (pausedRef.current || conflictRef.current) return false;
       if (
         !externalSnapshotDirtyRef.current
         && snapshotKeyRef.current === lastPersistedKeyRef.current
@@ -105,6 +108,7 @@ export function useContentAutosave<TSnapshot>(input: {
     if (key === lastPersistedKeyRef.current) return true;
 
     setStatus('saving');
+    const sessionKey = sessionKeyRef.current;
     const operation = persistRef.current(currentSnapshot, reason)
       .then((result) => {
         if (result.kind === 'saved') {
@@ -118,7 +122,12 @@ export function useContentAutosave<TSnapshot>(input: {
         if (result.kind === 'conflict') {
           conflictRef.current = true;
           setStatus('conflict');
-        } else setStatus('failed');
+        } else {
+          if (result.kind === 'session_ended' && sessionKey === sessionKeyRef.current) {
+            pausedRef.current = true;
+          }
+          setStatus('failed');
+        }
         return false;
       })
       .catch(() => {
@@ -146,6 +155,15 @@ export function useContentAutosave<TSnapshot>(input: {
       dirtySinceRef.current = null;
     }
   }, [input.persistedSnapshotKey]);
+
+  useEffect(() => {
+    if (sessionKeyRef.current === input.sessionKey) return;
+    sessionKeyRef.current = input.sessionKey;
+    // Reauthentication keeps this editor mounted. Resume its preserved draft
+    // only after new credentials arrive, without clearing revision conflicts.
+    pausedRef.current = false;
+    dirtySinceRef.current = null;
+  }, [input.sessionKey]);
 
   useEffect(() => {
     clearTimer();
@@ -195,6 +213,7 @@ export function useContentAutosave<TSnapshot>(input: {
     clearTimer,
     epoch,
     input.active,
+    input.sessionKey,
     input.externalSnapshotDirty,
     input.snapshot,
     persistLatest,

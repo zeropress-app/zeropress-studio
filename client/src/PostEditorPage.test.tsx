@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -876,4 +877,52 @@ describe('PostEditorPage', () => {
     );
     expect(fetchMock).toHaveBeenCalledTimes(5);
   });
+});
+
+
+it('resumes autosaving the preserved post after reauthentication during a manual save', async () => {
+  const onSessionEnded = vi.fn();
+  const writes: RequestInit[] = [];
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async (request: string, init?: RequestInit) => {
+    const url = new URL(request, 'https://studio.local');
+    if (url.pathname === '/api/posts/options') return options(url.searchParams.get('kind') as 'author' | 'category' | 'tag');
+    if (url.pathname === '/api/posts/autosave') {
+      if (init?.method !== 'PUT') return response({ success: true, data: { autosave: null } });
+      writes.push(init);
+      return response({ success: true, data: {
+        ...JSON.parse(String(init.body)), snapshot_sha256: '9'.repeat(64),
+        created_at_iso: '2026-09-26T00:00:00.000Z', updated_at_iso: '2026-09-26T00:00:00.000Z',
+        expires_at_iso: null,
+      } });
+    }
+    if (url.pathname === `/api/posts/${post.id}`) {
+      return init?.method === 'PUT'
+        ? response({ success: false, error: { code: 'AUTHENTICATION_REQUIRED' } }, 401)
+        : response({ success: true, data: post });
+    }
+    throw new Error(`Unexpected request: ${url.pathname}`);
+  }));
+  const editor = (csrfToken: string) => (
+    <MemoryRouter initialEntries={[`/posts/${post.id}`]}>
+      <Routes><Route path="/posts/:postId" element={<PostEditorPage mode="edit" data={{ csrf_token: csrfToken }} onSessionEnded={onSessionEnded} />} /></Routes>
+    </MemoryRouter>
+  );
+  const view = render(editor('c'.repeat(43)));
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Title' }), { target: { value: 'Before login' } });
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Save Post' }));
+  await waitFor(() => expect(onSessionEnded).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Save Post' })).toBeEnabled());
+  vi.useFakeTimers();
+  try {
+    await act(async () => vi.advanceTimersByTimeAsync(120_000));
+    expect(writes).toHaveLength(0);
+    view.rerender(editor('d'.repeat(43)));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'After login' } });
+    await act(async () => vi.advanceTimersByTimeAsync(15_000));
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.headers).toMatchObject({ 'X-ZeroPress-CSRF': 'd'.repeat(43) });
+    expect(JSON.parse(String(writes[0]?.body)).snapshot.draft.title).toBe('After login');
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('After login');
+    expect(screen.getByText(/^Autosaved at/u)).toBeVisible();
+  } finally { vi.useRealTimers(); }
 });

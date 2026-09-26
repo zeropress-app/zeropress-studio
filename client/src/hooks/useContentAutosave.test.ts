@@ -17,6 +17,7 @@ describe('useContentAutosave', () => {
     }));
     const { result, rerender } = renderHook(
       ({ snapshot }) => useContentAutosave({
+        sessionKey: 'session-a',
         active: true,
         snapshot,
         persist,
@@ -41,6 +42,7 @@ describe('useContentAutosave', () => {
     vi.useFakeTimers({ now: new Date('2026-08-04T00:00:00.000Z') });
     const persist = vi.fn();
     const { result } = renderHook(() => useContentAutosave({
+      sessionKey: 'session-a',
       active: true,
       snapshot: { title: 'Draft' },
       persist,
@@ -58,6 +60,7 @@ describe('useContentAutosave', () => {
     });
     const { rerender } = renderHook(
       ({ title }) => useContentAutosave({
+        sessionKey: 'session-a',
         active: true,
         snapshot: { title },
         persist,
@@ -83,6 +86,7 @@ describe('useContentAutosave', () => {
       updatedAtIso: '2026-08-04T00:00:01.000Z',
     });
     const { result } = renderHook(() => useContentAutosave({
+      sessionKey: 'session-a',
       active: true,
       snapshot: { title: 'Draft' },
       persist,
@@ -98,6 +102,7 @@ describe('useContentAutosave', () => {
 
   it('blocks a flush when the server cannot store the latest snapshot', async () => {
     const { result } = renderHook(() => useContentAutosave({
+      sessionKey: 'session-a',
       active: true,
       snapshot: { title: 'Draft' },
       persist: vi.fn().mockResolvedValue({ kind: 'failed' as const }),
@@ -113,6 +118,7 @@ describe('useContentAutosave', () => {
     vi.useFakeTimers({ now: new Date('2026-08-04T00:00:00.000Z') });
     const persist = vi.fn().mockResolvedValue({ kind: 'conflict' as const });
     const { result } = renderHook(() => useContentAutosave({
+      sessionKey: 'session-a',
       active: true,
       snapshot: { title: 'Stale draft' },
       persist,
@@ -129,6 +135,7 @@ describe('useContentAutosave', () => {
 
   it('clears persisted state when an autosave is deliberately discarded', async () => {
     const { result } = renderHook(() => useContentAutosave({
+      sessionKey: 'session-a',
       active: false,
       snapshot: { title: 'Draft' },
       persistedSnapshotKey: JSON.stringify({ title: 'Draft' }),
@@ -141,4 +148,25 @@ describe('useContentAutosave', () => {
     expect(result.current.hasPersistedAutosave).toBe(false);
     expect(result.current.status).toBe('idle');
   });
+});
+
+
+it('pauses expired autosaves until a new session arrives and then saves the latest draft', async () => {
+  vi.useFakeTimers();
+  const persist = vi.fn()
+    .mockResolvedValueOnce({ kind: 'session_ended' })
+    .mockResolvedValue({ kind: 'saved', updatedAtIso: '2026-09-26T00:00:00.000Z' });
+  const { result, rerender } = renderHook(
+    ({ sessionKey, title }) => useContentAutosave({
+      active: true, sessionKey, snapshot: { title }, persist,
+    }),
+    { initialProps: { sessionKey: 'expired', title: 'Before login' } },
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(120_000));
+  expect(persist).toHaveBeenCalledTimes(1);
+  await act(async () => { expect(await result.current.flushNow()).toBe(false); });
+  rerender({ sessionKey: 'restored', title: 'After login' });
+  await act(async () => vi.advanceTimersByTimeAsync(15_000));
+  expect(persist).toHaveBeenLastCalledWith({ title: 'After login' }, 'scheduled');
+  expect(result.current.durability).toBe('recoverable');
 });

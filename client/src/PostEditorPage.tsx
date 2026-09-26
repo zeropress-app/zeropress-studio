@@ -434,6 +434,7 @@ export function PostEditorPage(input: {
     );
   }, []);
   const autosave = useContentAutosave({
+    sessionKey: input.data.csrf_token,
     active: loadState.kind === 'ready'
       && hasChanges
       && !saving

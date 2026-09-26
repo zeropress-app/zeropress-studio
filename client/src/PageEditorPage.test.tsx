@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -584,4 +584,52 @@ describe('PageEditorPage', () => {
     );
     expect(screen.getByRole('combobox', { name: 'Status' })).toHaveValue('trash');
   });
+});
+
+
+it('resumes autosaving the preserved page after reauthentication during a manual save', async () => {
+  const onSessionEnded = vi.fn();
+  const writes: RequestInit[] = [];
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async (request: string, init?: RequestInit) => {
+    const url = new URL(request, 'https://studio.local');
+    if (url.pathname === '/api/pages/parent-options') return options();
+    if (url.pathname === '/api/pages/autosave') {
+      if (init?.method !== 'PUT') return response({ success: true, data: { autosave: null } });
+      writes.push(init);
+      return response({ success: true, data: {
+        ...JSON.parse(String(init.body)), snapshot_sha256: '9'.repeat(64),
+        created_at_iso: '2026-09-26T00:00:00.000Z', updated_at_iso: '2026-09-26T00:00:00.000Z',
+        expires_at_iso: null,
+      } });
+    }
+    if (url.pathname === `/api/pages/${page.id}`) {
+      return init?.method === 'PUT'
+        ? response({ success: false, error: { code: 'AUTHENTICATION_REQUIRED' } }, 401)
+        : response({ success: true, data: page });
+    }
+    throw new Error(`Unexpected request: ${url.pathname}`);
+  }));
+  const editor = (csrfToken: string) => (
+    <MemoryRouter initialEntries={[`/pages/${page.id}`]}>
+      <Routes><Route path="/pages/:pageId" element={<PageEditorPage mode="edit" data={{ csrf_token: csrfToken }} onSessionEnded={onSessionEnded} />} /></Routes>
+    </MemoryRouter>
+  );
+  const view = render(editor('c'.repeat(43)));
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Title' }), { target: { value: 'Before login' } });
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Save Page' }));
+  await waitFor(() => expect(onSessionEnded).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Save Page' })).toBeEnabled());
+  vi.useFakeTimers();
+  try {
+    await act(async () => vi.advanceTimersByTimeAsync(120_000));
+    expect(writes).toHaveLength(0);
+    view.rerender(editor('d'.repeat(43)));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'After login' } });
+    await act(async () => vi.advanceTimersByTimeAsync(15_000));
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.headers).toMatchObject({ 'X-ZeroPress-CSRF': 'd'.repeat(43) });
+    expect(JSON.parse(String(writes[0]?.body)).snapshot.draft.title).toBe('After login');
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('After login');
+    expect(screen.getByText(/^Autosaved at/u)).toBeVisible();
+  } finally { vi.useRealTimers(); }
 });
