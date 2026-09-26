@@ -5,6 +5,7 @@ import {
   forwardRef,
   lazy,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type ErrorInfo,
@@ -34,16 +35,6 @@ import type {
   ContentAiSelection,
   SourceContentAiSelection,
 } from '../editor/content-ai-selection';
-
-const LazyMonacoSourceEditor = lazy(async () => {
-  const module = await import('./MonacoSourceEditor');
-  return { default: module.MonacoSourceEditor };
-});
-
-const LazySunEditorVisualEditor = lazy(async () => {
-  const module = await import('./SunEditorVisualEditor');
-  return { default: module.SunEditorVisualEditor };
-});
 
 export type ContentBodyEditorHandle = {
   flush: () => string;
@@ -130,6 +121,15 @@ export const ContentBodyEditor = forwardRef<ContentBodyEditorHandle, {
   const [sourceRetry, setSourceRetry] = useState(0);
   const [sourceRuntimeUnavailable, setSourceRuntimeUnavailable] = useState(false);
   const [visualRetry, setVisualRetry] = useState(0);
+  // React.lazy retains a rejected promise, so retries need a new lazy component.
+  const LazyMonacoSourceEditor = useMemo(() => lazy(async () => {
+    const module = await import('./MonacoSourceEditor');
+    return { default: module.MonacoSourceEditor };
+  }), [sourceRetry]);
+  const LazySunEditorVisualEditor = useMemo(() => lazy(async () => {
+    const module = await import('./SunEditorVisualEditor');
+    return { default: module.SunEditorVisualEditor };
+  }), [visualRetry]);
 
   function captureSelection() {
     const textarea = textareaRef.current;

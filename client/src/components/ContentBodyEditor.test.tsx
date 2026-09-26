@@ -409,7 +409,7 @@ describe('ContentBodyEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'HTML source' }));
     expect(screen.getByTestId('mode-dirty')).toHaveTextContent('true');
-    expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue([
+    expect(await screen.findByRole('textbox', { name: 'Content' })).toHaveValue([
       '<ol>',
       '  <li>',
       '    <p>Hello</p>',
