@@ -1024,3 +1024,37 @@ describe('Post routes', () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+
+describe('Post permalink', () => {
+  it('uses the saved public ID, publication date and site timezone in an absolute URL', async () => {
+    const routing = materializeRoutingSettingsDefaults();
+    routing.permalinks.posts = '/:year/:month/:day/:public_id/';
+    const routes = createPostRoutes({
+      resolveSession: vi.fn().mockResolvedValue(editorSession),
+      getPost: vi.fn().mockResolvedValue({ ...post, status: 'published', published_at_iso: '2026-09-25T23:30:00.000Z' }),
+      readRoutingSettings: vi.fn().mockResolvedValue({ settings: routing }),
+      readGeneralSettings: vi.fn().mockResolvedValue({ settings: { url: 'https://site.example', timezone: '+09:00' } }),
+    });
+    const response = await routes.request(`/${post.id}/permalink`, {}, env());
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await response.json()).toEqual({ success: true, data: {
+      revision: post.revision, status: 'published', url: `https://site.example/2026/09/26/${post.public_id}/`,
+    } });
+  });
+
+  it('scopes author lookups and hides other authors documents', async () => {
+    const getPost = vi.fn().mockResolvedValue(null);
+    const routes = createPostRoutes({
+      resolveSession: vi.fn().mockResolvedValue(authorSession), resolveAccess: vi.fn().mockResolvedValue(ownAccess), getPost,
+    });
+    expect((await routes.request(`/${post.id}/permalink`, {}, env())).status).toBe(404);
+    expect(getPost).toHaveBeenCalledWith(expect.objectContaining({ id: post.id, authorId: post.author.id }));
+  });
+
+  it('requires an authenticated contributor', async () => {
+    const routes = createPostRoutes({ resolveSession: vi.fn().mockResolvedValue(null) });
+    expect((await routes.request(`/${post.id}/permalink`, {}, env())).status).toBe(401);
+  });
+});

@@ -36,6 +36,18 @@ test.describe('public beta authoring smoke', () => {
       await content.press('ControlOrMeta+A');
       await page.getByRole('button', { name: 'Bold', exact: true }).click();
       await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
+      const draftPath = new URL(page.url()).pathname;
+      const previewButton = page.getByRole('button', { name: 'Preview', exact: true });
+      await previewButton.click();
+      const preview = page.frameLocator('iframe[title="Body preview"]');
+      await expect(preview.locator('h1')).toHaveText(`Public beta ${kind}`);
+      await expect(preview.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
+      await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+      expect((await page.locator('iframe[title="Body preview"]').boundingBox())!.width).toBeLessThanOrEqual(390);
+      await page.getByRole('button', { name: 'Close', exact: true }).click();
+      await expect(previewButton).toBeFocused();
+      expect(new URL(page.url()).pathname).toBe(draftPath);
+      await expect(content.locator('strong')).toHaveText('Public beta 작성 smoke 🌱');
       if (kind === 'Post') {
         await page.getByRole('combobox', { name: 'Public Author' }).selectOption('beta-smoke-author');
       }

@@ -1,3 +1,6 @@
+import { ContentPermalink } from './components/ContentPermalink';
+import { useContentPermalink } from './hooks/useContentPermalink';
+import { ContentPreviewButton } from './components/ContentPreviewButton';
 import type { ContentInsertionResult } from './lib/content-media-insertion';
 import {
   useCallback,
@@ -9,7 +12,7 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
+import { useStudioDocumentTitle, useStudioSiteUrl } from './StudioSiteIdentityContext';
 import {
   Link,
   useLocation,
@@ -300,6 +303,7 @@ export function PostEditorPage(input: {
   const [aiEditSelectionMissing, setAiEditSelectionMissing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const contentEditorRef = useRef<ContentBodyEditorHandle>(null);
+  const siteUrl = useStudioSiteUrl();
   const [contentBridgeDirty, setContentBridgeDirty] = useState(false);
   const featuredImageReferenceRef = useRef(featuredImageReference);
   featuredImageReferenceRef.current = featuredImageReference;
@@ -312,6 +316,7 @@ export function PostEditorPage(input: {
     : null;
   const currentPost = loadState.kind === 'ready' ? loadState.post : null;
   const effectivePost = currentPost ?? promotedPost;
+  const permalink = useContentPermalink('posts', effectivePost, input.onSessionEnded);
   const recoveryDecisionRequired = recoveryCandidate !== null
     && currentPost !== null;
   const roles = input.data.user?.roles ?? [];
@@ -1273,6 +1278,12 @@ export function PostEditorPage(input: {
                     </span>
                   </Button>
                 ) : null}
+                <ContentPreviewButton getSource={() => ({
+                  title: draft.title,
+                  content: contentEditorRef.current?.flush() ?? draft.content,
+                  documentType: draft.document_type,
+                  baseUrl: permalink?.url ?? siteUrl,
+                })} />
                 <Button
                   type="submit"
                   variant="primary"
@@ -1317,7 +1328,7 @@ export function PostEditorPage(input: {
                   </Field>
                   <Field
                     label={t('editor.slugLabel')}
-                    hint={t('editor.slugHint')}
+                    hint={permalink?.url ? undefined : t('editor.slugHint')}
                   >
                     {(control) => (
                       <input
@@ -1333,6 +1344,7 @@ export function PostEditorPage(input: {
                       />
                     )}
                   </Field>
+                  <ContentPermalink value={permalink} />
                   {effectivePost ? (
                     <dl className="content-editor-identity">
                       <div>

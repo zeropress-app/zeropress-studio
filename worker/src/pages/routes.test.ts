@@ -546,3 +546,40 @@ describe('Page routes', () => {
     });
   });
 });
+
+
+describe('Page permalink', () => {
+  it('uses nested routes and the configured output style for a saved draft', async () => {
+    const routing = materializeRoutingSettingsDefaults();
+    routing.permalinks.pages = '/docs/:slug/';
+    routing.permalinks.output_style = 'html-extension';
+    const routes = createPageRoutes({
+      resolveSession: vi.fn().mockResolvedValue(editorSession),
+      getPage: vi.fn().mockResolvedValue({ ...page, parent: { id: '3'.repeat(32), title: 'Guide', path: 'guide' }, path: 'guide/about' }),
+      readRoutingSettings: vi.fn().mockResolvedValue({ settings: routing }),
+      readGeneralSettings: vi.fn().mockResolvedValue({ settings: { url: 'https://site.example' } }),
+    });
+    const response = await routes.request(`/${page.id}/permalink`, {}, env());
+    expect(await response.json()).toEqual({ success: true, data: {
+      revision: page.revision, status: 'draft', url: 'https://site.example/docs/guide/about',
+    } });
+  });
+
+  it('uses the site root for the front page and handles a missing site URL', async () => {
+    const routing = materializeRoutingSettingsDefaults();
+    routing.front_page = { type: 'page', page_id: page.id };
+    const readGeneralSettings = vi.fn().mockResolvedValue({ settings: { url: 'https://site.example' } });
+    const routes = createPageRoutes({
+      resolveSession: vi.fn().mockResolvedValue(editorSession), getPage: vi.fn().mockResolvedValue({ ...page, status: 'published' }),
+      readRoutingSettings: vi.fn().mockResolvedValue({ settings: routing }), readGeneralSettings,
+    });
+    expect(await (await routes.request(`/${page.id}/permalink`, {}, env())).json()).toMatchObject({ data: { url: 'https://site.example/' } });
+    readGeneralSettings.mockResolvedValue({ settings: { url: '' } });
+    expect(await (await routes.request(`/${page.id}/permalink`, {}, env())).json()).toMatchObject({ data: { url: null } });
+  });
+
+  it('keeps page management permissions on permalink lookup', async () => {
+    const routes = createPageRoutes({ resolveSession: vi.fn().mockResolvedValue({ ...editorSession, user: { ...editorSession.user, roles: ['author'] } }) });
+    expect((await routes.request(`/${page.id}/permalink`, {}, env())).status).toBe(403);
+  });
+});

@@ -16,7 +16,7 @@ actions in [Audit Log](docs/audit-log.md).
 ## What Studio provides
 
 - Post and Page authoring with SunEditor visual editing, HTML source editing,
-  autosave, and revision history
+  autosave, revision history, and [body preview](docs/content-preview.md)
 - Public Authors, Categories, Tags, Media, Menus, and Widgets
 - Site identity, routing, output, branding, localization, and custom-code
   settings

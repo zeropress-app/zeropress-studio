@@ -7,6 +7,9 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { PageEditorPage } from './PageEditorPage';
 import { changeLocale } from './i18n';
 
+// The independent permalink query is covered by its hook and browser tests.
+vi.mock('./hooks/useContentPermalink', () => ({ useContentPermalink: () => null }));
+
 vi.mock('./components/MonacoRevisionDiff', () => ({
   MonacoRevisionDiff: (input: {
     original: string;

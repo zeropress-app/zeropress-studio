@@ -36,7 +36,9 @@ const files = walk(SOURCE_ROOT).map((path) => ({
 const sources = files.filter(({ path }) => path.endsWith('.tsx')
   && !path.endsWith('.test.tsx'));
 
-const stylesheets = files.filter(({ path }) => path.endsWith('.css'));
+// The isolated iframe styles public content, not Studio UI primitives.
+const stylesheets = files.filter(({ path }) => path.endsWith('.css')
+  && path !== 'editor/content-preview-body.css');
 
 /**
  * Markup signatures.

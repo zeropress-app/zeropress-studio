@@ -1,3 +1,4 @@
+import { contentPermalinkSuccessSchema } from '../../../contracts/content-permalink';
 import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -892,6 +893,28 @@ export function createPostRoutes(
       }));
     },
   );
+
+  routes.get('/:id/permalink', async (c) => {
+    const id = postIdSchema.safeParse(c.req.param('id'));
+    if (!id.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    const authorization = await requirePostContributor(c);
+    if (authorization instanceof Response) return authorization;
+    const document = await readScopedPost({ c, id: id.data, access: authorization.access });
+    if (!document) return errorResponse(c, 404, 'POST_NOT_FOUND');
+    const [general, routing] = await Promise.all([
+      readGeneral({ db: c.env.DB }), readRouting({ db: c.env.DB }),
+    ]);
+    const path = resolvePostPublicRoute({ settings: routing.settings, timezone: general.settings.timezone, post: document }).url;
+    c.header('Cache-Control', 'no-store');
+    return c.json(contentPermalinkSuccessSchema.parse({
+      success: true,
+      data: {
+        revision: document.revision,
+        status: document.status,
+        url: general.settings.url ? new URL(path, general.settings.url).href : null,
+      },
+    }));
+  });
 
   routes.get('/:id', async (c) => {
     const id = postIdSchema.safeParse(c.req.param('id'));

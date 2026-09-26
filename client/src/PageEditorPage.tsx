@@ -1,3 +1,6 @@
+import { ContentPermalink } from './components/ContentPermalink';
+import { useContentPermalink } from './hooks/useContentPermalink';
+import { ContentPreviewButton } from './components/ContentPreviewButton';
 import type { ContentInsertionResult } from './lib/content-media-insertion';
 import {
   useCallback,
@@ -9,7 +12,7 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStudioDocumentTitle } from './StudioSiteIdentityContext';
+import { useStudioDocumentTitle, useStudioSiteUrl } from './StudioSiteIdentityContext';
 import {
   Link,
   useLocation,
@@ -248,6 +251,7 @@ export function PageEditorPage(input: {
   const [aiDraftOpen, setAiDraftOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const contentEditorRef = useRef<ContentBodyEditorHandle>(null);
+  const siteUrl = useStudioSiteUrl();
   const [contentBridgeDirty, setContentBridgeDirty] = useState(false);
   const featuredImageReferenceRef = useRef(featuredImageReference);
   featuredImageReferenceRef.current = featuredImageReference;
@@ -259,6 +263,7 @@ export function PageEditorPage(input: {
     : null;
   const currentPage = loadState.kind === 'ready' ? loadState.page : null;
   const effectivePage = currentPage ?? promotedPage;
+  const permalink = useContentPermalink('pages', effectivePage, input.onSessionEnded);
   const recoveryDecisionRequired = recoveryCandidate !== null
     && currentPage !== null;
   const canChangeDocumentType = draft.content === ''
@@ -1033,6 +1038,12 @@ export function PageEditorPage(input: {
                     </span>
                   </Button>
                 ) : null}
+                <ContentPreviewButton getSource={() => ({
+                  title: draft.title,
+                  content: contentEditorRef.current?.flush() ?? draft.content,
+                  documentType: draft.document_type,
+                  baseUrl: permalink?.url ?? siteUrl,
+                })} />
                 <Button
                   type="submit"
                   variant="primary"
@@ -1077,7 +1088,7 @@ export function PageEditorPage(input: {
                   </Field>
                   <Field
                     label={t('editor.slugLabel')}
-                    hint={t('editor.slugHint')}
+                    hint={permalink?.url ? undefined : t('editor.slugHint')}
                   >
                   {(control) => (
                     <input
@@ -1093,6 +1104,7 @@ export function PageEditorPage(input: {
                     />
                   )}
                   </Field>
+                  <ContentPermalink value={permalink} />
                   {effectivePage ? (
                     <dl className="content-editor-identity">
                       <div>

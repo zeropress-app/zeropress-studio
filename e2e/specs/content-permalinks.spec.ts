@@ -167,6 +167,14 @@ test.describe('Post and Page public permalink presentation', () => {
       expectedStatus: 201,
     }));
 
+    const general = successData<{ settings: Record<string, string>; revision: string }>(
+      await requestJson(page, { path: '/api/settings/general' }),
+    );
+    await requestJson(page, {
+      path: '/api/settings/general', method: 'PUT', csrfToken,
+      body: { expected_revision: general.revision, settings: { ...general.settings, url: 'https://site.example' } },
+    });
+
     const currentRouting = successData<{
       settings: RoutingSettings;
       revision: string;
@@ -227,5 +235,15 @@ test.describe('Post and Page public permalink presentation', () => {
       '/content/permalink-e2e-docs/permalink-e2e-guide',
       { exact: true },
     )).toBeVisible();
+    await page.goto(`/pages/${parentPage.id}`);
+    const permalink = page.locator('.content-editor-permalink a');
+    await expect(permalink).toHaveAttribute('href', 'https://site.example/');
+    await expect(permalink).toHaveAttribute('target', '_blank');
+    await page.goto(`/posts/${post.id}`);
+    await expect(page.getByText('Planned permalink', { exact: true })).toBeVisible();
+    await expect(page.locator('.content-editor-permalink span')).toHaveText(`https://site.example/journal/${post.public_id}`);
+    await page.getByRole('textbox', { name: 'Slug', exact: true }).fill('unsaved-slug');
+    await expect(page.locator('.content-editor-permalink span')).toHaveText(`https://site.example/journal/${post.public_id}`);
+
   });
 });

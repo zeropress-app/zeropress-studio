@@ -395,7 +395,7 @@ export function AuthenticatedApplication(input: {
     'imports.manage',
   );
   return (
-    <StudioSiteIdentityProvider siteTitle={siteIdentity.title}>
+    <StudioSiteIdentityProvider siteTitle={siteIdentity.title} siteUrl={siteIdentity.url}>
       <EdgeIntegrationProvider value={{
         mode: edgeIntegrationMode,
         databaseState: edgeDatabaseState,

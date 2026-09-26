@@ -1,4 +1,15 @@
 export const contentEditor = {
+  preview: {
+    open: 'Preview', title: 'Body preview',
+    description: 'Includes unsaved changes. Your site theme may display this content differently.',
+    close: 'Close', width: 'Preview width', desktop: 'Desktop', mobile: 'Mobile',
+    loading: 'Preparing preview…', failed: 'The preview could not load. Your content is unchanged.',
+    embeddedContent: 'Not loaded in this preview.',
+    externalContent: 'External content', linkDetails: 'Link details',
+    address: 'Address', target: 'Opens in', newWindow: 'New window (_blank)',
+    sameWindow: 'Current window', missingAddress: 'Address not available',
+  },
+  permalink: { published: 'Permalink', planned: 'Planned permalink' },
   contentLabel: 'Content',
   sourceMode: 'HTML source',
   visualMode: 'Visual',

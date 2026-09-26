@@ -1,4 +1,15 @@
 export const contentEditor = {
+  preview: {
+    open: '미리보기', title: '본문 미리보기',
+    description: '저장 전 변경 사항을 포함합니다. 사이트 테마에 따라 표시가 달라질 수 있습니다.',
+    close: '닫기', width: '미리보기 너비', desktop: '데스크톱', mobile: '모바일',
+    loading: '미리보기를 준비하는 중…', failed: '미리보기를 불러오지 못했습니다. 본문은 변경되지 않았습니다.',
+    embeddedContent: '미리보기에서는 불러오지 않습니다.',
+    externalContent: '외부 콘텐츠', linkDetails: '링크 정보',
+    address: '주소', target: '열기 방식', newWindow: '새 창 (_blank)',
+    sameWindow: '현재 창', missingAddress: '주소 없음',
+  },
+  permalink: { published: '고유주소', planned: '예정 고유주소' },
   contentLabel: '본문',
   sourceMode: 'HTML 원본',
   visualMode: '시각적 편집',

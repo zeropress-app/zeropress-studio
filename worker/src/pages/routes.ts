@@ -1,3 +1,5 @@
+import { readGeneralSettings } from '../settings/general-settings-repository';
+import { contentPermalinkSuccessSchema } from '../../../contracts/content-permalink';
 import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -90,6 +92,7 @@ export type PageRouteDependencies = {
   resolveSession?: ResolveUserSession;
   listPages?: typeof listPages;
   readRoutingSettings?: typeof readRoutingSettings;
+  readGeneralSettings?: typeof readGeneralSettings;
   getPage?: typeof getPage;
   listParentOptions?: typeof listPageParentOptions;
   createPage?: typeof createPage;
@@ -146,6 +149,7 @@ export function createPageRoutes(
   const routes = new Hono<StudioHonoEnvironment>();
   const list = dependencies.listPages ?? listPages;
   const readRouting = dependencies.readRoutingSettings ?? readRoutingSettings;
+  const readGeneral = dependencies.readGeneralSettings ?? readGeneralSettings;
   const read = dependencies.getPage ?? getPage;
   const listParents = dependencies.listParentOptions ?? listPageParentOptions;
   const create = dependencies.createPage ?? createPage;
@@ -514,6 +518,28 @@ export function createPageRoutes(
       }));
     },
   );
+
+  routes.get('/:id/permalink', async (c) => {
+    const id = pageIdSchema.safeParse(c.req.param('id'));
+    if (!id.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    const session = await requirePageManager(c);
+    if (session instanceof Response) return session;
+    const document = await read({ db: c.env.DB, id: id.data });
+    if (!document) return errorResponse(c, 404, 'PAGE_NOT_FOUND');
+    const [general, routing] = await Promise.all([
+      readGeneral({ db: c.env.DB }), readRouting({ db: c.env.DB }),
+    ]);
+    const path = resolvePageNavigationUrl({ settings: routing.settings, page: document });
+    c.header('Cache-Control', 'no-store');
+    return c.json(contentPermalinkSuccessSchema.parse({
+      success: true,
+      data: {
+        revision: document.revision,
+        status: document.status,
+        url: general.settings.url ? new URL(path, general.settings.url).href : null,
+      },
+    }));
+  });
 
   routes.get('/:id', async (c) => {
     const id = pageIdSchema.safeParse(c.req.param('id'));

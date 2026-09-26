@@ -81,6 +81,8 @@ function classesDeclaredInSelectors(): Map<string, string[]> {
   const declared = new Map<string, string[]>();
   for (const path of files) {
     if (!path.endsWith('.css')) continue;
+    // The sandboxed body document contains authored and renderer-generated classes.
+    if (path.endsWith('/editor/content-preview-body.css')) continue;
     const sheet = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//gu, '');
     for (const [, selector] of sheet.matchAll(/([^{}]+)\{[^{}]*\}/gu)) {
       for (const [, name] of selector.matchAll(/\.(-?[_a-zA-Z][\w-]*)/gu)) {

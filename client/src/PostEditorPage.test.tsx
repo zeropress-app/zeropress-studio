@@ -15,6 +15,9 @@ import { PostEditorPage } from './PostEditorPage';
 import { StudioToaster } from './components/primitives';
 import { changeLocale } from './i18n';
 
+// The independent permalink query is covered by its hook and browser tests.
+vi.mock('./hooks/useContentPermalink', () => ({ useContentPermalink: () => null }));
+
 vi.mock('./components/MonacoRevisionDiff', () => ({
   MonacoRevisionDiff: (input: {
     original: string;

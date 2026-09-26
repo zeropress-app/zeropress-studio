@@ -6,6 +6,9 @@ import {
 } from 'react';
 
 const StudioSiteTitleContext = createContext('');
+const StudioSiteUrlContext = createContext('');
+
+export function useStudioSiteUrl() { return useContext(StudioSiteUrlContext); }
 
 export type StudioSiteIdentity = {
   title: string;
@@ -21,11 +24,14 @@ export function formatStudioDocumentTitle(
 
 export function StudioSiteIdentityProvider(input: {
   siteTitle: string;
+  siteUrl?: string;
   children: ReactNode;
 }) {
   return (
     <StudioSiteTitleContext.Provider value={input.siteTitle}>
-      {input.children}
+      <StudioSiteUrlContext.Provider value={input.siteUrl ?? ''}>
+        {input.children}
+      </StudioSiteUrlContext.Provider>
     </StudioSiteTitleContext.Provider>
   );
 }
