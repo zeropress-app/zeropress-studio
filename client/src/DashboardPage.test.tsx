@@ -77,6 +77,11 @@ beforeEach(async () => {
 });
 
 describe('DashboardPage', () => {
+  it('links the moderation attention count directly to pending comments', async () => {
+    render(<MemoryRouter><DashboardPage data={dashboardData} onSessionEnded={vi.fn()} /></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: /comments awaiting moderation/u })).toHaveAttribute('href', '/comments?status=pending');
+  });
+
   it.each([
     { locale: 'en' as const, region: 'Service readiness', comments: 'Comment settings', newsletter: 'Delivery settings', mail: 'Mail settings', unconfigured: 'Not configured' },
     { locale: 'ko' as const, region: '서비스 준비 상태', comments: '댓글 설정', newsletter: '전송 설정', mail: '메일 설정', unconfigured: '미설정' },

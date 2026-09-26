@@ -57,6 +57,7 @@ export const comments = {
     description: 'Try a different search or filter.',
   },
   actions: {
+    restorePending: 'Restore to pending',
     search: 'Search',
     clearSearch: 'Clear search',
     retry: 'Try again',

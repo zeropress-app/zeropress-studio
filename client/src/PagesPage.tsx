@@ -1,3 +1,5 @@
+import type { ContentBulkDeleteData } from '../../contracts/content-bulk-delete';
+import { useListQuery } from './routing/use-list-query';
 import {
   useEffect,
   useMemo,
@@ -12,6 +14,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Undo2,
 } from 'lucide-react';
 import type { ApiErrorCode } from '../../contracts/api';
 import { CONTENT_BULK_LIFECYCLE_MAX_ITEMS } from '../../contracts/content-bulk-lifecycle';
@@ -43,6 +46,7 @@ import {
   PagesClientError,
   requestDeletePage,
   requestPageBulkLifecycle,
+  requestPageBulkDelete,
   requestPages,
 } from './lib/pages-client';
 import { STUDIO_PATHS, studioPagePath } from './routing/studio-routes';
@@ -68,7 +72,8 @@ type Failure =
   | { kind: 'api'; code: ApiErrorCode }
   | { kind: 'client'; code: 'TIMEOUT' | 'NETWORK_ERROR' | 'INVALID_RESPONSE' };
 type BulkCompletion = {
-  data: PageBulkLifecycleData;
+  data: PageBulkLifecycleData | ContentBulkDeleteData;
+  deleting: boolean;
   titles: Record<string, string>;
 };
 
@@ -84,18 +89,19 @@ export function PagesPage(input: {
   onSessionEnded: () => void;
 }) {
   const { t, i18n } = useTranslation('pages');
+  const { queryKey, status, search, page, updateQuery, statusHref } =
+    useListQuery(['draft', 'published', 'trash'] as const);
+  const queryRef = useRef(queryKey);
+  queryRef.current = queryKey;
   const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
-  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState(search);
   const [deleteTarget, setDeleteTarget] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [completion, setCompletion] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set<string>());
-  const [bulkTarget, setBulkTarget] = useState<PageStatus | null>(null);
+  const [bulkTarget, setBulkTarget] = useState<PageStatus | 'delete' | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkFailure, setBulkFailure] = useState<Failure | null>(null);
   const [bulkCompletion, setBulkCompletion] = useState<BulkCompletion | null>(null);
@@ -106,6 +112,17 @@ export function PagesPage(input: {
   ), [i18n.resolvedLanguage]);
 
   useStudioDocumentTitle(t('list.documentTitle'));
+
+  useEffect(() => {
+    setSearchInput(search);
+    setSelectedIds(new Set());
+    setBulkTarget(null);
+    setBulkFailure(null);
+    setBulkCompletion(null);
+    setDeleteTarget(null);
+    setFailure(null);
+    setCompletion(null);
+  }, [queryKey, search]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -126,6 +143,11 @@ export function PagesPage(input: {
         setLoadState({ kind: 'error', code: response.error.code });
         return;
       }
+      const lastPage = Math.max(1, response.data.pagination.total_pages);
+      if (page > lastPage) {
+        updateQuery({ page: lastPage }, true);
+        return;
+      }
       setLoadState({
         kind: 'ready',
         items: response.data.items,
@@ -141,7 +163,7 @@ export function PagesPage(input: {
       active = false;
       controller.abort();
     };
-  }, [input.onSessionEnded, loadAttempt, page, search, status]);
+  }, [input.onSessionEnded, loadAttempt, page, search, status, updateQuery]);
 
   function failureMessage(current: Failure): string {
     if (current.kind === 'client') {
@@ -180,16 +202,18 @@ export function PagesPage(input: {
     if (bulkTarget === null || bulkRunning || loadState.kind !== 'ready') return;
     const selected = loadState.items.filter((item) => selectedIds.has(item.id));
     if (selected.length === 0) return;
+    if (bulkTarget === 'delete' && (status !== 'trash' || selected.some((item) => item.status !== 'trash'))) return;
     setBulkRunning(true);
     setBulkFailure(null);
     try {
-      const response = await requestPageBulkLifecycle(input.data.csrf_token, {
-        target_status: bulkTarget,
-        items: selected.map((item) => ({
-          id: item.id,
-          expected_revision: item.revision,
-        })),
-      });
+      const items = selected.map((item) => ({ id: item.id, expected_revision: item.revision }));
+      const response = bulkTarget === 'delete'
+        ? await requestPageBulkDelete(input.data.csrf_token, { items })
+        : await requestPageBulkLifecycle(input.data.csrf_token, { target_status: bulkTarget, items });
+      if (queryRef.current !== queryKey) {
+        setLoadAttempt((value) => value + 1);
+        return;
+      }
       if (!response.success) {
         if (response.error.code === 'AUTHENTICATION_REQUIRED') {
           input.onSessionEnded();
@@ -200,12 +224,15 @@ export function PagesPage(input: {
       }
       setBulkCompletion({
         data: response.data,
+        deleting: bulkTarget === 'delete',
         titles: Object.fromEntries(selected.map((item) => [item.id, item.title])),
       });
       setSelectedIds((current) => {
         const next = new Set(current);
         for (const result of response.data.results) {
-          if (result.outcome === 'updated' || result.outcome === 'unchanged') {
+          if (result.outcome === 'updated' || result.outcome === 'unchanged'
+            || result.outcome === 'deleted'
+            || (result.outcome === 'skipped' && result.reason === 'not_found')) {
             next.delete(result.id);
           }
         }
@@ -214,6 +241,7 @@ export function PagesPage(input: {
       setBulkTarget(null);
       setLoadAttempt((value) => value + 1);
     } catch (error) {
+      if (queryRef.current !== queryKey) return;
       setBulkFailure({
         kind: 'client',
         code: error instanceof PagesClientError
@@ -235,6 +263,10 @@ export function PagesPage(input: {
         deleteTarget.id,
         { expected_revision: deleteTarget.revision },
       );
+      if (queryRef.current !== queryKey) {
+        setLoadAttempt((value) => value + 1);
+        return;
+      }
       if (!response.success) {
         if (response.error.code === 'AUTHENTICATION_REQUIRED') {
           input.onSessionEnded();
@@ -251,13 +283,9 @@ export function PagesPage(input: {
       });
       setDeleteTarget(null);
       setCompletion(title);
-      if (loadState.kind === 'ready'
-        && loadState.items.length === 1 && page > 1) {
-        setPage((value) => Math.max(1, value - 1));
-      } else {
-        setLoadAttempt((value) => value + 1);
-      }
+      setLoadAttempt((value) => value + 1);
     } catch (error) {
+      if (queryRef.current !== queryKey) return;
       setFailure({
         kind: 'client',
         code: error instanceof PagesClientError
@@ -299,8 +327,7 @@ export function PagesPage(input: {
               onClick={() => {
                 if (searchFailure) {
                   setSearchInput('');
-                  setSearch('');
-                  setPage(1);
+                  updateQuery({ search: '', page: 1 });
                 } else {
                   setLoadAttempt((value) => value + 1);
                 }
@@ -342,8 +369,7 @@ export function PagesPage(input: {
               role="search"
               onSubmit={(event) => {
                 event.preventDefault();
-                setPage(1);
-                setSearch(searchInput.trim());
+                updateQuery({ search: searchInput.trim(), page: 1 });
                 resetBulkContext();
               }}
             >
@@ -383,12 +409,7 @@ export function PagesPage(input: {
               label: t(`status.${value}`),
               count: loadState.statusCounts[value],
             }))}
-            onChange={(value) => {
-              setStatus(value);
-              setPage(1);
-              setCompletion(null);
-              resetBulkContext();
-            }}
+            hrefForValue={statusHref}
           />
         </div>
 
@@ -406,13 +427,18 @@ export function PagesPage(input: {
               : 'success'}
             title={t('bulk.resultTitle')}
           >
-            <p>{t('bulk.resultSummary', bulkCompletion.data.summary)}</p>
+            <p>{t(bulkCompletion.deleting ? 'bulk.deleteSummary' : 'bulk.resultSummary', bulkCompletion.data.summary)}</p>
             <ul className="content-list-bulk-results">
               {bulkCompletion.data.results.map((result) => (
                 <li key={result.id}>
-                  <Link to={studioPagePath(result.id)}>
-                    {bulkCompletion.titles[result.id] ?? result.id}
-                  </Link>
+                  {result.outcome === 'deleted'
+                    || (result.outcome === 'skipped' && result.reason === 'not_found') ? (
+                    <span>{bulkCompletion.titles[result.id] ?? result.id}</span>
+                  ) : (
+                    <Link to={studioPagePath(result.id)}>
+                      {bulkCompletion.titles[result.id] ?? result.id}
+                    </Link>
+                  )}
                   {': '}
                   {t(result.outcome === 'skipped'
                     ? `bulk.outcome.skipped.${result.reason}`
@@ -459,20 +485,32 @@ export function PagesPage(input: {
               >
                 <strong>{t('bulk.selected', { count: selectedIds.size })}</strong>
                 <div className="content-list-bulk-actions">
-                  <Button type="button" size="sm" onClick={() => setBulkTarget('published')}>
-                    {t('bulk.publish')}
-                  </Button>
-                  <Button type="button" size="sm" onClick={() => setBulkTarget('draft')}>
-                    {t('bulk.draft')}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="danger"
-                    onClick={() => setBulkTarget('trash')}
-                  >
-                    {t('bulk.trash')}
-                  </Button>
+                  {status === 'trash' ? (
+                    <>
+                      <Button type="button" size="sm" disabled={bulkRunning || deleting} onClick={() => setBulkTarget('draft')}>
+                        {t('bulk.restoreDraft')}
+                      </Button>
+                      <Button type="button" size="sm" variant="danger" disabled={bulkRunning || deleting} onClick={() => setBulkTarget('delete')}>
+                        {t('list.deletePermanently')}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {status !== 'published' ? (
+                        <Button type="button" size="sm" disabled={bulkRunning || deleting} onClick={() => setBulkTarget('published')}>
+                          {t('bulk.publish')}
+                        </Button>
+                      ) : null}
+                      {status !== 'draft' ? (
+                        <Button type="button" size="sm" disabled={bulkRunning || deleting} onClick={() => setBulkTarget('draft')}>
+                          {t('bulk.draft')}
+                        </Button>
+                      ) : null}
+                      <Button type="button" size="sm" variant="danger" disabled={bulkRunning || deleting} onClick={() => setBulkTarget('trash')}>
+                        {t('bulk.trash')}
+                      </Button>
+                    </>
+                  )}
                   <Button type="button" size="sm" variant="ghost" onClick={clearBulkSelection}>
                     {t('bulk.clear')}
                   </Button>
@@ -571,7 +609,17 @@ export function PagesPage(input: {
                             icon: Pencil,
                             to: studioPagePath(item.id),
                           },
-                          ...(item.status === 'trash' ? [{
+                          ...(status === 'trash' && item.status === 'trash' ? [{
+                            id: 'restore',
+                            kind: 'button' as const,
+                            label: t('bulk.restoreDraft'),
+                            icon: Undo2,
+                            onSelect: () => {
+                              setSelectedIds(new Set([item.id]));
+                              setBulkFailure(null);
+                              setBulkTarget('draft');
+                            },
+                          }, {
                             id: 'delete',
                             kind: 'button' as const,
                             label: t('list.deletePermanently'),
@@ -605,7 +653,7 @@ export function PagesPage(input: {
             page={loadState.pagination.page}
             totalPages={loadState.pagination.total_pages}
             onChange={(value) => {
-              setPage(value);
+              updateQuery({ page: value });
               resetBulkContext();
             }}
           />
@@ -658,10 +706,10 @@ export function PagesPage(input: {
         }}
         busy={bulkRunning}
         kicker={t('bulk.dialogKicker')}
-        title={t(`bulk.dialog.${bulkTarget ?? 'draft'}.title`, {
+        title={t(`bulk.dialog.${bulkTarget === 'draft' && status === 'trash' ? 'restore' : bulkTarget ?? 'draft'}.title`, {
           count: selectedIds.size,
         })}
-        description={t(`bulk.dialog.${bulkTarget ?? 'draft'}.description`)}
+        description={t(`bulk.dialog.${bulkTarget === 'draft' && status === 'trash' ? 'restore' : bulkTarget ?? 'draft'}.description`)}
         initialFocusRef={cancelRef}
         actions={(
           <>
@@ -678,11 +726,11 @@ export function PagesPage(input: {
             </Button>
             <Button
               type="button"
-              variant={bulkTarget === 'trash' ? 'danger' : 'primary'}
+              variant={bulkTarget === 'trash' || bulkTarget === 'delete' ? 'danger' : 'primary'}
               disabled={bulkRunning}
               onClick={() => void confirmBulkLifecycle()}
             >
-              {bulkRunning ? t('bulk.running') : t('bulk.confirm')}
+              {bulkRunning ? t('bulk.running') : t(bulkTarget === 'delete' ? 'list.deletePermanently' : 'bulk.confirm')}
             </Button>
           </>
         )}

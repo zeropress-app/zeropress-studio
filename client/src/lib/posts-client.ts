@@ -1,4 +1,9 @@
 import {
+  contentBulkDeleteResponseSchema,
+  type ContentBulkDeleteRequest,
+  type ContentBulkDeleteResponse,
+} from '../../../contracts/content-bulk-delete';
+import {
   postAutosaveDeleteResponseSchema,
   postAutosaveMutationResponseSchema,
   postAutosavePromotionResponseSchema,
@@ -438,3 +443,18 @@ export function requestPostNewsletterNotification(
   });
 }
 import { studioFetch } from './studio-fetch';
+
+export function requestPostBulkDelete(
+  csrfToken: string,
+  request: ContentBulkDeleteRequest,
+): Promise<ContentBulkDeleteResponse> {
+  return requestPostsApi<ContentBulkDeleteResponse>({
+    path: '/api/posts/bulk-delete',
+    method: 'POST',
+    csrfToken,
+    body: request,
+    parse(value) {
+      return parsed(contentBulkDeleteResponseSchema.safeParse(value));
+    },
+  });
+}

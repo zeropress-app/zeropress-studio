@@ -1,3 +1,8 @@
+import {
+  contentBulkDeleteRequestSchema,
+  contentBulkDeleteSuccessSchema,
+} from '../../../contracts/content-bulk-delete';
+import { deleteContentSelection } from '../content-lifecycle/bulk-delete';
 import { contentPermalinkSuccessSchema } from '../../../contracts/content-permalink';
 import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
 import { Hono, type Context } from 'hono';
@@ -410,6 +415,28 @@ export function createPostRoutes(
       userId: authorization.session.user.id,
       generate: dependencies.generateAiPostDraft,
     });
+  });
+
+  routes.post('/bulk-delete', mutationBodyLimit(), async (c) => {
+    const body = await readJsonBody(c);
+    if (!body.valid) return body.response;
+    const parsed = contentBulkDeleteRequestSchema.safeParse(body.value);
+    if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    const authorization = await authorizeMutation(c);
+    if (authorization instanceof Response) return authorization;
+    if (authorization.access.scope === 'unavailable') return authorUnavailable(c);
+    beginAudit(c, { action: 'content_bulk', target: { type: 'post' } });
+    const result = await deleteContentSelection(parsed.data, (item) => remove({
+      db: c.env.DB,
+      id: item.id,
+      expectedRevision: item.expected_revision,
+      ...(authorization.access.scope === 'own'
+        ? { authorScope: authorScope(authorization.access, authorization.session) }
+        : {}),
+    }));
+    auditBulk(c, 'post', result.summary, 'deleted');
+    if (result.summary.updated > 0) scheduleProjectionDrain(c);
+    return c.json(contentBulkDeleteSuccessSchema.parse({ success: true, data: result }));
   });
 
   routes.post('/bulk-lifecycle', mutationBodyLimit(), async (c) => {

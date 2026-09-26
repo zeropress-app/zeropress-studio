@@ -1,3 +1,4 @@
+import { useListQuery } from './routing/use-list-query';
 import {
   useEffect,
   useMemo,
@@ -156,22 +157,27 @@ export function CommentsPage(input: {
   onSessionEnded: () => void;
 }) {
   const { t, i18n } = useTranslation('comments');
+  const { params, queryKey, status, search, page, updateQuery, statusHref } =
+    useListQuery(['pending', 'approved', 'spam', 'trash'] as const);
+  const queryRef = useRef(queryKey);
+  queryRef.current = queryKey;
+  const targetType: TargetTypeFilter = params.get('target_type') === 'post' ? 'post'
+    : params.get('target_type') === 'page' ? 'page' : 'all';
+  const targetId = Number(params.get('target_public_id'));
+  const selectedTargetPublicId = targetType !== 'all' && Number.isSafeInteger(targetId) && targetId > 0
+    ? targetId : undefined;
   const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
-  const [targetType, setTargetType] = useState<TargetTypeFilter>('all');
+  const [searchInput, setSearchInput] = useState(search);
   const [targetFiltersOpen, setTargetFiltersOpen] = useState(false);
   const [targetSearchInput, setTargetSearchInput] = useState('');
   const [targetSearch, setTargetSearch] = useState('');
   const [targetOptionsAttempt, setTargetOptionsAttempt] = useState(0);
   const [targetOptionsState, setTargetOptionsState] =
     useState<TargetOptionsState>({ kind: 'idle' });
-  const [selectedTarget, setSelectedTarget] = useState<CommentTarget | null>(
+  const [lastSelectedTarget, setSelectedTarget] = useState<CommentTarget | null>(
     null,
   );
-  const [page, setPage] = useState(1);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [completion, setCompletion] = useState<Completion | null>(null);
@@ -193,9 +199,23 @@ export function CommentsPage(input: {
   const numberFormatter = useMemo(() => new Intl.NumberFormat(
     i18n.resolvedLanguage,
   ), [i18n.resolvedLanguage]);
-  const selectedTargetPublicId = selectedTarget?.public_id;
+  const selectedTarget = lastSelectedTarget?.type === targetType
+    && lastSelectedTarget.public_id === selectedTargetPublicId ? lastSelectedTarget
+    : targetOptionsState.kind === 'ready'
+      ? targetOptionsState.items.find((target) => target.type === targetType && target.public_id === selectedTargetPublicId) ?? null
+      : null;
 
   useStudioDocumentTitle(t('documentTitle'));
+  useEffect(() => {
+    setSearchInput(search);
+    setSelectedIds(new Set());
+    setBulkOperation(null);
+    setBulkFailure(null);
+    setBulkCompletion(null);
+    setDialog(null);
+    setFailure(null);
+    setCompletion(null);
+  }, [queryKey, search]);
   useStudioToast({
     id: 'comment-moderation',
     tone: 'success',
@@ -234,6 +254,11 @@ export function CommentsPage(input: {
         setLoadState({ kind: 'error' });
         return;
       }
+      const lastPage = Math.max(1, response.data.pagination.total_pages);
+      if (page > lastPage) {
+        updateQuery({ page: lastPage }, true);
+        return;
+      }
       setLoadState({
         kind: 'ready',
         items: response.data.items,
@@ -255,6 +280,7 @@ export function CommentsPage(input: {
     selectedTargetPublicId,
     status,
     targetType,
+    updateQuery,
   ]);
 
   useEffect(() => {
@@ -324,15 +350,7 @@ export function CommentsPage(input: {
   }
 
   function reloadAfterMutation() {
-    if (
-      loadState.kind === 'ready'
-      && loadState.items.length === 1
-      && page > 1
-    ) {
-      setPage((value) => Math.max(1, value - 1));
-    } else {
-      setLoadAttempt((value) => value + 1);
-    }
+    setLoadAttempt((value) => value + 1);
   }
 
   function clearBulkSelection() {
@@ -357,6 +375,8 @@ export function CommentsPage(input: {
       selectedIds.has(comment.id)
     ));
     if (selected.length === 0) return;
+    if (bulkOperation.operation === 'delete_permanently' && (status !== 'trash'
+      || selected.some((comment) => comment.status !== 'trash'))) return;
     setBulkRunning(true);
     setBulkFailure(null);
     setBulkCompletion(null);
@@ -381,6 +401,10 @@ export function CommentsPage(input: {
               })),
             },
       );
+      if (queryRef.current !== queryKey) {
+        setLoadAttempt((value) => value + 1);
+        return;
+      }
       if (!response.success) {
         if (response.error.code === 'AUTHENTICATION_REQUIRED') {
           input.onSessionEnded();
@@ -408,26 +432,10 @@ export function CommentsPage(input: {
         for (const id of completedIds) next.delete(id);
         return next;
       });
-      const updatedIds = new Set(response.data.results
-        .filter((result) => result.outcome === 'updated')
-        .map((result) => result.id));
-      const leavesCurrentFilter = response.data.operation === 'delete_permanently'
-        || (
-          status !== 'all'
-          && response.data.operation === 'set_status'
-          && response.data.status !== status
-        );
       setBulkOperation(null);
-      if (
-        leavesCurrentFilter
-        && page > 1
-        && loadState.items.every((comment) => updatedIds.has(comment.id))
-      ) {
-        setPage((value) => Math.max(1, value - 1));
-      } else {
-        setLoadAttempt((value) => value + 1);
-      }
+      setLoadAttempt((value) => value + 1);
     } catch (error) {
+      if (queryRef.current !== queryKey) return;
       setBulkFailure(clientFailure(error));
     } finally {
       setBulkRunning(false);
@@ -448,6 +456,10 @@ export function CommentsPage(input: {
             status: next,
             expected_updated_at_iso: comment.updated_at_iso,
           });
+      if (queryRef.current !== queryKey) {
+        setLoadAttempt((value) => value + 1);
+        return;
+      }
       if (!response.success) {
         if (response.error.code === 'AUTHENTICATION_REQUIRED') {
           input.onSessionEnded();
@@ -675,7 +687,7 @@ export function CommentsPage(input: {
   const selectedComments = loadState.items.filter((comment) => (
     selectedIds.has(comment.id)
   ));
-  const canPermanentlyDeleteSelection = selectedComments.length > 0
+  const canPermanentlyDeleteSelection = status === 'trash' && selectedComments.length > 0
     && selectedComments.length === selectedIds.size
     && selectedComments.every((comment) => comment.status === 'trash');
   const mutationBusy = bulkRunning || activeCommentId !== null;
@@ -698,7 +710,7 @@ export function CommentsPage(input: {
       },
     ];
     // Pending exposes Approve directly. Other transitions remain in the menu.
-    if (comment.status !== 'approved' && comment.status !== 'pending') {
+    if (status !== 'trash' && comment.status !== 'approved' && comment.status !== 'pending') {
       items.push({
         id: 'approve', kind: 'button', label: t('actions.approve'), icon: Check,
         onSelect: () => void applyStatus(comment, 'approved'),
@@ -706,24 +718,25 @@ export function CommentsPage(input: {
     }
     if (comment.status !== 'pending') {
       items.push({
-        id: 'pending', kind: 'button', label: t('actions.pending'), icon: Clock3,
+        id: 'pending', kind: 'button', label: t(status === 'trash' ? 'actions.restorePending' : 'actions.pending'), icon: Clock3,
         onSelect: () => void applyStatus(comment, 'pending'),
       });
     }
-    if (comment.status !== 'spam') {
+    if (status !== 'trash' && comment.status !== 'spam') {
       items.push({
         id: 'spam', kind: 'button', label: t('actions.spam'), icon: ShieldAlert,
         onSelect: () => void applyStatus(comment, 'spam'),
       });
     }
-    items.push(comment.status === 'trash' ? {
+    if (status === 'trash' && comment.status === 'trash') items.push({
       id: 'delete', kind: 'button', label: t('actions.deletePermanently'),
       icon: Trash2, tone: 'critical',
       onSelect: () => {
         setDialog({ kind: 'delete', comment });
         setFailure(null);
       },
-    } : {
+    });
+    else if (comment.status !== 'trash') items.push({
       id: 'trash', kind: 'button', label: t('actions.trash'), icon: Trash2, tone: 'critical',
       onSelect: () => void applyStatus(comment, 'trash'),
     });
@@ -750,8 +763,7 @@ export function CommentsPage(input: {
               aria-label={t('filters.searchLabel')}
               onSubmit={(event) => {
                 event.preventDefault();
-                setSearch(searchInput.trim());
-                setPage(1);
+                updateQuery({ search: searchInput.trim(), page: 1 });
                 resetBulkContext();
               }}
             >
@@ -781,8 +793,7 @@ export function CommentsPage(input: {
                   aria-label={t('actions.clearSearch')}
                   onClick={() => {
                     setSearchInput('');
-                    setSearch('');
-                    setPage(1);
+                    updateQuery({ search: '', page: 1 });
                     resetBulkContext();
                   }}
                 >
@@ -797,12 +808,11 @@ export function CommentsPage(input: {
                     {...control}
                     value={targetType}
                     onChange={(event) => {
-                      setTargetType(event.target.value as TargetTypeFilter);
+                      updateQuery({ target_type: event.target.value, target_public_id: null, page: 1 });
                       setTargetFiltersOpen(false);
                       setTargetSearchInput('');
                       setTargetSearch('');
                       setSelectedTarget(null);
-                      setPage(1);
                       setFailure(null);
                       setCompletion(null);
                       resetBulkContext();
@@ -826,7 +836,7 @@ export function CommentsPage(input: {
                 >
                   <StudioIcon icon={SlidersHorizontal} className="comments-action-icon" />
                   <span className="comments-target-name">
-                    {selectedTarget?.title ?? t('filters.chooseTarget')}
+                    {selectedTarget?.title ?? (selectedTargetPublicId ? `#${selectedTargetPublicId}` : t('filters.chooseTarget'))}
                   </span>
                 </Button>
               </div>
@@ -886,22 +896,25 @@ export function CommentsPage(input: {
                     {(control) => (
                       <select
                         {...control}
-                        value={selectedTarget?.public_id ?? ''}
+                        value={selectedTargetPublicId ?? ''}
                         disabled={targetOptionsState.kind === 'loading'}
                         onChange={(event) => {
                           const publicId = Number(event.target.value);
+                          updateQuery({ target_public_id: publicId || null, page: 1 });
                           setSelectedTarget(
                             visibleTargetOptions.find(
                               (target) => target.public_id === publicId,
                             ) ?? null,
                           );
-                          setPage(1);
                           setFailure(null);
                           setCompletion(null);
                           resetBulkContext();
                         }}
                       >
                         <option value="">{t('filters.allTypedTargets')}</option>
+                        {selectedTargetPublicId && !visibleTargetOptions.some((target) => target.public_id === selectedTargetPublicId) ? (
+                          <option value={selectedTargetPublicId}>#{selectedTargetPublicId}</option>
+                        ) : null}
                         {visibleTargetOptions.map((target) => (
                           <option value={target.public_id} key={target.public_id}>
                             {target.title} (#{target.public_id})
@@ -932,13 +945,7 @@ export function CommentsPage(input: {
               label: t(`status.${value}`),
               count: loadState.statusCounts[value],
             }))}
-            onChange={(value) => {
-              setStatus(value);
-              setPage(1);
-              setCompletion(null);
-              setFailure(null);
-              resetBulkContext();
-            }}
+            hrefForValue={statusHref}
           />
         </div>
 
@@ -991,55 +998,63 @@ export function CommentsPage(input: {
             <div className="comments-bulk-selection">
               <strong>{t('bulk.selected', { count: selectedIds.size })}</strong>
               <div className="comments-bulk-actions">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={bulkRunning || activeCommentId !== null}
-                  onClick={() => setBulkOperation({
-                    operation: 'set_status',
-                    status: 'approved',
-                  })}
-                >
-                  <StudioIcon icon={Check} className="comments-action-icon" />
-                  {t('actions.approve')}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={bulkRunning || activeCommentId !== null}
-                  onClick={() => setBulkOperation({
-                    operation: 'set_status',
-                    status: 'pending',
-                  })}
-                >
-                  <StudioIcon icon={Clock3} className="comments-action-icon" />
-                  {t('actions.pending')}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={bulkRunning || activeCommentId !== null}
-                  onClick={() => setBulkOperation({
-                    operation: 'set_status',
-                    status: 'spam',
-                  })}
-                >
-                  <StudioIcon icon={ShieldAlert} className="comments-action-icon" />
-                  {t('actions.spam')}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="danger"
-                  disabled={bulkRunning || activeCommentId !== null}
-                  onClick={() => setBulkOperation({
-                    operation: 'set_status',
-                    status: 'trash',
-                  })}
-                >
-                  <StudioIcon icon={Trash2} className="comments-action-icon" />
-                  {t('actions.trash')}
-                </Button>
+                {status !== 'trash' && status !== 'approved' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={bulkRunning || activeCommentId !== null}
+                    onClick={() => setBulkOperation({
+                      operation: 'set_status',
+                      status: 'approved',
+                    })}
+                  >
+                    <StudioIcon icon={Check} className="comments-action-icon" />
+                    {t('actions.approve')}
+                  </Button>
+                ) : null}
+                {status !== 'pending' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={bulkRunning || activeCommentId !== null}
+                    onClick={() => setBulkOperation({
+                      operation: 'set_status',
+                      status: 'pending',
+                    })}
+                  >
+                    <StudioIcon icon={Clock3} className="comments-action-icon" />
+                    {t(status === 'trash' ? 'actions.restorePending' : 'actions.pending')}
+                  </Button>
+                ) : null}
+                {status !== 'trash' && status !== 'spam' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={bulkRunning || activeCommentId !== null}
+                    onClick={() => setBulkOperation({
+                      operation: 'set_status',
+                      status: 'spam',
+                    })}
+                  >
+                    <StudioIcon icon={ShieldAlert} className="comments-action-icon" />
+                    {t('actions.spam')}
+                  </Button>
+                ) : null}
+                {status !== 'trash' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    disabled={bulkRunning || activeCommentId !== null}
+                    onClick={() => setBulkOperation({
+                      operation: 'set_status',
+                      status: 'trash',
+                    })}
+                  >
+                    <StudioIcon icon={Trash2} className="comments-action-icon" />
+                    {t('actions.trash')}
+                  </Button>
+                ) : null}
                 {canPermanentlyDeleteSelection ? (
                   <Button
                     type="button"
@@ -1269,7 +1284,7 @@ export function CommentsPage(input: {
           page={loadState.pagination.page}
           totalPages={Math.max(loadState.pagination.total_pages, 1)}
           onChange={(value) => {
-            setPage(value);
+            updateQuery({ page: value });
             resetBulkContext();
           }}
         />

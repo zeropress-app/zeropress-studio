@@ -57,6 +57,8 @@ export const posts = {
     pagePosition: '{{pages}}페이지 중 {{page}}페이지',
   },
   bulk: {
+    deleteSummary: '{{updated}}개 영구 삭제, {{conflict}}개 충돌, {{skipped}}개 건너뜀.',
+    restoreDraft: '초안으로 복원',
     label: '글 일괄 상태 작업',
     selected: '글 {{count}}개 선택됨',
     select: '선택',
@@ -68,6 +70,8 @@ export const posts = {
     clear: '선택 해제',
     dialogKicker: '글 일괄 상태 변경',
     dialog: {
+      delete: { title: '선택한 글 {{count}}개를 영구 삭제할까요?', description: '선택한 글은 복구할 수 없습니다.' },
+      restore: { title: '선택한 글 {{count}}개를 초안으로 복원할까요?', description: '복원한 항목은 게시하기 전까지 공개되지 않습니다.' },
       published: {
         title: '선택한 글 {{count}}개를 게시할까요?',
         description: '현재 상태인 각 글을 새 revision으로 저장합니다. 목록을 불러온 뒤 변경된 글은 덮어쓰지 않습니다.',
@@ -87,10 +91,14 @@ export const posts = {
     resultTitle: '글 일괄 상태 변경 완료',
     resultSummary: '{{updated}}개 변경, {{unchanged}}개 이미 동일, {{conflict}}개 충돌, {{skipped}}개 건너뜀.',
     outcome: {
+      deleted: '영구 삭제했습니다.',
       updated: '상태를 변경했습니다.',
       unchanged: '이미 요청한 상태입니다.',
       conflict: '선택 후 변경되었습니다. 다시 불러와 검토해 주세요.',
       skipped: {
+        front_page_protected: '홈페이지로 사용 중입니다.',
+        has_children: '하위 페이지가 있습니다.',
+        not_in_trash: '휴지통에 있는 항목만 영구 삭제할 수 있습니다.',
         not_found: '현재 글 관리 범위에서 더 이상 사용할 수 없습니다.',
       },
     },

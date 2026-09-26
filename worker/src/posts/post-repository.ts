@@ -435,6 +435,8 @@ export async function listPosts(input: {
   if (input.query.status !== 'all') {
     listWhere.push('posts.status = ?');
     listParams.push(input.query.status);
+  } else {
+    listWhere.push("posts.status IN ('draft', 'published')");
   }
   const commonFilter = commonWhere.length > 0
     ? `WHERE ${commonWhere.join(' AND ')}`
@@ -448,7 +450,7 @@ export async function listPosts(input: {
     const results = await input.db.batch([
       input.db.prepare(`
         SELECT
-          COUNT(*) AS all_count,
+          COALESCE(SUM(posts.status IN ('draft', 'published')), 0) AS all_count,
           COALESCE(SUM(posts.status = 'draft'), 0) AS draft_count,
           COALESCE(SUM(posts.status = 'published'), 0) AS published_count,
           COALESCE(SUM(posts.status = 'trash'), 0) AS trash_count
@@ -514,6 +516,8 @@ async function listSearchedPosts(input: {
   if (input.query.status !== 'all') {
     listWhere.push('posts.status = ?');
     listParams.push(input.query.status);
+  } else {
+    listWhere.push("posts.status IN ('draft', 'published')");
   }
   const commonFilter = `WHERE ${commonWhere.join(' AND ')}`;
   const listFilter = `WHERE ${listWhere.join(' AND ')}`;
@@ -528,7 +532,7 @@ async function listSearchedPosts(input: {
       input.db.prepare(`
         ${cte.sql}
         SELECT
-          COUNT(*) AS all_count,
+          COALESCE(SUM(posts.status IN ('draft', 'published')), 0) AS all_count,
           COALESCE(SUM(posts.status = 'draft'), 0) AS draft_count,
           COALESCE(SUM(posts.status = 'published'), 0) AS published_count,
           COALESCE(SUM(posts.status = 'trash'), 0) AS trash_count

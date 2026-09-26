@@ -57,8 +57,16 @@ actual deleted row count; a later root already removed returns `not_found`.
 
 ## UI
 
+All includes pending and approved comments. Spam and Trash have separate tabs
+and are excluded from All counts and search results. Status URLs such as
+`/comments?status=pending` can be bookmarked; the dashboard's moderation
+attention link opens Pending. Search and target filters remain in the URL when
+changing tabs; the page and selection reset.
+
 `/comments` supports individual selection and selecting all 50 items on the current
 server page. Changing the filter, target, search, or page clears selection. The
-permanent-delete action appears only when every selected comment is in Trash and
-requires a separate destructive confirmation. Conflicts and reviewable skips stay
+Trash tab offers Restore to pending and Delete permanently. Restoring does not
+approve comments automatically. Permanent deletion appears only in the Trash tab
+when every selected comment is in Trash, and requires a separate destructive
+confirmation. Individual comment menus follow the same policy. Conflicts and reviewable skips stay
 selected; completed or missing rows are removed from selection.

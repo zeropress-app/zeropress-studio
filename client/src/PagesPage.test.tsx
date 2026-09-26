@@ -3,7 +3,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import { PagesPage } from './PagesPage';
 import { changeLocale } from './i18n';
 import type { PageListItem } from '../../contracts/pages';
@@ -69,7 +69,74 @@ beforeEach(async () => {
   await changeLocale('en');
 });
 
+function ListHistory() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <><output aria-label="Current URL">{location.pathname}{location.search}</output><button onClick={() => navigate(-1)}>Back</button></>;
+}
+
 describe('PagesPage', () => {
+  it('uses bookmarkable status links and clears selection on history navigation while preserving filters', async () => {
+    const fetchMock = vi.fn(async (path: string) => {
+      const query = new URL(path, 'https://studio.example').searchParams;
+      const value = await list([{ ...page, status: query.get('status') === 'draft' ? 'draft' : 'trash' }]).json();
+      value.data.pagination = { page: Number(query.get('page') ?? 1), per_page: 50, total: 51, total_pages: 2 };
+      return response(value);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/pages?status=trash&search=needle&page=2']}><ListHistory /><PagesPage data={{ csrf_token: 'c'.repeat(43) }} onSessionEnded={vi.fn()} /></MemoryRouter>);
+    const trash = await screen.findByRole('link', { name: /Trash [0-9]/ });
+    expect(trash).toHaveAttribute('aria-current', 'page');
+    const draft = screen.getByRole('link', { name: /Draft [0-9]/ });
+    const url = new URL(draft.getAttribute('href')!, 'https://studio.example');
+    expect(url.searchParams.get('status')).toBe('draft');
+    expect(url.searchParams.get('search')).toBe('needle');
+    expect(url.searchParams.has('page')).toBe(false);
+
+    await user.click(screen.getByRole('checkbox', { name: `Select ${page.title}` }));
+    const toolbar = screen.getByRole('region', { name: 'Bulk Page lifecycle actions' });
+    expect(within(toolbar).getByRole('button', { name: 'Restore to draft' })).toBeEnabled();
+    expect(within(toolbar).getByRole('button', { name: 'Delete permanently' })).toBeEnabled();
+    expect(within(toolbar).queryByRole('button', { name: 'Move to Trash' })).not.toBeInTheDocument();
+    await user.click(draft);
+    expect(await screen.findByRole('link', { name: /Draft [0-9]/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('checkbox', { name: `Select ${page.title}` })).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('link', { name: /Trash [0-9]/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('status', { name: 'Current URL' })).toHaveTextContent('page=2');
+    expect(screen.getByRole('checkbox', { name: `Select ${page.title}` })).not.toBeChecked();
+    expect(screen.getByRole('searchbox', { name: 'Search Pages' })).toHaveValue('needle');
+  });
+
+  it('confirms bulk permanent deletion in Trash and returns to a valid page after deleting its last item', async () => {
+    let deleted = false;
+    const fetchMock = vi.fn(async (path: string, _init?: RequestInit) => {
+      if (path === '/api/pages/bulk-delete') {
+        deleted = true;
+        return response({ success: true, data: { results: [{ id: page.id, outcome: 'deleted' }], summary: { requested: 1, updated: 1, unchanged: 0, conflict: 0, skipped: 0 } } });
+      }
+      const currentPage = Number(new URL(path, 'https://studio.example').searchParams.get('page') ?? 1);
+      const value = await list(deleted && currentPage === 2 ? [] : [{ ...page, id: deleted ? 'f'.repeat(32) : page.id, status: 'trash' }]).json();
+      value.data.pagination = { page: currentPage, per_page: 50, total: deleted ? 50 : 51, total_pages: deleted ? 1 : 2 };
+      return response(value);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/pages?status=trash&page=2']}><ListHistory /><PagesPage data={{ csrf_token: 'c'.repeat(43) }} onSessionEnded={vi.fn()} /></MemoryRouter>);
+    await user.click(await screen.findByRole('checkbox', { name: `Select ${page.title}` }));
+    await user.click(screen.getByRole('button', { name: 'Delete permanently' }));
+    const dialog = screen.getByRole('dialog', { name: 'Permanently delete 1 selected Pages?' });
+    expect(deleted).toBe(false);
+    await user.click(within(dialog).getByRole('button', { name: 'Delete permanently' }));
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Current URL' })).toHaveTextContent('/pages?status=trash'));
+    await screen.findByRole('link', { name: /Trash [0-9]/ });
+    expect(screen.getByRole('status', { name: 'Current URL' })).not.toHaveTextContent('page=2');
+    const call = fetchMock.mock.calls.find(([path]) => path === '/api/pages/bulk-delete');
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ items: [{ id: page.id, expected_revision: page.revision }] });
+    expect(screen.getByRole('checkbox', { name: `Select ${page.title}` })).not.toBeChecked();
+  });
+
   it('keeps mobile page selection outside the header and limits selection to 10 Pages', async () => {
     const items = Array.from({ length: 12 }, (_, index) => ({
       ...page,
@@ -167,7 +234,7 @@ describe('PagesPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/pages?status=trash']}>
         <PagesPage
           data={{ csrf_token: 'c'.repeat(43) }}
           onSessionEnded={vi.fn()}

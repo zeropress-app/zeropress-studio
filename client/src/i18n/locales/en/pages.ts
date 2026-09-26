@@ -51,6 +51,8 @@ export const pages = {
     pagePosition: 'Page {{page}} of {{pages}}',
   },
   bulk: {
+    deleteSummary: '{{updated}} permanently deleted, {{conflict}} conflicted, and {{skipped}} skipped.',
+    restoreDraft: 'Restore to draft',
     label: 'Bulk Page lifecycle actions',
     selected: '{{count}} Pages selected',
     select: 'Select',
@@ -62,6 +64,8 @@ export const pages = {
     clear: 'Clear selection',
     dialogKicker: 'BULK PAGE LIFECYCLE',
     dialog: {
+      delete: { title: 'Permanently delete {{count}} selected Pages?', description: 'The selected Pages cannot be recovered.' },
+      restore: { title: 'Restore {{count}} selected Pages to draft?', description: 'Restored items remain private until you publish them.' },
       published: {
         title: 'Publish {{count}} selected Pages?',
         description: 'Each current Page will be saved as a new revision. Pages that changed after this list loaded will not be overwritten.',
@@ -82,10 +86,12 @@ export const pages = {
     resultSummary: '{{updated}} updated, {{unchanged}} already current, {{conflict}} conflicted, and {{skipped}} skipped.',
     openRoutingSettings: 'Open URLs & Homepage',
     outcome: {
+      deleted: 'Permanently deleted.',
       updated: 'Status updated.',
       unchanged: 'Already in the requested status.',
       conflict: 'Changed after selection; reload and review it.',
       skipped: {
+        not_in_trash: 'Only items in Trash can be permanently deleted.',
         not_found: 'The Page is no longer available.',
         front_page_protected: 'The configured Front Page must remain published.',
         has_children: 'Move its direct child Pages before moving it to Trash.',

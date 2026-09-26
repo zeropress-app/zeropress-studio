@@ -162,6 +162,39 @@ const savedRevision = {
 };
 
 describe('Post routes', () => {
+  it('authorizes bulk deletion, preserves per-row failures, and drains committed deletions once', async () => {
+    const remove = vi.fn().mockResolvedValueOnce({ kind: 'completed', publicId: post.public_id })
+      .mockResolvedValueOnce({ kind: 'revision_conflict' })
+      .mockResolvedValueOnce({ kind: 'not_in_trash' });
+    const scheduleProjectionDrain = vi.fn();
+    const routes = createPostRoutes({
+      resolveSession: vi.fn().mockResolvedValue(authorSession), resolveAccess: vi.fn().mockResolvedValue(ownAccess),
+      deletePost: remove, scheduleProjectionDrain, now: () => NOW,
+    });
+    const items = [1, 2, 3].map((n) => ({ id: String(n).repeat(32), expected_revision: post.revision }));
+    const csrfDenied = await routes.fetch(mutationRequest('/bulk-delete', 'POST', { items }, { 'X-ZeroPress-CSRF': '' }), env());
+    expect(csrfDenied.status).toBe(403);
+    expect(remove).not.toHaveBeenCalled();
+    const originDenied = await routes.fetch(mutationRequest('/bulk-delete', 'POST', { items }, { Origin: 'https://other.example' }), env());
+    expect(originDenied.status).toBe(403);
+    const response = await routes.fetch(mutationRequest('/bulk-delete', 'POST', { items }), env());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ success: true, data: {
+      results: [{ outcome: 'deleted' }, { outcome: 'conflict' }, { outcome: 'skipped', reason: 'not_in_trash' }],
+      summary: { requested: 3, updated: 1, unchanged: 0, conflict: 1, skipped: 1 },
+    } });
+    expect(remove).toHaveBeenNthCalledWith(1, { db: expect.anything(), id: items[0].id, expectedRevision: items[0].expected_revision, authorScope: { authorId: post.author.id, userId: authorSession.user.id }, });
+    expect(scheduleProjectionDrain).toHaveBeenCalledOnce();
+  });
+
+  it('rejects bulk deletion without a session', async () => {
+    const remove = vi.fn();
+    const routes = createPostRoutes({ resolveSession: vi.fn().mockResolvedValue(null), deletePost: remove });
+    const response = await routes.fetch(mutationRequest('/bulk-delete', 'POST', { items: [{ id: post.id, expected_revision: post.revision }] }), env());
+    expect(response.status).toBe(401);
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it('runs bounded lifecycle changes in the caller Post scope and schedules one drain', async () => {
     const bulkLifecycle = vi.fn().mockResolvedValue({
       target_status: 'published',

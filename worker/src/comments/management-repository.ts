@@ -477,6 +477,8 @@ export function buildCommentFilter(
   if (includeStatus && query.status !== 'all') {
     conditions.push('c.status = ?');
     parameters.push(query.status);
+  } else if (includeStatus) {
+    conditions.push("c.status IN ('pending', 'approved')");
   }
   if (query.search) {
     conditions.push(`(
@@ -596,7 +598,7 @@ export async function listManagedComments(input: {
       `).bind(...listFilter.parameters).first<CountRow>(),
       input.edgeDb.prepare(`
         SELECT
-          COUNT(*) AS all_count,
+          COALESCE(SUM(c.status IN ('pending', 'approved')), 0) AS all_count,
           SUM(CASE WHEN c.status = 'pending' THEN 1 ELSE 0 END)
             AS pending_count,
           SUM(CASE WHEN c.status = 'approved' THEN 1 ELSE 0 END)

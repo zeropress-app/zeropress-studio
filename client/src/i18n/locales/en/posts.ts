@@ -57,6 +57,8 @@ export const posts = {
     pagePosition: 'Page {{page}} of {{pages}}',
   },
   bulk: {
+    deleteSummary: '{{updated}} permanently deleted, {{conflict}} conflicted, and {{skipped}} skipped.',
+    restoreDraft: 'Restore to draft',
     label: 'Bulk Post lifecycle actions',
     selected: '{{count}} Posts selected',
     select: 'Select',
@@ -68,6 +70,8 @@ export const posts = {
     clear: 'Clear selection',
     dialogKicker: 'BULK POST LIFECYCLE',
     dialog: {
+      delete: { title: 'Permanently delete {{count}} selected Posts?', description: 'The selected Posts cannot be recovered.' },
+      restore: { title: 'Restore {{count}} selected Posts to draft?', description: 'Restored items remain private until you publish them.' },
       published: {
         title: 'Publish {{count}} selected Posts?',
         description: 'Each current Post will be saved as a new revision. Posts that changed after this list loaded will not be overwritten.',
@@ -87,10 +91,14 @@ export const posts = {
     resultTitle: 'Bulk Post lifecycle completed',
     resultSummary: '{{updated}} updated, {{unchanged}} already current, {{conflict}} conflicted, and {{skipped}} skipped.',
     outcome: {
+      deleted: 'Permanently deleted.',
       updated: 'Status updated.',
       unchanged: 'Already in the requested status.',
       conflict: 'Changed after selection; reload and review it.',
       skipped: {
+        front_page_protected: 'Used as the Front Page.',
+        has_children: 'Has child Pages.',
+        not_in_trash: 'Only items in Trash can be permanently deleted.',
         not_found: 'No longer available in your Post scope.',
       },
     },

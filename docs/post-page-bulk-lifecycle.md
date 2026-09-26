@@ -1,8 +1,13 @@
 # Post/Page bounded bulk lifecycle
 
+The All tab contains draft and published documents. Trash has its own tab;
+its documents are excluded from All counts and search results. Status tabs use
+URLs such as `/posts?status=trash` and `/pages?status=draft`. Search and Author
+filters are preserved when changing tabs; the page and selection reset.
+
 Bulk lifecycle operations change selected documents to `draft`, `published`, or
-`trash`. Each document receives the same permission, revision, and reference
-integrity checks as a single-document status change.
+`trash`, or permanently delete selected Trash documents. Each document receives
+the same permission, revision, and reference integrity checks as a single write.
 
 ## Scope
 
@@ -10,6 +15,7 @@ Supported behavior:
 
 - Explicitly select documents on the current Post or Page list page.
 - Change selected documents to `draft`, `published`, or `trash`.
+- Permanently delete selected Trash documents after confirmation.
 - Recheck each row's permissions, current revision, and restrictive references.
 - Update the canonical row, saved revision, FTS row, and Edge target outbox within
   the same boundary as a single-document write.
@@ -19,12 +25,11 @@ Supported behavior:
 These operations do not include:
 
 - Selecting all search results or every page.
-- Bulk permanent deletion.
 - Scheduled publishing or future publication timestamps.
 - Bulk editing fields such as title, Author, parent, taxonomy, or comment permission.
 - Deleting or automatically restoring autosaves.
 
-Permanent deletion uses a single-document request with an expected revision.
+Permanent deletion requires an expected revision for every selected document.
 
 ## API contract
 
@@ -87,6 +92,26 @@ endpoint requires `pages.manage`. Unknown database results and service errors fa
 the request rather than becoming fabricated per-row `failed` results. Idempotent
 retries safely handle documents that were already committed.
 
+## Bulk permanent deletion
+
+```text
+POST /api/posts/bulk-delete
+POST /api/pages/bulk-delete
+```
+
+Send `{ items: [{ id, expected_revision }] }` with up to 10 unique documents.
+Each item uses the single-document deletion checks, including Author scope,
+Trash status, revision, Front Page protection, and child Page references.
+Results preserve selection order and report `deleted`, `conflict`, or `skipped`.
+Skip reasons are `not_found`, `not_in_trash`, `front_page_protected`, or
+`has_children`, as applicable. The summary uses the same counters as lifecycle
+changes; `updated` counts deleted documents and `unchanged` is zero.
+
+Each deletion is independent. Conflicts and protected documents do not prevent
+other eligible documents from being deleted. An unexpected database error stops
+later items; already committed deletions remain committed. Retrying an already
+deleted ID returns `skipped/not_found`.
+
 ## Revisions and retries
 
 Each row is processed in this order:
@@ -145,11 +170,14 @@ must remain published.
 
 ## Using bulk actions
 
-Select up to 10 documents on the current Post or Page list, then choose Publish,
-Move to draft, or Move to Trash. Each action asks for confirmation. Changing the
-filter, search, status tab, or page clears the selection.
+Select up to 10 documents on the current Post or Page list. Active tabs offer
+publication, draft, and Trash transitions. The Trash tab offers Restore to draft
+and Delete permanently; restored documents are not published automatically.
+Permanent deletion is offered only in Trash, for both individual and bulk actions.
+Each bulk action asks for confirmation. Changing the filter, search, status tab,
+or page clears the selection, including browser back/forward navigation.
 
-After processing, the list and status counts refresh. Updated and unchanged
+After processing, the list and status counts refresh. Updated, unchanged, deleted, and no-longer-available
 documents leave the selection; conflicts and skipped documents remain available
 in the results panel.
 

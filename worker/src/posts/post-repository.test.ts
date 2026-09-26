@@ -1,3 +1,4 @@
+import { deleteContentSelection } from '../content-lifecycle/bulk-delete';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { URL } from 'node:url';
@@ -183,6 +184,58 @@ const defaultQuery: PostListQuery = {
 };
 
 describe('Post D1 repository', () => {
+  it.each(['', 'Needle'])('keeps active and Trash counts consistent during paginated search "%s"', async (search) => {
+    const { database, d1 } = createTestDatabase();
+    seedRelations(database);
+    for (const [index, status] of (['draft', 'published', 'trash'] as const).entries()) {
+      const id = String(index + 1).repeat(32);
+      await createPost({ db: d1, authored: authored({ title: `Needle ${status}`, slug: `needle-${status}`, status }),
+        now: NOW, createId: () => id, createRevision: () => 'a'.repeat(32) });
+    }
+    const first = await listPosts({ db: d1, query: { ...defaultQuery, search, per_page: 1 } });
+    const second = await listPosts({ db: d1, query: { ...defaultQuery, search, per_page: 1, page: 2 } });
+    expect(new Set([...first.items, ...second.items].map((item) => item.status))).toEqual(new Set(['draft', 'published']));
+    expect(first.pagination).toMatchObject({ total: 2, total_pages: 2 });
+    expect(first.status_counts).toEqual({ all: 2, draft: 1, published: 1, trash: 1 });
+    const trash = await listPosts({ db: d1, query: { ...defaultQuery, search, status: 'trash' } });
+    expect(trash.items.map((item) => item.status)).toEqual(['trash']);
+    expect(trash.pagination.total).toBe(1);
+    expect(trash.status_counts).toEqual(first.status_counts);
+    database.close();
+  });
+
+  it('permanently deletes a bounded selection while retaining changed and active documents', async () => {
+    const { database, d1 } = createTestDatabase();
+    seedRelations(database);
+    database.prepare("INSERT INTO studio_settings (key, value, type, updated_at_iso) VALUES ('edge_integration_mode', 'enabled', 'string', ?)").run(NOW.toISOString());
+    for (const [index, status] of (['trash', 'trash', 'draft'] as const).entries()) {
+      const id = String(index + 1).repeat(32);
+      await createPost({ db: d1, authored: authored({ title: `Needle ${status}`, slug: `needle-${index}`, status }),
+        now: NOW, createId: () => id, createRevision: () => 'a'.repeat(32) });
+    }
+    const items = [
+      { id: '1'.repeat(32), expected_revision: 'a'.repeat(32) },
+      { id: '2'.repeat(32), expected_revision: 'b'.repeat(32) },
+      { id: '3'.repeat(32), expected_revision: 'a'.repeat(32) },
+      { id: '4'.repeat(32), expected_revision: 'a'.repeat(32) },
+    ];
+    const remove = (item: typeof items[number]) => deletePost({ db: d1, id: item.id, expectedRevision: item.expected_revision });
+    const result = await deleteContentSelection({ items }, remove);
+    expect(result.results).toEqual([
+      { id: items[0].id, outcome: 'deleted' },
+      { id: items[1].id, outcome: 'conflict' },
+      { id: items[2].id, outcome: 'skipped', reason: 'not_in_trash' },
+      { id: items[3].id, outcome: 'skipped', reason: 'not_found' },
+    ]);
+    expect(result.summary).toEqual({ requested: 4, updated: 1, unchanged: 0, conflict: 1, skipped: 2 });
+    expect(database.prepare('SELECT id FROM posts ORDER BY id').all()).toEqual([{ id: items[1].id }, { id: items[2].id }]);
+    expect(database.prepare('SELECT COUNT(*) AS count FROM post_search_fts').get()).toEqual({ count: 2 });
+    expect(database.prepare("SELECT COUNT(*) AS count FROM edge_comment_target_projection_outbox WHERE operation = 'delete'").get()).toEqual({ count: 1 });
+    const retry = await deleteContentSelection({ items: [items[0]] }, remove);
+    expect(retry.results).toEqual([{ id: items[0].id, outcome: 'skipped', reason: 'not_found' }]);
+    database.close();
+  });
+
   it('accepts trigger-inclusive D1 change counts for permanent deletion', async () => {
     const { database, d1 } = createTestDatabase();
     seedRelations(database);

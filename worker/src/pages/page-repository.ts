@@ -448,6 +448,8 @@ export async function listPages(input: {
   if (input.query.status !== 'all') {
     listWhere.push('pages.status = ?');
     listParams.push(input.query.status);
+  } else {
+    listWhere.push("pages.status IN ('draft', 'published')");
   }
   const commonFilter = commonWhere.length > 0
     ? `WHERE ${commonWhere.join(' AND ')}`
@@ -461,7 +463,7 @@ export async function listPages(input: {
     const results = await input.db.batch([
       input.db.prepare(`
         SELECT
-          COUNT(*) AS all_count,
+          COALESCE(SUM(pages.status IN ('draft', 'published')), 0) AS all_count,
           COALESCE(SUM(pages.status = 'draft'), 0) AS draft_count,
           COALESCE(SUM(pages.status = 'published'), 0) AS published_count,
           COALESCE(SUM(pages.status = 'trash'), 0) AS trash_count
@@ -527,6 +529,8 @@ async function listSearchedPages(input: {
   if (input.query.status !== 'all') {
     listWhere.push('pages.status = ?');
     listParams.push(input.query.status);
+  } else {
+    listWhere.push("pages.status IN ('draft', 'published')");
   }
   const offset = (input.query.page - 1) * input.query.per_page;
   const order = contentSearchOrderExpression({
@@ -539,7 +543,7 @@ async function listSearchedPages(input: {
       input.db.prepare(`
         ${cte.sql}
         SELECT
-          COUNT(*) AS all_count,
+          COALESCE(SUM(pages.status IN ('draft', 'published')), 0) AS all_count,
           COALESCE(SUM(pages.status = 'draft'), 0) AS draft_count,
           COALESCE(SUM(pages.status = 'published'), 0) AS published_count,
           COALESCE(SUM(pages.status = 'trash'), 0) AS trash_count

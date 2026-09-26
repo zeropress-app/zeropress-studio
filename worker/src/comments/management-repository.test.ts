@@ -196,6 +196,29 @@ function insertComment(input: {
 }
 
 describe('comment moderation repository', () => {
+
+  it.each(['', 'Needle'])('lists only pending and approved comments in All with target/search filters: %s', async (search) => {
+    const { edge, studio, edgeDb, studioDb } = databases();
+    const targetId = insertTarget(edge, 'post', 101);
+    const otherTarget = insertTarget(edge, 'page', 101);
+    for (const [index, status] of (['pending', 'approved', 'spam', 'trash'] as const).entries()) {
+      insertComment({ database: edge, id: String(index + 1).repeat(32), publicId: index + 1, targetId, status, content: 'Needle' });
+    }
+    insertComment({ database: edge, id: '5'.repeat(32), publicId: 5, targetId: otherTarget, status: 'pending', content: 'Needle' });
+    const query = { search, status: 'all' as const, target_type: 'post' as const, target_public_id: 101, page: 1, per_page: 1 };
+    const first = await listManagedComments({ db: studioDb, edgeDb, query });
+    const second = await listManagedComments({ db: studioDb, edgeDb, query: { ...query, page: 2 } });
+    expect(new Set([...first.items, ...second.items].map((item) => item.status))).toEqual(new Set(['pending', 'approved']));
+    expect(first.pagination).toMatchObject({ total: 2, total_pages: 2 });
+    expect(first.status_counts).toEqual({ all: 2, pending: 1, approved: 1, spam: 1, trash: 1 });
+    for (const status of ['spam', 'trash'] as const) {
+      const result = await listManagedComments({ db: studioDb, edgeDb, query: { ...query, status } });
+      expect(result.items.map((item) => item.status)).toEqual([status]);
+      expect(result.pagination.total).toBe(1);
+      expect(result.status_counts).toEqual(first.status_counts);
+    }
+    studio.close(); edge.close();
+  });
   it('lists only published, comment-enabled targets projected to Edge', async () => {
     const { edge, studio, edgeDb, studioDb } = databases();
     insertTarget(edge, 'post', 101);

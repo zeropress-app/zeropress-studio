@@ -1104,6 +1104,7 @@
 }
 
 .studio-filter-tab {
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;

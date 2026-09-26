@@ -128,7 +128,7 @@ export function DashboardPage(input: {
     edge.comments ? {
       id: 'comments', count: edge.comments.pending,
       icon: MessagesSquare,
-      label: t('attention.pendingComments'), path: STUDIO_PATHS.comments,
+      label: t('attention.pendingComments'), path: `${STUDIO_PATHS.comments}?status=pending`,
     } : null,
     edge.forms ? {
       id: 'forms', count: edge.forms.unread_submissions,

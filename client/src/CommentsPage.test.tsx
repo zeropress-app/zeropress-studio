@@ -10,7 +10,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import type { ManagedComment } from '../../contracts/comments';
 import { CommentsPage } from './CommentsPage';
 import { changeLocale } from './i18n';
@@ -89,7 +89,7 @@ function list(items: ManagedComment[]) {
         total_pages: items.length > 0 ? 1 : 0,
       },
       status_counts: {
-        all: items.length,
+        all: items.filter((item) => item.status === 'pending' || item.status === 'approved').length,
         pending: items.filter((item) => item.status === 'pending').length,
         approved: items.filter((item) => item.status === 'approved').length,
         spam: items.filter((item) => item.status === 'spam').length,
@@ -116,7 +116,74 @@ beforeEach(async () => {
   await changeLocale('en');
 });
 
+function CommentHistory() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <><output aria-label="Current URL">{location.search}</output><button onClick={() => navigate(-1)}>Back</button></>;
+}
+
 describe('CommentsPage', () => {
+  it('keeps target and search filters in status links and restores the pending tab through browser history', async () => {
+    const fetchMock = vi.fn(async (path: string) => {
+      if (path.startsWith('/api/comments/targets')) return response({ success: true, data: { items: [comment.target] } });
+      const query = new URL(path, 'https://studio.example').searchParams;
+      const status = query.get('status') === 'trash' ? 'trash' : 'pending';
+      const value = await list([{ ...comment, status }]).json();
+      value.data.pagination = { page: Number(query.get('page') ?? 1), per_page: 50, total: 51, total_pages: 2 };
+      return response(value);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/comments?status=pending&search=Reader&target_type=post&target_public_id=100000000001&page=2']}>
+      <CommentHistory /><CommentsPage data={session} onSessionEnded={vi.fn()} />
+    </MemoryRouter>);
+    expect(await screen.findByRole('link', { name: 'Pending 1' })).toHaveAttribute('aria-current', 'page');
+    const trash = screen.getByRole('link', { name: 'Trash 0' });
+    const query = new URL(trash.getAttribute('href')!, 'https://studio.example').searchParams;
+    expect(Object.fromEntries(query)).toEqual({ status: 'trash', search: 'Reader', target_type: 'post', target_public_id: '100000000001' });
+    await user.click(screen.getByLabelText('Select comment #101 by Reader Name'));
+    await user.click(trash);
+    expect(await screen.findByRole('link', { name: 'Trash 1' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByLabelText('Select comment #101 by Reader Name')).not.toBeChecked();
+    await user.click(screen.getByLabelText('Select comment #101 by Reader Name'));
+    const toolbar = screen.getByRole('region', { name: 'Bulk comment moderation' });
+    expect(within(toolbar).getByRole('button', { name: 'Restore to pending' })).toBeEnabled();
+    expect(within(toolbar).getByRole('button', { name: 'Delete permanently' })).toBeEnabled();
+    expect(within(toolbar).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('link', { name: 'Pending 1' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByLabelText('Select comment #101 by Reader Name')).not.toBeChecked();
+    expect(screen.getByRole('status', { name: 'Current URL' })).toHaveTextContent('page=2');
+  });
+
+  it.each(['spam', 'trash'] as const)('returns from the last All page when moderation moves its final comment to %s', async (destination) => {
+    let moved = false;
+    const fetchMock = vi.fn(async (path: string, _init?: RequestInit) => {
+      if (path === '/api/comments/bulk-moderation') {
+        moved = true;
+        return response({ success: true, data: {
+          operation: 'set_status', status: destination,
+          results: [{ id: comment.id, outcome: 'updated', status: destination, updated_at_iso: '2026-08-03T00:00:00.000Z' }],
+          summary: { requested: 1, updated: 1, unchanged: 0, conflict: 0, skipped: 0, deleted_comments: 0 },
+        } });
+      }
+      const currentPage = Number(new URL(path, 'https://studio.example').searchParams.get('page') ?? 1);
+      const value = await list(moved && currentPage === 2 ? [] : [comment]).json();
+      value.data.pagination = { page: currentPage, per_page: 50, total: moved ? 50 : 51, total_pages: moved ? 1 : 2 };
+      return response(value);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/comments?page=2']}><CommentHistory /><CommentsPage data={session} onSessionEnded={vi.fn()} /></MemoryRouter>);
+    await user.click(await screen.findByLabelText('Select comment #101 by Reader Name'));
+    await user.click(screen.getByRole('button', { name: destination === 'spam' ? 'Mark as spam' : 'Move to Trash' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Apply moderation' }));
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Current URL' })).not.toHaveTextContent('page=2'));
+    expect(await screen.findByRole('link', { name: 'All 1' })).toHaveAttribute('aria-current', 'page');
+    const mutation = fetchMock.mock.calls.find(([path]) => path === '/api/comments/bulk-moderation');
+    expect(JSON.parse(String(mutation?.[1]?.body))).toMatchObject({ operation: 'set_status', status: destination });
+  });
+
   it('keeps metadata in a read-only dialog and approves a pending comment with a toast', async () => {
     const approved = {
       ...comment,
@@ -180,7 +247,7 @@ describe('CommentsPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/comments?status=trash']}>
         <StudioToaster />
         <CommentsPage data={session} onSessionEnded={vi.fn()} />
       </MemoryRouter>,
@@ -271,17 +338,24 @@ describe('CommentsPage', () => {
       public_id: 102,
       target_type: 'page',
       target: { ...comment.target, type: 'page', id: 'b'.repeat(32), title: 'First Page' },
-      status: 'trash',
+      status: 'approved',
       content_text: 'First line\n<b>Still plain text</b>',
       author: { ...comment.author, kind: 'authenticated_user' },
     };
-    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(list([comment, pageComment])));
+    const fetchMock = vi.fn(async (path: string) => {
+      const trash = { ...pageComment, status: 'trash' as const };
+      const items = new URL(path, 'https://studio.example').searchParams.get('status') === 'trash'
+        ? [trash] : [comment, pageComment];
+      const value = await list(items).json();
+      value.data.status_counts = { all: 2, pending: 1, approved: 1, spam: 0, trash: 1 };
+      return response(value);
+    });
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(<MemoryRouter><CommentsPage data={session} onSessionEnded={vi.fn()} /></MemoryRouter>);
     await screen.findByText('First Page');
-    expect(screen.getByRole('button', { name: 'All 2' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Trash 1' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All 2' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Trash 1' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'First Post' })).toHaveAttribute('href', `/posts/${comment.target.id}`);
     expect(screen.getByRole('link', { name: 'First Page' })).toHaveAttribute('href', `/pages/${pageComment.target!.id}`);
     const content = screen.getByText(/Still plain text/);
@@ -296,7 +370,7 @@ describe('CommentsPage', () => {
       .toBe('Reader Name');
     await screen.findByText('First Page');
     expect(screen.queryByRole('region', { name: 'Bulk comment moderation' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Trash 1' }));
+    await user.click(screen.getByRole('link', { name: 'Trash 1' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     expect(new URL(String(fetchMock.mock.calls[2]?.[0]), 'https://studio.example').searchParams.get('status'))
       .toBe('trash');
@@ -472,7 +546,7 @@ describe('CommentsPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/comments?status=trash']}>
         <StudioToaster />
         <CommentsPage data={session} onSessionEnded={vi.fn()} />
       </MemoryRouter>,

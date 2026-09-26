@@ -57,6 +57,7 @@ export const comments = {
     description: '검색어나 필터를 변경해 보세요.',
   },
   actions: {
+    restorePending: '승인 대기로 복원',
     search: '검색',
     clearSearch: '검색 초기화',
     retry: '다시 시도',

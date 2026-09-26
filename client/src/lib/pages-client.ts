@@ -1,4 +1,9 @@
 import {
+  contentBulkDeleteResponseSchema,
+  type ContentBulkDeleteRequest,
+  type ContentBulkDeleteResponse,
+} from '../../../contracts/content-bulk-delete';
+import {
   pageAutosaveDeleteResponseSchema,
   pageAutosaveMutationResponseSchema,
   pageAutosavePromotionResponseSchema,
@@ -393,3 +398,18 @@ export function requestPageBulkLifecycle(
   });
 }
 import { studioFetch } from './studio-fetch';
+
+export function requestPageBulkDelete(
+  csrfToken: string,
+  request: ContentBulkDeleteRequest,
+): Promise<ContentBulkDeleteResponse> {
+  return requestPagesApi<ContentBulkDeleteResponse>({
+    path: '/api/pages/bulk-delete',
+    method: 'POST',
+    csrfToken,
+    body: request,
+    parse(value) {
+      return parsed(contentBulkDeleteResponseSchema.safeParse(value));
+    },
+  });
+}

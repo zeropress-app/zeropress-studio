@@ -41,8 +41,8 @@ test.describe('Posts list presentation', () => {
       name: 'Filter Posts by status',
     });
     await expect(statusFilters).toHaveClass(/studio-filter-tabs-underline/u);
-    await expect(statusFilters.getByRole('button', { name: /^All \d+$/u }))
-      .toHaveAttribute('aria-pressed', 'true');
+    await expect(statusFilters.getByRole('link', { name: /^All \d+$/u }))
+      .toHaveAttribute('aria-current', 'page');
 
     for (const viewport of viewports) {
       await test.step(viewport.name, async () => {

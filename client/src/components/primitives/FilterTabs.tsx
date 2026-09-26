@@ -1,14 +1,7 @@
+import { Link } from 'react-router';
 import { classNames } from './class-names';
 
-/**
- * List-status filters.
- *
- * These filter the same list rather than switch panels, so use a button group instead of tablist.
- * Announce selection with aria-pressed; aria-current="page" describes navigation and does not
- * apply here.
- *
- * Optional counts stay inside each button so the label and count form one accessible name.
- */
+/** List filters may navigate to a URL or update local state without changing panels. */
 export function FilterTabs<Value extends string>(input: {
   /** Translated group name. */
   label: string;
@@ -19,7 +12,8 @@ export function FilterTabs<Value extends string>(input: {
     label: string;
     count?: number;
   }[];
-  onChange: (value: Value) => void;
+  onChange?: (value: Value) => void;
+  hrefForValue?: (value: Value) => string;
   /** Visual variant for list toolbars. Semantics and keyboard behavior remain the same. */
   appearance?: 'pills' | 'underline';
 }) {
@@ -34,24 +28,39 @@ export function FilterTabs<Value extends string>(input: {
     >
       {input.items.map((item) => {
         const selected = item.value === input.value;
-        return (
-          <button
-            key={item.value}
-            type="button"
-            className={classNames(
-              'studio-filter-tab',
-              selected && 'studio-filter-tab-selected',
-            )}
-            aria-pressed={selected}
-            aria-label={item.count === undefined
-              ? undefined
-              : `${item.label} ${item.count}`}
-            onClick={() => input.onChange(item.value)}
-          >
+        const contents = (
+          <>
             <span className="studio-filter-tab-label">{item.label}</span>
             {item.count === undefined ? null : (
               <span className="studio-filter-tab-count">{item.count}</span>
             )}
+          </>
+        );
+        const className = classNames('studio-filter-tab', selected && 'studio-filter-tab-selected');
+        const label = item.count === undefined ? undefined : `${item.label} ${item.count}`;
+        if (input.hrefForValue) {
+          return (
+            <Link
+              key={item.value}
+              to={input.hrefForValue(item.value)}
+              className={className}
+              aria-current={selected ? 'page' : undefined}
+              aria-label={label}
+            >
+              {contents}
+            </Link>
+          );
+        }
+        return (
+          <button
+            key={item.value}
+            type="button"
+            className={className}
+            aria-pressed={selected}
+            aria-label={label}
+            onClick={() => input.onChange?.(item.value)}
+          >
+            {contents}
           </button>
         );
       })}

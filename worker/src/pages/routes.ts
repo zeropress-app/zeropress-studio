@@ -1,3 +1,8 @@
+import {
+  contentBulkDeleteRequestSchema,
+  contentBulkDeleteSuccessSchema,
+} from '../../../contracts/content-bulk-delete';
+import { deleteContentSelection } from '../content-lifecycle/bulk-delete';
 import { readGeneralSettings } from '../settings/general-settings-repository';
 import { contentPermalinkSuccessSchema } from '../../../contracts/content-permalink';
 import { recordAudit, auditContentChange, auditBulk, beginAudit, beginContentAudit } from '../audit/service';
@@ -269,6 +274,24 @@ export function createPageRoutes(
       userId: session.user.id,
       generate: dependencies.generateAiPageDraft,
     });
+  });
+
+  routes.post('/bulk-delete', mutationBodyLimit(), async (c) => {
+    const body = await readJsonBody(c);
+    if (!body.valid) return body.response;
+    const parsed = contentBulkDeleteRequestSchema.safeParse(body.value);
+    if (!parsed.success) return errorResponse(c, 400, 'VALIDATION_ERROR');
+    const session = await authorizeMutation(c);
+    if (session instanceof Response) return session;
+    beginAudit(c, { action: 'content_bulk', target: { type: 'page' } });
+    const result = await deleteContentSelection(parsed.data, (item) => remove({
+      db: c.env.DB,
+      id: item.id,
+      expectedRevision: item.expected_revision,
+    }));
+    auditBulk(c, 'page', result.summary, 'deleted');
+    if (result.summary.updated > 0) scheduleProjectionDrain(c);
+    return c.json(contentBulkDeleteSuccessSchema.parse({ success: true, data: result }));
   });
 
   routes.post('/bulk-lifecycle', mutationBodyLimit(), async (c) => {
