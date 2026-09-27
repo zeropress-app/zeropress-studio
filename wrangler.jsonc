@@ -67,7 +67,7 @@
 	"r2_buckets": [
 		{
 			"binding": "MEDIA_BUCKET",
-			"bucket_name": "zeropress-studio-media"
+			"bucket_name": "zeropress-media-studio"
 		}
 	],
 	"ratelimits": [
