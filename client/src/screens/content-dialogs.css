@@ -3,7 +3,7 @@
  *
  * Styles for ContentRevisionHistoryDialog and recovery-copy selection.
  * Primitives own dialog frames, focus, buttons, notices, fields, tables, and
- * pagination. This file owns only dialog-body layout.
+ * pagination. This file owns content comparison and restore-confirmation layout.
  */
 
 /* Shared body layout. */
@@ -74,10 +74,7 @@
 .content-revision-comparison {
   display: grid;
   gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--studio-border);
-  border-radius: var(--studio-radius-lg);
-  background: var(--studio-surface-subtle);
+  min-width: 0;
 }
 
 .content-revision-subheading {
@@ -87,11 +84,55 @@
   font-weight: var(--studio-weight-semibold);
 }
 
-/* Separate the comparison table as a card on the subtle surface. */
 .content-revision-comparison .studio-table-scroll {
   border: 1px solid var(--studio-border);
   border-radius: var(--studio-radius-md);
   background: var(--studio-surface);
+}
+
+/* Restore confirmation stays outside the scrolling comparison body. */
+
+.content-revision-actions {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.content-revision-restore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--studio-border);
+}
+
+.content-revision-restore-summary {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.content-revision-restore-date {
+  margin: 4px 0;
+  font-size: 0.875rem;
+}
+
+.content-revision-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .content-revision-buttons {
+    width: 100%;
+  }
+
+  .content-revision-buttons > .studio-button {
+    flex: 1 1 auto;
+  }
 }
 
 /* Draft recovery. */

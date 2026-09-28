@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -46,7 +47,6 @@ type RevisionRestoreResponse =
 
 type Copy = ContentSnapshotComparisonCopy & {
   title: string;
-  description: string;
   close: string;
   loading: string;
   loadError: string;
@@ -115,8 +115,10 @@ export function ContentRevisionHistoryDialog(input: {
   ) => Promise<RevisionRestoreResponse>;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(input.onClose);
-  onCloseRef.current = input.onClose;
+  const restoreRef = useRef<HTMLButtonElement>(null);
+  const cancelRestoreRef = useRef<HTMLButtonElement>(null);
+  const wasConfirmingRef = useRef(false);
+  const confirmationId = useId();
   const copyRef = useRef(input.copy);
   copyRef.current = input.copy;
   const onSessionEndedRef = useRef(input.onSessionEnded);
@@ -132,6 +134,7 @@ export function ContentRevisionHistoryDialog(input: {
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const restoringRef = useRef(restoring);
@@ -139,6 +142,15 @@ export function ContentRevisionHistoryDialog(input: {
 
   // The Dialog primitive owns focus trapping, Escape handling, and scroll locking.
   // Dialog's busy state blocks Escape while restoration is in progress.
+
+  useEffect(() => {
+    if (confirmRestore && !restoring) {
+      cancelRestoreRef.current?.focus({ preventScroll: true });
+    } else if (!confirmRestore && wasConfirmingRef.current) {
+      restoreRef.current?.focus({ preventScroll: true });
+    }
+    wasConfirmingRef.current = confirmRestore;
+  }, [confirmRestore, restoring]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -212,14 +224,26 @@ export function ContentRevisionHistoryDialog(input: {
         ] as const
       : null
   ), [documents]);
+  const selectedRevision = list?.items.find((item) => (
+    item.revision_id === leftRevision
+  ));
+
+  function cancelRestore() {
+    setConfirmRestore(false);
+    setRestoreError(null);
+  }
+
   async function restoreRevision() {
     if (
-      restoring
+      restoringRef.current
+      || !confirmRestore
       || !list
+      || !selectedRevision
       || leftRevision === list.current_revision
     ) return;
+    restoringRef.current = true;
     setRestoring(true);
-    setError(null);
+    setRestoreError(null);
     try {
       const response = await input.requestRestore(leftRevision, {
         expected_revision: list.current_revision,
@@ -229,15 +253,14 @@ export function ContentRevisionHistoryDialog(input: {
           input.onSessionEnded();
           return;
         }
-        setError(apiFailureMessage(response.error.code, input.copy));
-        setConfirmRestore(false);
+        setRestoreError(apiFailureMessage(response.error.code, input.copy));
         return;
       }
       input.onRestored();
     } catch {
-      setError(input.copy.restoreError);
-      setConfirmRestore(false);
+      setRestoreError(input.copy.restoreError);
     } finally {
+      restoringRef.current = false;
       setRestoring(false);
     }
   }
@@ -247,36 +270,81 @@ export function ContentRevisionHistoryDialog(input: {
       open
       size="comparison"
       closeOnBackdrop={false}
-      onClose={input.onClose}
+      onClose={confirmRestore ? cancelRestore : input.onClose}
       busy={restoring}
       title={input.copy.title}
-      description={input.copy.description}
       initialFocusRef={closeRef}
       actions={(
-        <>
-          {!confirmRestore ? (
-            <Button
-              type="button"
-              disabled={
-                restoring
-                || !list
-                || !leftRevision
-                || leftRevision === list.current_revision
-              }
-              onClick={() => setConfirmRestore(true)}
+        <div className="content-revision-actions">
+          {restoreError ? <Notice tone="error">{restoreError}</Notice> : null}
+          {confirmRestore && selectedRevision ? (
+            <div
+              className="content-revision-restore"
+              role="group"
+              aria-labelledby={confirmationId}
+              aria-describedby={`${confirmationId}-details`}
             >
-              {input.copy.restore}
-            </Button>
-          ) : null}
-          <Button
-            ref={closeRef}
-            type="button"
-            disabled={restoring}
-            onClick={input.onClose}
-          >
-            {input.copy.close}
-          </Button>
-        </>
+              <div className="content-revision-restore-summary">
+                <h3 id={confirmationId} className="content-revision-subheading">
+                  {input.copy.restoreConfirmTitle}
+                </h3>
+                <div id={`${confirmationId}-details`}>
+                  <p className="content-revision-restore-date">
+                    <time dateTime={selectedRevision.saved_at_iso}>
+                      {input.formatDate(selectedRevision.saved_at_iso)}
+                    </time>
+                  </p>
+                  <p className="content-revision-state">
+                    {input.copy.restoreConfirmDescription}
+                  </p>
+                </div>
+              </div>
+              <div className="content-revision-buttons">
+                <Button
+                  ref={cancelRestoreRef}
+                  type="button"
+                  disabled={restoring}
+                  onClick={cancelRestore}
+                >
+                  {input.copy.restoreCancel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={restoring}
+                  onClick={() => void restoreRevision()}
+                >
+                  {restoring ? input.copy.restoring : input.copy.restoreConfirm}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="content-revision-buttons">
+              <Button
+                ref={restoreRef}
+                type="button"
+                disabled={
+                  restoring
+                  || comparisonLoading
+                  || !normalizedSnapshots
+                  || !selectedRevision
+                  || leftRevision === list?.current_revision
+                }
+                onClick={() => setConfirmRestore(true)}
+              >
+                {input.copy.restore}
+              </Button>
+              <Button
+                ref={closeRef}
+                type="button"
+                disabled={restoring}
+                onClick={input.onClose}
+              >
+                {input.copy.close}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
     >
       <div className="content-revision-body">
@@ -298,7 +366,7 @@ export function ContentRevisionHistoryDialog(input: {
                   <select
                     {...control}
                     value={leftRevision}
-                    disabled={restoring}
+                    disabled={restoring || confirmRestore}
                     onChange={(event) => {
                       setLeftRevision(event.target.value);
                       setConfirmRestore(false);
@@ -318,7 +386,7 @@ export function ContentRevisionHistoryDialog(input: {
                   <select
                     {...control}
                     value={rightRevision}
-                    disabled={restoring}
+                    disabled={restoring || confirmRestore}
                     onChange={(event) => setRightRevision(event.target.value)}
                   >
                     {list.items.map((item) => (
@@ -348,38 +416,6 @@ export function ContentRevisionHistoryDialog(input: {
             comparisonKey={`${leftRevision}:${rightRevision}`}
             copy={input.copy}
           />
-        ) : null}
-
-        {confirmRestore ? (
-          <Notice
-            tone="warning"
-            title={input.copy.restoreConfirmTitle}
-            actions={(
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={restoring}
-                  onClick={() => setConfirmRestore(false)}
-                >
-                  {input.copy.restoreCancel}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="danger"
-                  disabled={restoring}
-                  onClick={() => void restoreRevision()}
-                >
-                  {restoring
-                    ? input.copy.restoring
-                    : input.copy.restoreConfirm}
-                </Button>
-              </>
-            )}
-          >
-            {input.copy.restoreConfirmDescription}
-          </Notice>
         ) : null}
       </div>
     </Dialog>

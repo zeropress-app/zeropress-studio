@@ -9,10 +9,8 @@ export type NormalizedContentSnapshot =
 
 export type ContentSnapshotComparisonCopy = {
   comparison: string;
-  metadataSame: string;
   content: string;
-  contentSame: string;
-  contentChanged: string;
+  noDifferences: string;
   diffLabel: string;
   diffLoading: string;
   diffUnavailable: string;
@@ -164,55 +162,58 @@ export function ContentSnapshotComparison(input: {
   ).filter((field) => field.changed);
   const contentChanged = input.left.draft.content !== input.right.draft.content;
 
+  if (changedFields.length === 0 && !contentChanged) {
+    return <p className="content-revision-state">{input.copy.noDifferences}</p>;
+  }
+
   return (
     <div className="content-revision-comparison">
-      <h3 className="content-revision-subheading">
-        {input.copy.comparison}
-      </h3>
-      {changedFields.length === 0 ? (
-        <p className="content-revision-state">
-          {input.copy.metadataSame}
-        </p>
-      ) : (
-        <DataTable caption={input.copy.comparison} minWidthPx={480}>
-          <thead>
-            <tr>
-              <th scope="col" />
-              <th scope="col">{input.leftLabel}</th>
-              <th scope="col">{input.rightLabel}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {changedFields.map((field) => (
-              <tr key={field.key}>
-                <th scope="row">{field.label}</th>
-                <td>{field.left || input.copy.none}</td>
-                <td>{field.right || input.copy.none}</td>
+      {changedFields.length > 0 ? (
+        <>
+          <h3 className="content-revision-subheading">
+            {input.copy.comparison}
+          </h3>
+          <DataTable caption={input.copy.comparison} minWidthPx={480}>
+            <thead>
+              <tr>
+                <th scope="col" />
+                <th scope="col">{input.leftLabel}</th>
+                <th scope="col">{input.rightLabel}</th>
               </tr>
-            ))}
-          </tbody>
-        </DataTable>
-      )}
-      <h3 className="content-revision-subheading">
-        {input.copy.content}
-      </h3>
-      <p className="content-revision-state">
-        {contentChanged
-          ? input.copy.contentChanged
-          : input.copy.contentSame}
-      </p>
-      <RevisionSourceComparison
-        key={input.comparisonKey}
-        copy={input.copy}
-        original={input.left.draft.content}
-        modified={input.right.draft.content}
-        originalDocumentType={input.left.draft.document_type}
-        modifiedDocumentType={input.right.draft.document_type}
-        originalEditorMode={input.left.draft.editor_mode}
-        modifiedEditorMode={input.right.draft.editor_mode}
-        originalEditorProfile={input.left.draft.editor_profile}
-        modifiedEditorProfile={input.right.draft.editor_profile}
-      />
+            </thead>
+            <tbody>
+              {changedFields.map((field) => (
+                <tr key={field.key}>
+                  <th scope="row">{field.label}</th>
+                  <td>{field.left || input.copy.none}</td>
+                  <td>{field.right || input.copy.none}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        </>
+      ) : null}
+      {contentChanged ? (
+        <>
+          {changedFields.length > 0 ? (
+            <h3 className="content-revision-subheading">
+              {input.copy.content}
+            </h3>
+          ) : null}
+          <RevisionSourceComparison
+            key={input.comparisonKey}
+            copy={input.copy}
+            original={input.left.draft.content}
+            modified={input.right.draft.content}
+            originalDocumentType={input.left.draft.document_type}
+            modifiedDocumentType={input.right.draft.document_type}
+            originalEditorMode={input.left.draft.editor_mode}
+            modifiedEditorMode={input.right.draft.editor_mode}
+            originalEditorProfile={input.left.draft.editor_profile}
+            modifiedEditorProfile={input.right.draft.editor_profile}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

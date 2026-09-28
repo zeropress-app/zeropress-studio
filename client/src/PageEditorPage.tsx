@@ -1472,7 +1472,6 @@ export function PageEditorPage(input: {
           )}
           copy={{
             title: t('revisions.title'),
-            description: t('revisions.description'),
             close: t('revisions.close'),
             loading: t('revisions.loading'),
             loadError: t('revisions.loadError'),
@@ -1481,10 +1480,8 @@ export function PageEditorPage(input: {
             newerRevision: t('revisions.newerRevision'),
             current: t('revisions.current'),
             comparison: t('revisions.comparison'),
-            metadataSame: t('revisions.metadataSame'),
             content: t('revisions.content'),
-            contentSame: t('revisions.contentSame'),
-            contentChanged: t('revisions.contentChanged'),
+            noDifferences: t('revisions.noDifferences'),
             diffLabel: t('revisions.diffLabel'),
             diffLoading: t('revisions.diffLoading'),
             diffUnavailable: t('revisions.diffUnavailable'),
@@ -1541,10 +1538,8 @@ export function PageEditorPage(input: {
             autosaveSnapshot={normalizedRecoverySnapshot}
             copy={{
               comparison: t('revisions.comparison'),
-              metadataSame: t('revisions.metadataSame'),
               content: t('revisions.content'),
-              contentSame: t('revisions.contentSame'),
-              contentChanged: t('revisions.contentChanged'),
+              noDifferences: t('revisions.noDifferences'),
               diffLabel: t('autosave.compareDiffLabel'),
               diffLoading: t('revisions.diffLoading'),
               diffUnavailable: t('revisions.diffUnavailable'),
