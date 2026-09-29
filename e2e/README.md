@@ -37,10 +37,14 @@ again before deployment.
 
 ## Artifact privacy
 
-The default reporter retains only spec basename/line, status, retry count and
-duration in `playwright-report/summary.json`. Raw error messages, call logs,
-steps, stdout/stderr, screenshots, videos, traces and HTML reports are not
-retained by the default reporter.
+The default reporter retains the test's spec basename/line, status, retry count
+and duration in `playwright-report/summary.json`. Failure locations supplied by
+Playwright are included separately as basename/line/column in both the report
+and console output. Failed editor transitions can also include a restricted
+state summary: stage, active mode, readiness, element counts and text-match
+booleans. Raw error messages, call logs, steps, test stdout/stderr,
+screenshots, videos, traces and HTML reports are not retained by the default
+reporter.
 
 Playwright can create a temporary `error-context.md` containing the DOM even
 with tracing disabled. Ordinary E2E removes per-test output after the run.

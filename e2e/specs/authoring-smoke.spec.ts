@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/studio-test';
 import { signInAsAdministrator } from '../support/journeys';
+import { recordEditorFailure, type EditorDiagnosticStage } from '../support/editor-diagnostics';
 
 test.describe('public beta authoring smoke', () => {
   test.use({ studioProfile: 'operational' });
@@ -151,7 +152,7 @@ test.describe('public beta authoring smoke', () => {
     expect(errors).toEqual([]);
   });
 
-  test('inserts Media and reviews source conversion without discarding an unsaved draft', async ({ page, studioRuntime }) => {
+  test('inserts Media and reviews source conversion without discarding an unsaved draft', async ({ page, studioRuntime }, testInfo) => {
     await signInAsAdministrator(page, studioRuntime);
     await page.route('**/api/media**', async (route) => {
       const url = new URL(route.request().url());
@@ -184,28 +185,62 @@ test.describe('public beta authoring smoke', () => {
     await expect(content).toHaveText('Unsaved draft');
     await page.getByRole('button', { name: 'Redo', exact: true }).click();
     await expect(content.locator('img')).toHaveCount(1);
-    await page.getByRole('button', { name: 'HTML source', exact: true }).click();
-    await expect(page.getByRole('group', { name: 'Content', exact: true })).toBeVisible();
-    await content.press('ControlOrMeta+A');
-    await page.keyboard.insertText('<p><b>Unsaved conversion sample</b></p>');
-    await page.getByRole('button', { name: 'Visual', exact: true }).click();
+    const expectedText = 'Unsaved conversion sample';
+    const sourceButton = page.getByRole('button', { name: 'HTML source', exact: true });
+    const visualButton = page.getByRole('button', { name: 'Visual', exact: true });
+    const sourceEditor = page.getByRole('group', { name: 'Content', exact: true });
+    const sourceInput = sourceEditor.getByRole('textbox', { name: 'Content', exact: true });
     const dialog = page.getByRole('dialog', { name: 'Use the visual editor?' });
-    await expect(dialog).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Compare the original and converted HTML' })).toBeVisible();
-    const box = await dialog.boundingBox();
-    expect(box!.width).toBeGreaterThan(page.viewportSize()!.width - 70);
-    await page.mouse.click(4, 4);
-    await expect(dialog).toBeVisible();
-    await page.setViewportSize({ width: 320, height: 800 });
-    const confirm = dialog.getByRole('button', { name: 'Use visual editor', exact: true });
-    await expect(confirm).toBeInViewport();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
-    await confirm.click();
-    await expect(content.locator('strong')).toHaveText('Unsaved conversion sample');
-    await page.getByRole('button', { name: 'HTML source', exact: true }).click();
-    await expect(page.getByRole('group', { name: 'Content', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Visual', exact: true }).click();
-    await expect(content.locator('strong')).toHaveText('Unsaved conversion sample');
+    let stage: EditorDiagnosticStage = 'source-input';
+    try {
+      await sourceButton.click();
+      await expect(sourceButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(sourceInput).toBeEditable();
+      await expect(sourceEditor.locator('.view-lines')).toContainText('sample.svg');
+      // Monaco chooses shortcuts from the emulated user agent, not the host OS.
+      const selectAll = await page.evaluate(() => (
+        navigator.userAgent.includes('Macintosh') ? 'Meta+A' : 'Control+A'
+      ));
+      await sourceInput.press(selectAll);
+      await sourceInput.press('Backspace');
+      await expect(sourceEditor.locator('.view-lines')).toHaveText('');
+      await page.keyboard.insertText(`<p><b>${expectedText}</b></p>`);
+      await expect(sourceEditor.locator('.view-lines')).toHaveText(`<p><b>${expectedText}</b></p>`);
+
+      stage = 'conversion-review';
+      await visualButton.click();
+      await expect(dialog).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Compare the original and converted HTML' })).toBeVisible();
+      const box = await dialog.boundingBox();
+      expect(box!.width).toBeGreaterThan(page.viewportSize()!.width - 70);
+      await page.mouse.click(4, 4);
+      await expect(dialog).toBeVisible();
+      await page.setViewportSize({ width: 320, height: 800 });
+      const confirm = dialog.getByRole('button', { name: 'Use visual editor', exact: true });
+      await expect(confirm).toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+
+      stage = 'conversion-confirmation';
+      await confirm.click();
+      await expect(visualButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(content).toHaveText(expectedText);
+      await expect(content.locator('strong')).toHaveText(expectedText);
+
+      stage = 'source-round-trip';
+      await sourceButton.click();
+      await expect(sourceButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(sourceInput).toBeEditable();
+      await expect(sourceEditor.locator('.view-lines')).toHaveText(`<p><strong>${expectedText}</strong></p>`);
+
+      stage = 'visual-round-trip';
+      await visualButton.click();
+      await expect(visualButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(content).toHaveText(expectedText);
+      await expect(content.locator('strong')).toHaveText(expectedText);
+    } catch (error) {
+      await recordEditorFailure(page, testInfo, stage, expectedText);
+      throw error;
+    }
   });
 
 });
