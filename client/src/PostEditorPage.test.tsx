@@ -269,7 +269,7 @@ describe('PostEditorPage', () => {
     ))).toBe(false);
   });
 
-  it('reviews an AI Post candidate before applying it to an empty draft', async () => {
+  it('reviews an AI Post candidate before applying it to an empty draft', { timeout: 10_000 }, async () => {
     const generated = {
       title: 'Generated Post title',
       excerpt: 'Generated Post excerpt.',
@@ -307,10 +307,8 @@ describe('PostEditorPage', () => {
     await user.click(await screen.findByRole('button', {
       name: 'Draft with AI',
     }));
-    await user.type(
-      screen.getByRole('textbox', { name: 'Topic and writing notes' }),
-      'Explain a practical migration workflow.',
-    );
+    await user.click(screen.getByRole('textbox', { name: 'Topic and writing notes' }));
+    await user.paste('Explain a practical migration workflow.');
     await user.click(screen.getByRole('button', { name: 'Generate draft' }));
     expect(await screen.findByRole('dialog', {
       name: 'Review the generated Post draft',

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,7 +94,7 @@ describe('prepared data and optional publishing', () => {
     await api.user.click(screen.getByRole('button', { name: 'Copy Preview Data' }));
     expect(api.clipboard).toHaveBeenCalledOnce();
     expect(publish).toBeDisabled();
-    release();
+    await act(async () => { release(); });
     await waitFor(() => expect(publish).toBeEnabled());
   });
   it('shows an unchanged comparison without submitting a publish', async () => {
@@ -120,9 +120,9 @@ describe('prepared data and optional publishing', () => {
       expected_revision: '0'.repeat(32), expected_data_hash: document.data_hash,
       expected_blob_sha: remoteFile.blob_sha,
     }]);
-    release();
+    await act(async () => { release(); });
     expect(await screen.findByText('Updated on GitHub.')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Publish to GitHub' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Prepare data again' })).toBeEnabled();
   });
 });

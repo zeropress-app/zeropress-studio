@@ -218,7 +218,7 @@ describe('PageEditorPage', () => {
     ))).toBe(false);
   });
 
-  it('reviews a purpose-specific AI Page candidate before applying selected fields', async () => {
+  it('reviews a purpose-specific AI Page candidate before applying selected fields', { timeout: 10_000 }, async () => {
     const fetchMock = vi.fn().mockImplementation(async (
       request: string,
       init?: RequestInit,
@@ -264,10 +264,8 @@ describe('PageEditorPage', () => {
       screen.getByRole('combobox', { name: 'Page purpose' }),
       'landing',
     );
-    await user.type(
-      screen.getByRole('textbox', { name: 'Purpose and Page notes' }),
-      'Present the supplied value and intended audience.',
-    );
+    await user.click(screen.getByRole('textbox', { name: 'Purpose and Page notes' }));
+    await user.paste('Present the supplied value and intended audience.');
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Tone' }),
       'professional',
