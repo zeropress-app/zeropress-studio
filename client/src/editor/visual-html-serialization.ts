@@ -3,6 +3,7 @@ import { parseFragment, serializeOuter } from 'parse5';
 type HtmlNode = {
   nodeName?: string;
   tagName?: string;
+  attrs?: Array<{ name: string; value: string }>;
   value?: string;
   childNodes?: HtmlNode[];
   [key: string]: unknown;
@@ -33,6 +34,15 @@ const BLOCK_CHILD_TAGS = new Set([
 
 function isFormattingWhitespace(node: HtmlNode): boolean {
   return node.nodeName === '#text' && /^\s*$/u.test(node.value ?? '');
+}
+
+function isEmptyParagraph(node: HtmlNode): boolean {
+  if (node.tagName !== 'p' || node.attrs?.length) return false;
+  const children = node.childNodes ?? [];
+  if (children.length === 0) return true;
+  const [child] = children;
+  return children.length === 1 && child.tagName === 'br'
+    && !child.attrs?.length && !child.childNodes?.length;
 }
 
 function serializeNode(node: HtmlNode): string {
@@ -67,13 +77,16 @@ function formatNode(node: HtmlNode, depth: number): string {
 /**
  * Formats canonical SunEditor HTML at semantic block boundaries. It deliberately
  * avoids line wrapping and never inserts whitespace inside inline-content,
- * preformatted, or native media nodes.
+ * preformatted, or native media nodes. Empty editor paragraphs normalize to
+ * empty HTML; paragraphs with attributes or authored content remain intact.
  */
 export function formatSunEditorVisualHtml(html: string): string {
   if (html === '') return '';
   const fragment = parseFragment(html) as unknown as HtmlNode;
-  return (fragment.childNodes ?? [])
-    .filter((node) => !isFormattingWhitespace(node))
+  const children = (fragment.childNodes ?? [])
+    .filter((node) => !isFormattingWhitespace(node));
+  if (children.every(isEmptyParagraph)) return '';
+  return children
     .map((node) => formatNode(node, 0))
     .join('\n');
 }

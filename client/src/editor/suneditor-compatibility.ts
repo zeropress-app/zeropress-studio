@@ -566,8 +566,7 @@ function convertSunEditorHtml(html: string): { canonicalHtml: string } {
   const prepared = prepareNetworkInertSunEditorHtml(sanitizeVisualHtml(html));
   const generated = cleanSunEditorHtml(prepared.html);
   const restored = restoreNetworkInertResources(generated, prepared.restorations);
-  const canonicalHtml = /^(?:\s*<p>(?:<br>)?<\/p>\s*)*$/u.test(restored)
-    ? '' : formatSunEditorVisualHtml(restored);
+  const canonicalHtml = formatSunEditorVisualHtml(restored);
   return { canonicalHtml };
 }
 

@@ -16,6 +16,7 @@ import {
   normalizeLinkRel,
   normalizeLinkTarget,
 } from './visual-html-policy';
+import { exportVisualDocument } from './visual-editor-document';
 
 describe('SunEditor visual HTML profile', () => {
   it('round-trips the reviewed WordPress and native media structures', () => {
@@ -227,6 +228,14 @@ describe('SunEditor visual HTML profile', () => {
       compatible: false,
       reasons: expect.arrayContaining(['node_limit_exceeded']),
     });
+  });
+
+  it('preserves content after whitespace-separated empty paragraphs in both editor paths', () => {
+    const empty = '<p></p>\t \n'.repeat(64);
+    const content = '<p>Keep this content.</p>';
+    const expected = '<p></p>\n'.repeat(64) + content;
+    expect(exportVisualDocument(empty + content, new Map())).toBe(expected);
+    expect(canonicalizeSunEditorHtml(empty + content)).toBe(expected);
   });
 });
 

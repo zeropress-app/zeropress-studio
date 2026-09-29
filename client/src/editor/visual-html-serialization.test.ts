@@ -31,4 +31,21 @@ describe('SunEditor visual HTML serialization', () => {
     expect(formatSunEditorVisualHtml('')).toBe('');
     expect(formatSunEditorVisualHtml('<p>Text</p>')).not.toMatch(/\n$/u);
   });
+
+  it.each(['<p></p>', '<p><br></p>', '\n<p></p>\t <p><br></p>\n'])(
+    'normalizes empty editor paragraphs: %j', (html) => {
+      expect(formatSunEditorVisualHtml(html)).toBe('');
+    },
+  );
+
+  it.each([
+    '<p id="anchor"></p>',
+    '<p><br id="anchor"></p>',
+    '<p> </p>',
+    '<p>&nbsp;</p>',
+    '<p><br><br></p>',
+    '<p><img src="/image.png"></p>',
+  ])('preserves paragraph content and attributes: %j', (html) => {
+    expect(formatSunEditorVisualHtml(html)).toBe(html);
+  });
 });

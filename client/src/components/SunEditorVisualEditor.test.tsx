@@ -6,6 +6,14 @@ import { CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS, CONTENT_EDITOR_VISUAL_MAX_NODES }
 import { changeLocale } from '../i18n';
 import { SunEditorVisualEditor, type SunEditorVisualEditorHandle } from './SunEditorVisualEditor';
 
+// Test rejection and undo history with small documents. Compatibility tests
+// exercise the real production limits without mounting the full editor UI.
+vi.mock('../../../contracts/content-editor', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../contracts/content-editor')>(),
+  CONTENT_EDITOR_VISUAL_MAX_CODE_UNITS: 512,
+  CONTENT_EDITOR_VISUAL_MAX_NODES: 20,
+}));
+
 afterEach(cleanup);
 beforeEach(async () => { await changeLocale('en'); });
 
@@ -99,15 +107,20 @@ const imageMedia = {
 describe('visual Media insertion', () => {
   it('inserts once, returns success, and supports undo and redo', async () => {
     const { ref, surface, onChange } = setup('<p>Before</p>');
-    await screen.findByRole('button', { name: 'Undo' });
+    const undo = await screen.findByLabelText('Undo', { selector: 'button' });
+    const redo = screen.getByLabelText('Redo', { selector: 'button' });
+    expect(undo).toBeVisible();
+    expect(redo).toBeVisible();
     act(() => {
       expect(ref.current!.insertMedia(imageMedia)).toEqual({ ok: true });
     });
     expect(surface.querySelectorAll('img')).toHaveLength(1);
     expect(onChange).toHaveBeenCalledWith(expect.stringContaining('alt="Sample image"'));
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(undo).toBeEnabled();
+    fireEvent.click(undo);
     expect(ref.current!.flush()).toBe('<p>Before</p>');
-    fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(redo).toBeEnabled();
+    fireEvent.click(redo);
     expect(surface.querySelectorAll('img')).toHaveLength(1);
   });
 
@@ -126,7 +139,8 @@ describe('visual Media insertion', () => {
     '<p>x</p>'.repeat((CONTENT_EDITOR_VISUAL_MAX_NODES - 2) / 2),
   ])('rejects Media that exceeds a visual limit and preserves accepted content', async (content) => {
     const { ref, surface, onChange } = setup(content);
-    await screen.findByRole('button', { name: 'Redo' });
+    const redo = await screen.findByLabelText('Redo', { selector: 'button' });
+    expect(redo).toBeVisible();
     const before = ref.current!.flush();
     act(() => {
       expect(ref.current!.insertMedia(imageMedia)).toEqual({ ok: false, reason: 'visual_limit' });
@@ -134,6 +148,6 @@ describe('visual Media insertion', () => {
     expect(ref.current!.flush()).toBe(before);
     expect(surface.querySelectorAll('img')).toHaveLength(0);
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
+    expect(redo).toBeDisabled();
   });
 });

@@ -85,7 +85,7 @@ for (const touch of [false, true]) {
       await content.press('ControlOrMeta+A');
       const destination = `https://destination.example/guide?selection=${'section-'.repeat(35)}`;
       const embed = 'https://embed.example/player?asset=one&mode=wide';
-      await page.keyboard.insertText(`<p>Read <a href="${destination}" target="_blank">the guide</a> or <a href="../related">related content</a>.</p><iframe title="Example video" src="${embed.replace('&', '&amp;')}"></iframe>`);
+      await page.keyboard.insertText(`<p>Read <a href="${destination}" target="_blank">the guide</a> or <a href="../related">related content</a>.</p><iframe title="Example video" src="${embed.replaceAll('&', '&amp;')}"></iframe>`);
       await page.getByRole('button', { name: 'Preview', exact: true }).click();
       const frame = page.frameLocator('iframe[title="Body preview"]');
       const link = frame.getByRole('button', { name: 'the guide', exact: true });

@@ -86,8 +86,7 @@ export function exportVisualDocument(html: string, embeds: VisualEmbedStore): st
   }
   visit(fragment as unknown as HtmlNode);
   const cleaned = sanitizeVisualHtml(serialize(fragment));
-  return /^(?:\s*<p>(?:<br>)?<\/p>\s*)*$/u.test(cleaned)
-    ? '' : formatSunEditorVisualHtml(cleaned);
+  return formatSunEditorVisualHtml(cleaned);
 }
 
 export type VisualSelectionPoint = { path: number[]; offset: number };
