@@ -1,5 +1,11 @@
 # ZeroPress Studio
 
+[![Package Tests](https://github.com/zeropress-app/zeropress-studio/actions/workflows/100-test.yml/badge.svg?branch=main)](https://github.com/zeropress-app/zeropress-studio/actions/workflows/100-test.yml)
+[![CodeQL](https://github.com/zeropress-app/zeropress-studio/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/zeropress-app/zeropress-studio/actions/workflows/github-code-scanning/codeql)
+[![Release](https://img.shields.io/github/v/release/zeropress-app/zeropress-studio)](https://github.com/zeropress-app/zeropress-studio/releases)
+[![License](https://img.shields.io/github/license/zeropress-app/zeropress-studio)](https://github.com/zeropress-app/zeropress-studio/blob/main/LICENSE)
+<picture><img alt="Cloudflare Workers" src="https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&amp;logoColor=white"></picture>
+
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/zeropress-app/zeropress-studio/tree/latest)
 
 Self-hosted content management and publishing control for ZeroPress, built for
