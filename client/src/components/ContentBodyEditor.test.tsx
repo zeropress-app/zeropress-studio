@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -613,29 +613,38 @@ describe('ContentBodyEditor', () => {
         />
       );
     }
-    const user = userEvent.setup();
-    render(<Harness />);
-    const content = await screen.findByRole('textbox', { name: 'Content' });
+    const { unmount } = render(<Harness />);
+    const content = await screen.findByLabelText('Content', { selector: '[contenteditable]' });
     fireEvent.click(content.querySelector('img')!);
 
-    expect(await screen.findByRole('button', { name: 'Align image left' }))
+    const alignmentControls = within(screen.getByRole('group', { name: 'Image alignment' }));
+    expect(alignmentControls.getByRole('button', { name: 'Align image left' }))
       .toHaveAttribute('aria-pressed', 'true');
-    await user.click(screen.getByRole('button', { name: 'Align image center' }));
-    await waitFor(() => expect(observed.at(-1)).toContain(
-      'class="wp-image-7 aligncenter"',
-    ));
-    expect(observed.at(-1)).not.toContain('alignleft');
 
-    await user.click(screen.getByRole('button', { name: 'Align image right' }));
-    await waitFor(() => expect(observed.at(-1)).toContain(
-      'class="wp-image-7 alignright"',
-    ));
+    // Mount the lazy editor first, then control its debounced change notifications.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(alignmentControls.getByRole('button', { name: 'Align image center' }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+      expect(observed.at(-1)).toContain('class="wp-image-7 aligncenter"');
+      expect(observed.at(-1)).not.toContain('alignleft');
 
-    await user.click(screen.getByRole('button', { name: 'No image alignment' }));
-    await waitFor(() => expect(observed.at(-1)).toContain(
-      'class="wp-image-7 alignnone"',
-    ));
-    expect(observed.at(-1)).not.toMatch(/alignleft|aligncenter|alignright/u);
+      fireEvent.click(alignmentControls.getByRole('button', { name: 'Align image right' }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+      expect(observed.at(-1)).toContain('class="wp-image-7 alignright"');
+
+      fireEvent.click(alignmentControls.getByRole('button', { name: 'No image alignment' }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+      expect(observed.at(-1)).toContain('class="wp-image-7 alignnone"');
+      expect(observed.at(-1)).not.toMatch(/alignleft|aligncenter|alignright/u);
+    } finally {
+      try {
+        unmount();
+        await vi.runOnlyPendingTimersAsync();
+      } finally {
+        vi.useRealTimers();
+      }
+    }
   });
 
   it('replaces a selected visual image while preserving its presentation and link', async () => {
