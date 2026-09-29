@@ -5,17 +5,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { styleText } from 'node:util';
 import { chromium } from '@playwright/test';
+import { resolveE2EOptions } from './e2e-options.mjs';
 
 const require = createRequire(import.meta.url);
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
-const informational = args.some((arg) => ['--list', '--help', '-h', '--version', '-V'].includes(arg));
-const headed = args.some((arg, index) => ['--headed', '--debug=inspector'].includes(arg)
-  || (arg === '--debug' && args[index + 1] !== 'cli'))
-  || Boolean(process.env.PWDEBUG && !['0', 'false', 'console'].includes(process.env.PWDEBUG));
-const uiInBrowser = args.some((arg) => /^--ui-(?:host|port)(?:=|$)/.test(arg));
-const uiMode = args.includes('--ui') || uiInBrowser;
-const uiApp = uiMode && !uiInBrowser;
+const { checkHeadedBrowser, checkHeadlessBrowser, createUiSession } = resolveE2EOptions(args, process.env);
 let uiOutputDirectory;
 
 async function runUi(cliArgs, options) {
@@ -40,19 +35,17 @@ async function runUi(cliArgs, options) {
 }
 
 try {
-  if (!informational) {
-    if (headed || uiApp) {
-      accessSync(chromium.executablePath(), constants.X_OK);
-    }
-    if (!headed) {
-      // A headless launch checks the matching headless shell through Playwright's
-      // public API; executablePath() points to the separate headed browser.
-      const browser = await chromium.launch({ headless: true });
-      await browser.close();
-    }
+  if (checkHeadedBrowser) {
+    accessSync(chromium.executablePath(), constants.X_OK);
+  }
+  if (checkHeadlessBrowser) {
+    // A headless launch checks the matching headless shell through Playwright's
+    // public API; executablePath() points to the separate headed browser.
+    const browser = await chromium.launch({ headless: true });
+    await browser.close();
   }
 
-  if (uiMode && !informational) {
+  if (createUiSession) {
     const directory = join(repositoryRoot, '.wrangler/e2e-ui');
     mkdirSync(directory, { recursive: true });
     uiOutputDirectory = mkdtempSync(join(directory, 'session-'));

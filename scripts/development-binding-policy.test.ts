@@ -154,14 +154,25 @@ describe('root Wrangler installation policies', () => {
       d1_databases: binding === 'EDGE_DB' ? [{ binding, database_name: 'edge', remote: true }] : [],
       kv_namespaces: binding === 'EDGE_KV' ? [{ binding, id: 'edge', remote: true }] : [],
     } as WranglerConfig;
-    expect(() => validateRemoteDevelopmentConfig(source)).toThrow(/EDGE_DB and EDGE_KV/);
+    const snapshot = structuredClone(source);
+    expect(() => validateRemoteDevelopmentConfig(source)).toThrow(
+      'EDGE_DB and EDGE_KV must remain local during development.\n'
+      + 'Remove "remote": true from these bindings in wrangler.jsonc.',
+    );
+    expect(source).toEqual(snapshot);
   });
 
   it.each([
     { databaseRemote: true, bucketRemote: false },
     { databaseRemote: false, bucketRemote: true },
   ])('rejects mismatched DB/R2 locality: $databaseRemote/$bucketRemote', (locality) => {
-    expect(() => validateRemoteDevelopmentConfig(config({ ...locality, edgeRemote: false }))).toThrow(/same remote setting/);
+    const source = config({ ...locality, edgeRemote: false });
+    const snapshot = structuredClone(source);
+    expect(() => validateRemoteDevelopmentConfig(source)).toThrow(
+      'DB and MEDIA_BUCKET must use the same remote setting during development.\n'
+      + 'In wrangler.jsonc, set "remote": true on both bindings, or keep both local.',
+    );
+    expect(source).toEqual(snapshot);
   });
 
   it('allows matched remote Studio storage', () => {

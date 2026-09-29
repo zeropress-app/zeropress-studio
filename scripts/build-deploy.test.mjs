@@ -116,7 +116,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('build and deployment commands', { timeout: 20_000 }, () => {
   it('builds Wrangler diagnostics locally and binds only to loopback', () => {
-    const result = runCli('preview:wrangler', ['--', '--port', '8788']);
+    const result = run('preview:wrangler', ['--', '--port', '8788']);
     expect(result.status, result.stderr).toBe(0);
     expect(calls()).toEqual([
       { tool: 'vite', args: ['build', '--mode', 'local-preview'] },
@@ -155,7 +155,7 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
   });
 
   it('builds once and reuses deployment validation for dry runs', () => {
-    const result = runCli('deploy:dry-run');
+    const result = run('deploy:dry-run');
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Validating deployment for Worker custom-studio.');
     expect(calls().map((call) => call.tool)).toEqual(['vite', 'wrangler']);
@@ -316,7 +316,7 @@ describe('build and deployment commands', { timeout: 20_000 }, () => {
 
   it('does not call Wrangler when dry-run preparation fails', () => {
     write('fail-build', '');
-    expect(runCli('deploy:dry-run').status).toBe(1);
+    expect(run('deploy:dry-run').status).toBe(1);
     expect(calls().map((call) => call.tool)).toEqual(['vite']);
   });
 });

@@ -28,11 +28,19 @@ function testEnvironment(overrides = {}) {
   };
 }
 
-function run(command = 'test:e2e', args = [], environment = {}) {
-  return spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', command, '--', ...args], {
+function run(args = [], environment = {}) {
+  return spawnSync(process.execPath, ['scripts/run-e2e.mjs', ...args], {
     cwd: root,
     encoding: 'utf8',
     env: testEnvironment(environment),
+  });
+}
+
+function runNpm(command, args = []) {
+  return spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', command, '--', ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: testEnvironment(),
   });
 }
 
@@ -45,7 +53,9 @@ beforeEach(() => {
   browserDirectory = join(root, 'browser-cache');
   mkdirSync(browserDirectory);
   mkdirSync(join(root, 'scripts'));
-  copyFileSync(join(repositoryRoot, 'scripts/run-e2e.mjs'), join(root, 'scripts/run-e2e.mjs'));
+  for (const file of ['run-e2e.mjs', 'e2e-options.mjs']) {
+    copyFileSync(join(repositoryRoot, 'scripts', file), join(root, 'scripts', file));
+  }
   copyFileSync(join(repositoryRoot, 'package.json'), join(root, 'package.json'));
 
   const packageDirectory = join(root, 'node_modules/@playwright/test');
@@ -109,7 +119,7 @@ describe('UI trace lifetime', () => {
     writeFileSync(join(otherSession, 'trace.zip'), 'another session');
     writeFileSync(join(root, 'cli-exit-code'), String(status));
 
-    const result = run('test:e2e:ui');
+    const result = run(['--ui']);
     expect(result.status, result.stderr).toBe(status);
     const directory = readFileSync(join(root, 'ui-session.txt'), 'utf8');
     expect(dirname(directory)).toBe(join(root, '.wrangler/e2e-ui'));
@@ -146,7 +156,7 @@ describe('UI trace lifetime', () => {
 
   it.each(['--ui-port=0', '--ui-host=127.0.0.1'])('cleans up the browser-hosted UI session for %s', (argument) => {
     install('headless-shell');
-    const result = run('test:e2e', [argument]);
+    const result = run([argument]);
     expect(result.status, result.stderr).toBe(0);
     const directory = readFileSync(join(root, 'ui-session.txt'), 'utf8');
     expect(existsSync(directory)).toBe(false);
@@ -157,7 +167,7 @@ describe('UI trace lifetime', () => {
     const inherited = join(root, 'inherited-ui-output');
     mkdirSync(inherited);
     writeFileSync(join(inherited, 'trace.zip'), 'existing UI trace');
-    const result = run('test:e2e', [], { ZEROPRESS_E2E_UI_OUTPUT_DIR: inherited });
+    const result = run([], { ZEROPRESS_E2E_UI_OUTPUT_DIR: inherited });
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(join(inherited, 'trace.zip'), 'utf8')).toBe('existing UI trace');
     expect(existsSync(join(root, 'ui-session.txt'))).toBe(false);
@@ -171,7 +181,7 @@ describe('E2E browser setup', () => {
     { name: 'FORCE_COLOR', env: { FORCE_COLOR: '1' }, colored: true },
   ])('explains the missing headless shell before running tests with $name', ({ env, colored }) => {
     install('chromium');
-    const result = run('test:e2e', [], env);
+    const result = run([], env);
     const message = [
       'Cannot start E2E tests.',
       '',
@@ -189,10 +199,10 @@ describe('E2E browser setup', () => {
     expect(existsSync(join(root, 'playwright-call.json'))).toBe(false);
   });
 
-  it('closes the browser check before forwarding arguments and the test exit status', () => {
+  it('runs npm test:e2e with argument forwarding, browser cleanup, and the test exit status', () => {
     install('headless-shell');
     writeFileSync(join(root, 'cli-exit-code'), '7');
-    const result = run('test:e2e', ['--grep', 'account security', '--retries', '0']);
+    const result = runNpm('test:e2e', ['--grep', 'account security', '--retries', '0']);
     expect(result.status, result.stderr).toBe(7);
     expect(JSON.parse(readFileSync(join(root, 'browser-check.json'), 'utf8'))).toEqual({ headless: true });
     expect(JSON.parse(readFileSync(join(root, 'playwright-call.json'), 'utf8'))).toEqual({
@@ -207,16 +217,16 @@ describe('E2E browser setup', () => {
     { missing: 'Headless Shell', installed: 'chromium' },
   ])('explains the missing $missing before opening UI mode', ({ installed }) => {
     install(installed);
-    const result = run('test:e2e:ui');
+    const result = run(['--ui']);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Run npx playwright install chromium, then try again.');
     expect(existsSync(join(root, 'playwright-call.json'))).toBe(false);
   });
 
-  it('checks both browsers before opening UI mode with headless tests', () => {
+  it('runs npm test:e2e:ui with both browsers checked for headless tests', () => {
     install('chromium');
     install('headless-shell');
-    const result = run('test:e2e:ui');
+    const result = runNpm('test:e2e:ui');
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(readFileSync(join(root, 'browser-check.json'), 'utf8'))).toEqual({ headless: true });
     expect(JSON.parse(readFileSync(join(root, 'playwright-call.json'), 'utf8'))).toEqual({
@@ -224,48 +234,22 @@ describe('E2E browser setup', () => {
     });
   });
 
-  it.each([
-    { command: 'test:e2e', args: ['--headed'], forwarded: ['--headed'] },
-    { command: 'test:e2e:ui', args: ['--headed'], forwarded: ['--ui', '--headed'] },
-    { command: 'test:e2e', args: ['--debug'], forwarded: ['--debug'] },
-    { command: 'test:e2e', args: ['--debug=inspector'], forwarded: ['--debug=inspector'] },
-  ])('checks the headed executable for $command $args', ({ command, args, forwarded }) => {
-    const missing = run(command, args);
+  it('requires executable Chromium for headed tests without launching the headless shell', () => {
+    const missing = run(['--headed']);
     expect(missing.status).toBe(1);
     expect(missing.stderr).toContain('Run npx playwright install chromium, then try again.');
     expect(existsSync(join(root, 'playwright-call.json'))).toBe(false);
 
     install('chromium');
-    const installed = run(command, args);
+    const installed = run(['--headed']);
     expect(installed.status, installed.stderr).toBe(0);
     expect(JSON.parse(readFileSync(join(root, 'playwright-call.json'), 'utf8'))).toEqual({
-      args: ['test', ...forwarded], browserChecked: false, browserClosed: false,
-    });
-  });
-
-  it.each([
-    { args: ['--ui', '--ui-host=127.0.0.1'], env: {} },
-    { args: ['--ui', '--ui-port', '0'], env: {} },
-    { args: ['--debug=cli'], env: {} },
-    { args: ['--debug', 'cli'], env: {} },
-    { args: [], env: { PWDEBUG: 'console' } },
-    { args: [], env: { PWDEBUG: 'false' } },
-  ])('checks the headless shell for $args with $env', ({ args, env }) => {
-    const missing = run('test:e2e', args, env);
-    expect(missing.status).toBe(1);
-    expect(missing.stderr).toContain('Run npx playwright install chromium, then try again.');
-    expect(existsSync(join(root, 'playwright-call.json'))).toBe(false);
-
-    install('headless-shell');
-    const installed = run('test:e2e', args, env);
-    expect(installed.status, installed.stderr).toBe(0);
-    expect(JSON.parse(readFileSync(join(root, 'playwright-call.json'), 'utf8'))).toEqual({
-      args: ['test', ...args], browserChecked: true, browserClosed: true,
+      args: ['test', '--headed'], browserChecked: false, browserClosed: false,
     });
   });
 
   it.each(['--list', '--help'])('allows %s without an installed browser', (argument) => {
-    const result = run('test:e2e', [argument]);
+    const result = run([argument]);
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(readFileSync(join(root, 'playwright-call.json'), 'utf8'))).toEqual({
       args: ['test', argument], browserChecked: false, browserClosed: false,

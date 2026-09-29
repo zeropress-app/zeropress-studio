@@ -58,12 +58,8 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('remote development setup', () => {
-  it.each([
-    { name: 'piped output', env: {}, colored: false },
-    { name: 'NO_COLOR', env: { NO_COLOR: '1' }, colored: false },
-    { name: 'FORCE_COLOR', env: { FORCE_COLOR: '1' }, colored: true },
-  ])('explains remote opt-in before starting Vite with $name', ({ env, colored }) => {
-    const result = run({}, [], env);
+  it('blocks npm dev:enable-remote with highlighted opt-in guidance before starting Vite', () => {
+    const result = run({}, [], { FORCE_COLOR: '1' });
     expect(result.status).toBe(1);
     const message = [
       'Cannot start remote development.',
@@ -73,52 +69,25 @@ describe('remote development setup', () => {
       'For local development, run npm run dev.',
     ].join('\n');
     expect(stripVTControlCharacters(result.stderr).trim()).toBe(message);
-    if (colored) {
-      expect(result.stderr).toContain('\u001b[31mCannot start remote development.');
-      expect(result.stderr).toContain('\u001b[1mwrangler.jsonc\u001b[22m');
-      expect(result.stderr).toContain('\u001b[36m"remote": true\u001b[39m');
-      expect(result.stderr).toContain('\u001b[36mnpm run dev\u001b[39m');
-    } else {
-      expect(result.stderr.trim()).toBe(message);
-    }
+    expect(result.stderr).toContain('\u001b[31mCannot start remote development.');
+    expect(result.stderr).toContain('\u001b[1mwrangler.jsonc\u001b[22m');
+    expect(result.stderr).toContain('\u001b[36m"remote": true\u001b[39m');
+    expect(result.stderr).toContain('\u001b[36mnpm run dev\u001b[39m');
     expect(existsSync(join(root, 'vite-call.json'))).toBe(false);
   });
 
-  it.each([
-    {
-      name: 'remote Edge database',
-      config: { d1_databases: [{ binding: 'EDGE_DB', database_name: 'edge', remote: true }] },
-      guidance: 'Remove "remote": true from these bindings in wrangler.jsonc.',
-    },
-    {
-      name: 'remote Edge KV',
-      config: { kv_namespaces: [{ binding: 'EDGE_KV', id: 'a'.repeat(32), remote: true }] },
-      guidance: 'Remove "remote": true from these bindings in wrangler.jsonc.',
-    },
-    ...[true, false].map((databaseRemote) => ({
-      name: `mismatched Studio storage with DB remote=${databaseRemote}`,
-      config: {
-        d1_databases: [{ binding: 'DB', database_name: 'studio', remote: databaseRemote }],
-        r2_buckets: [{ binding: 'MEDIA_BUCKET', bucket_name: 'studio-media', remote: !databaseRemote }],
+  it('blocks npm dev:enable-remote with a correction for a mismatched mail queue', () => {
+    const config = {
+      ai: { binding: 'AI', remote: true },
+      queues: {
+        producers: [{ binding: 'MAIL_QUEUE', queue: 'first' }],
+        consumers: [{ queue: 'second' }],
       },
-      guidance: 'In wrangler.jsonc, set "remote": true on both bindings, or keep both local.',
-    })),
-    {
-      name: 'mismatched mail queue',
-      config: {
-        ai: { binding: 'AI', remote: true },
-        queues: {
-          producers: [{ binding: 'MAIL_QUEUE', queue: 'first' }],
-          consumers: [{ queue: 'second' }],
-        },
-      },
-      guidance: 'MAIL_QUEUE requires one producer and one consumer using the same queue in wrangler.jsonc.',
-    },
-  ])('gives a correction for $name before starting Vite', ({ config, guidance }) => {
+    };
     const result = run(config);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Cannot start remote development.');
-    expect(result.stderr).toContain(guidance);
+    expect(result.stderr).toContain('MAIL_QUEUE requires one producer and one consumer using the same queue in wrangler.jsonc.');
     expect(existsSync(join(root, 'vite-call.json'))).toBe(false);
     expect(JSON.parse(readFileSync(join(root, 'wrangler.jsonc'), 'utf8'))).toEqual(config);
   });
