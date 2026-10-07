@@ -1,9 +1,18 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DatabaseBackup, KeyRound, Settings2, Trash2 } from 'lucide-react';
 import { SUPPORTED_LOCALES } from '../i18n/locale';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { LogoBadge } from './LogoBadge';
 import { ThemeToggle } from './ThemeToggle';
+import { StudioIcon } from './primitives';
+
+const OPERATIONS_FEATURES = [
+  { key: 'environment', icon: Settings2 },
+  { key: 'database', icon: DatabaseBackup },
+  { key: 'recovery', icon: KeyRound },
+  { key: 'reset', icon: Trash2 },
+] as const;
 
 /**
  * Shell for Operations authentication, separate from the regular Studio session.
@@ -13,9 +22,6 @@ import { ThemeToggle } from './ThemeToggle';
  */
 export function OperationsAccessShell(input: {
   regionLabel: string;
-  kicker?: string;
-  title?: string;
-  description?: string;
   children: ReactNode;
 }) {
   const { t } = useTranslation('operations');
@@ -23,7 +29,7 @@ export function OperationsAccessShell(input: {
   return (
     <main className="auth-shell auth-shell-login">
       <section
-        className="auth-frame auth-frame-login"
+        className="auth-frame auth-frame-login auth-frame-operations"
         aria-label={input.regionLabel}
       >
         <aside className="auth-brand">
@@ -45,6 +51,14 @@ export function OperationsAccessShell(input: {
             <p className="auth-brand-description">
               {t('unlock.brandDescription')}
             </p>
+            <ul className="operations-access-features">
+              {OPERATIONS_FEATURES.map(({ key, icon }) => (
+                <li key={key}>
+                  <StudioIcon icon={icon} />
+                  <span>{t(`unlock.features.${key}`)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </aside>
 
@@ -71,13 +85,13 @@ export function OperationsAccessShell(input: {
           <div className="auth-form-content">
             <header className="auth-form-header">
               <p className="auth-kicker">
-                {input.kicker ?? t('unlock.kicker')}
+                {t('unlock.kicker')}
               </p>
               <h2 className="auth-form-title">
-                {input.title ?? t('title')}
+                {t('unlock.title')}
               </h2>
               <p className="auth-form-description">
-                {input.description ?? t('unlock.description')}
+                {t('unlock.description')}
               </p>
             </header>
             {input.children}

@@ -86,12 +86,19 @@ export const operations = {
   unlock: {
     regionLabel: '유지보수 및 복구 잠금 해제',
     kicker: '보호된 접근',
-    brandHeadline: 'Studio를 다시 사용할 수 있도록',
-    brandDescription: '백업을 복원하거나 관리자 접근을 복구하고, 데이터베이스를 관리하세요.',
-    description: '이 Studio에 설정된 Operations 토큰을 입력하세요.',
+    brandHeadline: '유지보수 및 복구',
+    brandDescription: 'Studio와 Edge의 데이터베이스 및 접근 설정을 관리합니다.',
+    features: {
+      environment: '시스템 상태 및 Worker 설정 확인',
+      database: '데이터베이스 업그레이드·백업·복원',
+      recovery: '관리자 접근 복구',
+      reset: '콘텐츠 비우기·Studio 초기화·제거',
+    },
+    title: 'Operations 인증',
+    description: 'Worker에 설정한 STUDIO_OPERATIONS_TOKEN 값을 입력하세요.',
     tokenLabel: 'Operations 토큰',
-    tokenPlaceholder: 'STUDIO_OPERATIONS_TOKEN 입력',
-    open: '유지보수 및 복구 열기',
+    tokenPlaceholder: 'Operations 토큰 입력',
+    open: 'Operations 열기',
     opening: '확인 중…',
   },
   availability: {
@@ -133,8 +140,6 @@ export const operations = {
     title: 'Studio 운영',
     description: 'Operations를 열어 인프라 접근과 보호된 유지보수 도구를 관리하세요.',
     unlockRegionLabel: 'Studio 운영 잠금 해제',
-    unlockDescription: 'Operations 토큰을 입력하여 Studio 접근 설정과 보호된 도구를 여세요.',
-    unlockOpen: 'Studio 운영 열기',
     deniedTitle: '관리자 접근이 필요합니다',
     deniedDescription: '활성 Studio 관리자 계정으로 로그인해야 Studio 운영 화면을 열 수 있습니다.',
     cloudflare: {

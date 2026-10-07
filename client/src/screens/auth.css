@@ -297,6 +297,51 @@
   background: var(--studio-surface-subtle);
 }
 
+/* Operations introduces maintenance tools before requesting its separate token. */
+.auth-frame-operations .auth-brand-copy {
+  padding-block: 30px;
+}
+
+.auth-frame-operations .auth-brand-headline {
+  margin-block: 16px;
+  font-size: clamp(1.75rem, 2.9vw, 2.25rem);
+  line-height: 1.2;
+}
+
+.auth-frame-operations .auth-form-description {
+  word-break: keep-all;
+}
+
+.operations-access-features {
+  display: grid;
+  gap: 14px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--studio-sidebar-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.operations-access-features > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.operations-access-features > li > svg {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--studio-signal);
+}
+
+.operations-access-features > li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Session expiry keeps the authenticated route mounted behind a modal. The
    shared sign-in flow therefore sheds its page chrome without introducing a
    second authentication implementation. */

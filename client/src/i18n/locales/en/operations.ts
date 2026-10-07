@@ -86,12 +86,19 @@ export const operations = {
   unlock: {
     regionLabel: 'Unlock Maintenance and Recovery',
     kicker: 'PROTECTED ACCESS',
-    brandHeadline: 'Get Studio running again',
-    brandDescription: 'Restore a backup, recover administrator access, or manage your database.',
-    description: 'Enter the Operations token configured for this Studio.',
+    brandHeadline: 'Maintenance & recovery',
+    brandDescription: 'Manage databases and access settings for Studio and Edge.',
+    features: {
+      environment: 'System status and Worker configuration',
+      database: 'Database upgrades, backups, and restores',
+      recovery: 'Administrator access recovery',
+      reset: 'Clear content, reset or uninstall Studio',
+    },
+    title: 'Operations sign-in',
+    description: 'Enter the STUDIO_OPERATIONS_TOKEN configured for this Worker.',
     tokenLabel: 'Operations token',
-    tokenPlaceholder: 'Enter STUDIO_OPERATIONS_TOKEN',
-    open: 'Open Maintenance & Recovery',
+    tokenPlaceholder: 'Paste the Operations token',
+    open: 'Open Operations',
     opening: 'Verifying…',
   },
   availability: {
@@ -133,8 +140,6 @@ export const operations = {
     title: 'Studio operations',
     description: 'Unlock Operations to manage infrastructure access and protected maintenance tools.',
     unlockRegionLabel: 'Unlock Studio operations',
-    unlockDescription: 'Enter the Operations token to open Studio access settings and protected tools.',
-    unlockOpen: 'Open Studio operations',
     deniedTitle: 'Administrator access is required',
     deniedDescription: 'Sign in with an active Studio administrator account to open Studio operations.',
     cloudflare: {

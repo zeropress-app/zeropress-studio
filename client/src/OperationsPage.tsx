@@ -697,12 +697,6 @@ export function OperationsPage() {
         regionLabel={isOperationalAccess
           ? t('operationalAccess.unlockRegionLabel')
           : t('unlock.regionLabel')}
-        title={isOperationalAccess
-          ? t('operationalAccess.title')
-          : undefined}
-        description={isOperationalAccess
-          ? t('operationalAccess.unlockDescription')
-          : undefined}
       >
         <form
           className="auth-form"
@@ -742,9 +736,7 @@ export function OperationsPage() {
             {loading ? <Spinner /> : null}
             {loading
               ? t('unlock.opening')
-              : isOperationalAccess
-                ? t('operationalAccess.unlockOpen')
-                : t('unlock.open')}
+              : t('unlock.open')}
             {!loading ? (
               <StudioIcon
                 className="auth-button-icon"

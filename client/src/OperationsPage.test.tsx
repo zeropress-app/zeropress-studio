@@ -510,7 +510,7 @@ describe('Maintenance and Recovery dashboard', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     await user.type(tokenInput, operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByText('Worker configuration status'))
@@ -588,7 +588,7 @@ describe('Maintenance and Recovery dashboard', () => {
     render(<App />);
     const tokenInput = await screen.findByLabelText('Operations token');
     await user.type(tokenInput, token);
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Check the Operations token and try again.',
@@ -611,12 +611,12 @@ describe('Maintenance and Recovery dashboard', () => {
 
     expect(await screen.findByRole('heading', {
       level: 2,
-      name: 'Maintenance & Recovery',
+      name: 'Operations sign-in',
     })).toBeInTheDocument();
-    expect(screen.getByText('Get Studio running again'))
+    expect(screen.getByText('Maintenance & recovery'))
       .toBeInTheDocument();
     expect(await screen.findByText(
-      'Enter the Operations token configured for this Studio.',
+      'Enter the STUDIO_OPERATIONS_TOKEN configured for this Worker.',
     )).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Use dark appearance' }))
       .toBeInTheDocument();
@@ -654,23 +654,23 @@ describe('Maintenance and Recovery dashboard', () => {
       .toHaveClass('auth-shell', 'auth-shell-login');
     expect(within(accessRegion).getByRole('heading', {
       level: 1,
-      name: 'Get Studio running again',
+      name: 'Maintenance & recovery',
     })).toBeInTheDocument();
     expect(within(accessRegion).getByRole('heading', {
       level: 2,
-      name: 'Studio operations',
+      name: 'Operations sign-in',
     })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Studio access' }))
       .not.toBeInTheDocument();
     expect(screen.getByText(
-      'Enter the Operations token to open Studio access settings and protected tools.',
+      'Enter the STUDIO_OPERATIONS_TOKEN configured for this Worker.',
     ))
       .toBeInTheDocument();
     const tokenInput = screen.getByLabelText('Operations token');
     expect(fetchMock).not.toHaveBeenCalled();
     await user.type(tokenInput, operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Studio operations',
+      name: 'Open Operations',
     }));
     expect(await screen.findByRole('heading', {
       name: 'Set up Operations access',
@@ -727,7 +727,7 @@ describe('Maintenance and Recovery dashboard', () => {
 
     await user.type(screen.getByLabelText('Operations token'), operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Studio operations',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('heading', { name: 'Studio access' }))
@@ -811,7 +811,7 @@ describe('Maintenance and Recovery dashboard', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     await user.type(tokenInput, operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('heading', {
@@ -848,7 +848,7 @@ describe('Maintenance and Recovery dashboard', () => {
     const tokenInput = await screen.findByLabelText('Operations token');
     await user.type(tokenInput, operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('heading', { name: 'Set up Operations access' }, {
@@ -885,7 +885,7 @@ describe('Maintenance and Recovery dashboard', () => {
     const tokenInput = await screen.findByLabelText('Operations token');
     await user.type(tokenInput, operationsToken);
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -896,7 +896,7 @@ describe('Maintenance and Recovery dashboard', () => {
     }));
     await user.click(await screen.findByRole(
       'button',
-      { name: 'Open Maintenance & Recovery' },
+      { name: 'Open Operations' },
       { timeout: INITIAL_CHECKING_MIN_VISIBLE_MS + 500 },
     ));
     expect(await screen.findByRole(
@@ -936,7 +936,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     expect(await screen.findByText('Worker configuration status'))
       .toBeInTheDocument();
     expect(screen.getByRole('heading', {
@@ -1031,7 +1031,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     expect(await screen.findByText('Worker configuration status')).toBeInTheDocument();
 
     const pageHide = new Event('pagehide');
@@ -1081,7 +1081,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     const environmentTable = await screen.findByRole('table', {
       name: 'Environment variables and Secrets',
@@ -1144,7 +1144,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       level: 1,
@@ -1293,7 +1293,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Reset Studio' }));
 
@@ -1341,7 +1341,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByText(
       'Studio is paused for maintenance',
@@ -1422,7 +1422,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByText('Studio is ready to install'))
       .toBeInTheDocument();
@@ -1476,7 +1476,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       name: 'Database backup & restore',
@@ -1536,7 +1536,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     const summary = await screen.findByLabelText('System operation status');
     expect(within(summary).getByText('Maintenance'))
@@ -1637,7 +1637,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Uninstall Studio' }));
 
@@ -1753,7 +1753,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Uninstall Studio' }));
 
@@ -1809,7 +1809,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Uninstall Studio' }));
 
@@ -1871,7 +1871,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Clear content' }));
 
@@ -1920,7 +1920,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     await screen.findByRole('heading', { level: 1, name: 'Danger zone' });
     await user.click(screen.getByRole('button', { name: 'Clear content' }));
 
@@ -1983,7 +1983,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       level: 1,
@@ -2012,7 +2012,7 @@ describe('Maintenance and Recovery dashboard', () => {
       operationsToken,
     );
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('heading', {
@@ -2051,7 +2051,7 @@ describe('Maintenance and Recovery dashboard', () => {
       operationsToken,
     );
     await user.click(screen.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     }));
 
     expect(await screen.findByRole('heading', {
@@ -2083,7 +2083,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       name: 'Synchronize Edge targets',
@@ -2123,7 +2123,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByText('Maintenance mode is required'))
       .toBeInTheDocument();
@@ -2152,7 +2152,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByText('Studio is not installed'))
       .toBeInTheDocument();
@@ -2180,7 +2180,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       name: 'Clear, reset, or uninstall',
@@ -2244,7 +2244,7 @@ describe('Maintenance and Recovery dashboard', () => {
       operationsToken,
     );
     await user.click(
-      screen.getByRole('button', { name: 'Open Maintenance & Recovery' }),
+      screen.getByRole('button', { name: 'Open Operations' }),
     );
 
     expect(await screen.findByRole('heading', {
@@ -2367,7 +2367,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByText(/No user currently has the administrator role/))
       .toBeInTheDocument();
@@ -2463,7 +2463,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
 
     expect(await screen.findByRole('heading', {
       name: 'Recover administrator access',
@@ -2519,7 +2519,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     expect(await screen.findByRole('heading', {
       name: 'Edge services connection',
     })).toBeInTheDocument();
@@ -2617,7 +2617,7 @@ describe('Maintenance and Recovery dashboard', () => {
       await screen.findByLabelText('Operations token'),
       operationsToken,
     );
-    await user.click(screen.getByRole('button', { name: 'Open Maintenance & Recovery' }));
+    await user.click(screen.getByRole('button', { name: 'Open Operations' }));
     expect(await screen.findByText(
       /Cloudflare resources, KV, R2, queued mail, and Studio data will be kept/,
     )).toBeInTheDocument();

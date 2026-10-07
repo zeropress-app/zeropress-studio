@@ -281,7 +281,7 @@ test.describe('responsive Operations access', () => {
     for (const viewport of entryViewports) {
       await test.step(viewport.name, async () => {
         await page.setViewportSize(viewport);
-        await expect(page.getByRole('heading', { name: 'Maintenance & Recovery' }))
+        await expect(page.getByRole('heading', { name: 'Operations sign-in' }))
           .toBeVisible();
         await expect(page.getByLabel('Operations token')).toBeVisible();
         await expectVisibleLogoIsFortyPixels(page);
@@ -302,7 +302,7 @@ test.describe('responsive Operations access', () => {
     await token.focus();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', {
-      name: 'Open Maintenance & Recovery',
+      name: 'Open Operations',
     })).toBeFocused();
   });
 });

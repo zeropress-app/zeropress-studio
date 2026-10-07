@@ -23,7 +23,7 @@ test('unlocks Operations with its token and locks it again on reload', async ({
 
   await expect(page.getByRole('heading', {
     level: 2,
-    name: 'Maintenance & Recovery',
+    name: 'Operations sign-in',
   })).toBeVisible();
   expect(statusResponses).toHaveLength(0);
 
@@ -32,14 +32,14 @@ test('unlocks Operations with its token and locks it again on reload', async ({
   await expect(tokenField).toHaveValue('');
   await tokenField.fill('short');
   await page.getByRole('button', {
-    name: 'Open Maintenance & Recovery',
+    name: 'Open Operations',
   }).click();
   await expect(page.getByRole('alert').locator('.studio-notice-content'))
     .toHaveText('Check the Operations token and try again.');
   expect(statusResponses).toHaveLength(0);
   await tokenField.fill(`wrong-${operationsToken}`);
   await page.getByRole('button', {
-    name: 'Open Maintenance & Recovery',
+    name: 'Open Operations',
   }).click();
   await expect(page.getByText('The operations token is invalid.'))
     .toBeVisible();
@@ -51,7 +51,7 @@ test('unlocks Operations with its token and locks it again on reload', async ({
     && response.request().headers().authorization !== undefined
   ));
   await page.getByRole('button', {
-    name: 'Open Maintenance & Recovery',
+    name: 'Open Operations',
   }).click();
   expect((await statusRequest).status()).toBe(200);
 
@@ -82,7 +82,7 @@ test('unlocks Operations with its token and locks it again on reload', async ({
 
   await page.getByLabel('Operations token').fill(operationsToken);
   await page.getByRole('button', {
-    name: 'Open Maintenance & Recovery',
+    name: 'Open Operations',
   }).click();
   await expect(page.getByRole('button', { name: 'Lock screen' }))
     .toBeVisible();
@@ -325,21 +325,21 @@ test.describe('operational administrator control plane', () => {
     await expect(accessRegion).toHaveClass(/auth-frame-login/);
     await expect(accessRegion.getByRole('heading', {
       level: 1,
-      name: 'Get Studio running again',
+      name: 'Maintenance & recovery',
     })).toBeVisible();
     await expect(accessRegion.getByRole('heading', {
       level: 2,
-      name: 'Studio operations',
+      name: 'Operations sign-in',
     })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Studio access' }))
       .toHaveCount(0);
     await expect(page.getByText(
-      'Enter the Operations token to open Studio access settings and protected tools.',
+      'Enter the STUDIO_OPERATIONS_TOKEN configured for this Worker.',
     )).toBeVisible();
 
     await page.getByLabel('Operations token').fill(operationsToken);
     await page.getByRole('button', {
-      name: 'Open Studio operations',
+      name: 'Open Operations',
     }).click();
     await expect(page.getByRole('heading', {
       level: 1,
