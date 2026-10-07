@@ -73,8 +73,8 @@ test('rebuilds and resumes from the dashboard with keyboard and mobile controls'
   const search = readiness.getByRole('group', { name: 'Post and Page search' });
   await expect(search).toContainText('Rebuild required');
   await readiness.getByRole('link', { name: 'Comment settings' }).click();
-  await expect(page).toHaveURL(/\/settings\/edge\/comments#comment-api$/);
-  await expect(page.getByRole('textbox', { name: 'ZeroPress API base URL' })).toBeFocused();
+  await expect(page).toHaveURL(/\/settings\/edge#edge-url$/);
+  await expect(page.getByRole('textbox', { name: 'Edge URL', exact: true })).toBeFocused();
   await page.goto('/');
   await readiness.getByRole('link', { name: 'Delivery settings' }).click();
   await expect(page).toHaveURL(/\/newsletters\?tab=runtime$/);

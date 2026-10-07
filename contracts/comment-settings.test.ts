@@ -6,7 +6,6 @@ import {
   commentRequestSecurityResourceSchema,
   commentSettingsInputSchema,
   commentSettingsSchema,
-  normalizeCommentApiBaseUrl,
   normalizeSupabaseProjectUrl,
   normalizeSupabasePublishableKey,
 } from './comment-settings';
@@ -15,39 +14,6 @@ const PUBLISHABLE_KEY =
   'sb_publishable_example-key-with-enough-length';
 
 describe('comment settings contract', () => {
-  it('normalizes safe absolute and root-relative API bases', () => {
-    expect(normalizeCommentApiBaseUrl('https://edge.example.com/api/'))
-      .toBe('https://edge.example.com/api');
-    expect(normalizeCommentApiBaseUrl('/edge/api///')).toBe('/edge/api');
-    expect(normalizeCommentApiBaseUrl('/')).toBe('/');
-    expect(commentSettingsInputSchema.parse({
-      ...COMMENT_SETTINGS_DEFAULTS,
-      api_base_url: 'https://edge.example.com/api/',
-    }).api_base_url).toBe('https://edge.example.com/api');
-  });
-
-  it('rejects unsafe, bare-relative, and non-canonical stored URLs', () => {
-    for (const value of [
-      'edge/api',
-      '//edge.example/api',
-      'ftp://edge.example/api',
-      'https://user@edge.example/api',
-      'https://edge.example/api?x=1',
-      'https://edge.example/api#x',
-      'https://edge.example/../api',
-      'https://edge.example/%zz',
-      ' https://edge.example/api',
-      '/edge\\api',
-      '/edge/./api',
-    ]) {
-      expect(normalizeCommentApiBaseUrl(value)).toBeNull();
-    }
-    expect(commentSettingsSchema.safeParse({
-      ...COMMENT_SETTINGS_DEFAULTS,
-      api_base_url: 'https://edge.example/api/',
-    }).success).toBe(false);
-  });
-
   it('keeps a fixed ZeroPress provider and bounded runtime values', () => {
     expect(commentSettingsInputSchema.safeParse({
       ...COMMENT_SETTINGS_DEFAULTS,
@@ -78,7 +44,6 @@ describe('comment settings contract', () => {
     const canonical = commentSettingsSchema.parse(COMMENT_SETTINGS_DEFAULTS);
     const reordered: typeof canonical = {
       auth: { ...canonical.auth },
-      api_base_url: canonical.api_base_url,
       moderation: { ...canonical.moderation },
       threading: { ...canonical.threading },
       order: canonical.order,

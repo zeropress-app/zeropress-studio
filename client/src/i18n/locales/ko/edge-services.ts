@@ -1,4 +1,30 @@
 export const edgeServices = {
+  url: {
+    "title": "Edge URL",
+    "description": "댓글, 폼, 뉴스레터에 사용할 공개 Edge Worker 주소입니다.",
+    "hint": "https://edge.example.com처럼 경로 없는 HTTPS 주소를 입력하세요. 사이트와 같은 주소도 사용할 수 있습니다.",
+    "invalid": "경로, 쿼리, 사용자 지정 포트가 없는 HTTPS 주소를 입력하세요. 로컬 개발에는 루프백 주소를 사용할 수 있습니다.",
+    "missing": "연결 주소를 사용하려면 Edge URL을 설정하세요.",
+    "configure": "Edge URL 설정",
+    "loadFailed": "Edge URL을 불러오지 못했습니다.",
+    "save": "Edge URL 저장",
+    "saving": "저장 중…",
+    "saved": "Edge URL을 저장했습니다.",
+    "failed": "Edge URL을 저장하지 못했습니다. 다시 시도하세요.",
+    "conflict": "다른 세션에서 Edge URL이 변경되었습니다. 저장된 값을 다시 불러오세요.",
+    "reload": "저장된 URL 불러오기",
+    "copy": "URL 복사",
+    "copyConfig": "config.json 복사",
+    "copied": "복사했습니다.",
+    "copyFailed": "복사하지 못했습니다. URL을 선택하여 복사하세요.",
+    "commentsHint": "Edge URL을 설정하면 Preview Data에 포함됩니다.",
+    "configHint": "샘플의 config.json에서 {{key}} 값으로 사용하세요.",
+    "endpoint": {
+      "comments": "댓글 API base URL",
+      "form": "폼 endpoint",
+      "newsletter": "뉴스레터 endpoint"
+    }
+  },
   documentTitle: 'Edge 서비스 — ZeroPress Studio', kicker: 'EDGE 연동', title: 'Edge 서비스',
   description: 'Studio의 Edge 연동, 공개 요청 보호와 메일 전송을 관리합니다.',
   loading: 'Edge 연동 상태를 불러오는 중…',

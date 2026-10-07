@@ -25,7 +25,7 @@ function sha256(value: Buffer | string): string {
 
 describe('vendored Edge database schema artifacts', () => {
   it('matches every reviewed checksum and runtime contract', async () => {
-    expect(EDGE_DATABASE_TARGET_SCHEMA_VERSION).toBe(1);
+    expect(EDGE_DATABASE_TARGET_SCHEMA_VERSION).toBe(2);
     expect(EDGE_DATABASE_TARGET_SCHEMA_VERSION)
       .toBe(EDGE_DATABASE_SCHEMA_VERSION);
     expect(EDGE_DATABASE_SUPPORTED_SCHEMA_CATALOGS).toEqual([
@@ -33,10 +33,11 @@ describe('vendored Edge database schema artifacts', () => {
         schemaVersion: 1,
         sha256: 'd8068600f666766195aff82abaeae01413e6ed44a800a03444699cbcbed964f6',
       },
+      { schemaVersion: 2, sha256: '91fe0a7d2bbef540b6019661af6bb6acfa297ebdf17b3428f476f9534648e339' },
     ]);
     expect(EDGE_DATABASE_INSTALL_ARTIFACTS.map(({ id }) => id)).toEqual([
-      'edge_install_baseline_v1',
-      'edge_install_seed_v1',
+      'edge_install_baseline_v2',
+      'edge_install_seed_v2',
     ]);
     expect(EDGE_DATABASE_UNINSTALL_ARTIFACT.id).toBe('edge_uninstall_v1');
     await expect(validateEdgeInstallArtifacts()).resolves.not.toHaveLength(0);
@@ -55,6 +56,9 @@ describe('vendored Edge database schema artifacts', () => {
 
   it('is byte-identical to the Edge-owned source in this workspace', () => {
     const pairs = [
+      ['../../../database/edge/install/003_edge_baseline_v2.sql', '../../../../zeropress-edge/database/install/003_edge_baseline_v2.sql'],
+      ['../../../database/edge/install/004_edge_seed_v2.sql', '../../../../zeropress-edge/database/install/004_edge_seed_v2.sql'],
+      ['../../../database/edge/schema-upgrades/schema_1_to_2.sql', '../../../../zeropress-edge/database/schema-upgrades/schema_1_to_2.sql'],
       [
         '../../../database/edge/schema-contract.json',
         '../../../../zeropress-edge/database/schema-contract.json',

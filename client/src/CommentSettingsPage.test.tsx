@@ -103,22 +103,6 @@ beforeEach(async () => {
 });
 
 describe('CommentSettingsPage', () => {
-  it('focuses the API URL after loading a dashboard setup link', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string | URL) => {
-      switch (String(url)) {
-        case '/api/settings/comments': return jsonResponse({ success: true, data: initialDocument });
-        case '/api/settings/general': return jsonResponse({ success: true, data: generalDocument });
-        case '/api/settings/comments/request-security': return jsonResponse({ success: true, data: requestSecurity });
-        default: throw new Error(`Unexpected request: ${url}`);
-      }
-    }));
-    renderPage('/settings/edge/comments#comment-api');
-    const apiBase = await screen.findByRole('textbox', { name: 'ZeroPress API base URL' });
-    await waitFor(() => expect(apiBase).toHaveFocus());
-    await userEvent.setup().type(apiBase, 'https://edge.example.com/api');
-    expect(apiBase).toHaveValue('https://edge.example.com/api');
-  });
-
   it('keeps Comment Settings usable when General Settings needs repair', async () => {
     const fetchMock = vi.fn(async (url: string | URL) => {
       const target = String(url);
@@ -152,7 +136,6 @@ describe('CommentSettingsPage', () => {
   it('saves canonical runtime settings using only Studio APIs', async () => {
     const savedSettings = {
       ...initialDocument.settings,
-      api_base_url: 'https://edge.example.com/api',
       per_page: 25,
       moderation: { require_approval: false },
     };
@@ -183,10 +166,7 @@ describe('CommentSettingsPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    const apiBase = await screen.findByRole('textbox', {
-      name: 'ZeroPress API base URL',
-    });
-    expect(apiBase).toHaveClass('studio-field-input');
+    await screen.findByRole('switch', { name: 'Enable comments' });
     expect(screen.getByText('All changes are saved.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reset changes' }))
       .toBeDisabled();
@@ -201,7 +181,6 @@ describe('CommentSettingsPage', () => {
     });
     expect(requireApproval).toBeChecked();
     await user.click(requireApproval);
-    await user.type(apiBase, 'https://edge.example.com/api/');
     const perPage = screen.getByRole('spinbutton', {
       name: 'Comments per page',
     });
@@ -225,32 +204,6 @@ describe('CommentSettingsPage', () => {
     });
     expect(fetchMock.mock.calls.every(([url]) => String(url).startsWith('/api/')))
       .toBe(true);
-  });
-
-  it('keeps invalid URL edits local and does not offer them to the Worker', async () => {
-    const fetchMock = vi.fn(async (url: string | URL) => {
-      if (String(url) === '/api/settings/comments') {
-        return jsonResponse({ success: true, data: initialDocument });
-      }
-      if (String(url) === '/api/settings/general') {
-        return jsonResponse({ success: true, data: generalDocument });
-      }
-      if (String(url) === '/api/settings/comments/request-security') {
-        return jsonResponse({ success: true, data: requestSecurity });
-      }
-      throw new Error(`Unexpected request: ${String(url)}`);
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    const user = userEvent.setup();
-    renderPage();
-    const apiBase = await screen.findByRole('textbox', {
-      name: 'ZeroPress API base URL',
-    });
-    await user.type(apiBase, 'edge/api');
-    await waitFor(() => expect(apiBase).toHaveAttribute('aria-invalid', 'true'));
-    expect(screen.getByRole('button', { name: 'Save settings' }))
-      .toBeDisabled();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('configures optional Supabase auth with only a public key and preserves the pair when disabled', async () => {

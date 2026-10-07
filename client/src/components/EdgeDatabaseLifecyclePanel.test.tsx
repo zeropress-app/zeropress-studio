@@ -11,7 +11,7 @@ import { EdgeDatabaseLifecyclePanel } from './EdgeDatabaseLifecyclePanel';
 const status: EdgeDatabaseStatus = {
   state: 'upgrade_required',
   current_schema_version: 1,
-  target_schema_version: 1,
+  target_schema_version: 2,
   operation_id: null,
   next_upgrade_steps: [{
     id: 'edge_schema_1_to_2',

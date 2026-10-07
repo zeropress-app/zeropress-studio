@@ -106,7 +106,7 @@ describe('DashboardPage', () => {
 
     const readiness = within(await screen.findByRole('region', { name: copy.region }));
     expect(readiness.getByRole('link', { name: copy.comments }))
-      .toHaveAttribute('href', '/settings/edge/comments#comment-api');
+      .toHaveAttribute('href', '/settings/edge#edge-url');
     expect(readiness.getByRole('link', { name: copy.newsletter }))
       .toHaveAttribute('href', '/newsletters?tab=runtime');
     expect(readiness.getByRole('link', { name: copy.mail }))

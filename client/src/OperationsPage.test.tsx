@@ -214,7 +214,7 @@ function statusResponse(
       edge_database: {
         state: 'ready',
         current_schema_version: 1,
-        target_schema_version: 1,
+        target_schema_version: 2,
         operation_id: null,
         next_upgrade_steps: [],
         install_available: false,
@@ -1403,7 +1403,7 @@ describe('Maintenance and Recovery dashboard', () => {
     payload.data.edge_database = {
       state: 'uninstalled',
       current_schema_version: null,
-      target_schema_version: 1,
+      target_schema_version: 2,
       operation_id: null,
       next_upgrade_steps: [],
       install_available: false,
@@ -2031,7 +2031,7 @@ describe('Maintenance and Recovery dashboard', () => {
     payload.data.edge_database = {
       state: 'upgrade_required',
       current_schema_version: 1,
-      target_schema_version: 1,
+      target_schema_version: 2,
       operation_id: null,
       next_upgrade_steps: [],
       install_available: false,

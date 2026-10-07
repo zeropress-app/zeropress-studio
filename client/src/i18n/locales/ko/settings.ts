@@ -195,11 +195,6 @@ export const settings = {
         label: '댓글 활성화',
         description: '댓글을 허용한 글과 페이지에 댓글 기능을 표시합니다.',
       },
-      apiBaseUrl: {
-        label: 'ZeroPress API base URL',
-        description: '절대 HTTP(S) URL 또는 root-relative 경로를 사용합니다. 비워두면 Preview Data에서 댓글 provider를 생략합니다.',
-        error: '비워두거나 credentials, query, fragment가 없는 안전한 절대 HTTP(S) 또는 root-relative URL을 입력해 주세요.',
-      },
       perPage: {
         label: '페이지당 댓글 수',
         description: '1부터 100 사이의 정수를 선택합니다.',

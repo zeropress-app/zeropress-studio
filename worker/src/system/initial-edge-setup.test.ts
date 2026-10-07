@@ -10,7 +10,7 @@ function edgeStatus(
   return {
     state,
     current_schema_version: state === 'ready' ? 1 : null,
-    target_schema_version: 1,
+    target_schema_version: 2,
     operation_id: null,
     next_upgrade_steps: [],
     install_available: false,

@@ -88,7 +88,6 @@ function createEdgeDatabase() {
     PRAGMA foreign_keys = ON;
     CREATE TABLE edge_comment_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      api_base_url TEXT,
       comments_enabled INTEGER NOT NULL DEFAULT 1 CHECK (comments_enabled IN (0, 1)),
       require_approval INTEGER NOT NULL DEFAULT 1 CHECK (require_approval IN (0, 1)),
       per_page INTEGER NOT NULL DEFAULT 50 CHECK (per_page BETWEEN 1 AND 100),
@@ -164,7 +163,6 @@ describe('ZeroPress comment runtime storage', () => {
 
     const settings = {
       ...initial.document.settings,
-      api_base_url: 'https://edge.example.com/api',
       per_page: 25,
       threading: { enabled: true, max_depth: 4 },
       moderation: { require_approval: true },
@@ -365,7 +363,6 @@ describe('ZeroPress comment runtime storage', () => {
       edgeDb,
       settings: {
         ...state.document.settings,
-        api_base_url: 'https://edge.example.com/api',
       },
       expectedRevision: state.document.revision,
       now: NOW,

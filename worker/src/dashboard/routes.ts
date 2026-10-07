@@ -1,3 +1,4 @@
+import { readEdgeUrlSettings } from '../settings/edge-url-repository';
 import { Hono } from 'hono';
 import { hasStudioCapability } from '../../../contracts/authorization';
 import {
@@ -33,6 +34,7 @@ export type DashboardRouteDependencies = {
   resolveSession?: ResolveUserSession;
   readStudio?: typeof readDashboardStudioOverview;
   readEdge?: typeof readDashboardEdgeOverview;
+  readEdgeUrl?: typeof readEdgeUrlSettings;
   readMail?: typeof readMailSettings;
   resolvePostAccess?: typeof resolvePostAccess;
   logEdgeFailure?: (error: StudioOperationalError) => void;
@@ -184,6 +186,7 @@ export function createDashboardRoutes(
           try {
             const overview = await readEdge({
               edgeDb: c.env.EDGE_DB,
+              edgeOrigin: (await (dependencies.readEdgeUrl ?? readEdgeUrlSettings)({ db: c.env.DB })).settings.edge_origin,
               permissions: {
                 comments: allowed.comments,
                 forms: allowed.forms,

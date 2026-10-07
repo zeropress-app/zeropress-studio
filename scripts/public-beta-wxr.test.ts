@@ -44,8 +44,8 @@ describe('public beta representative WXR to Preview Data', () => {
       studio.exec('PRAGMA foreign_keys = ON');
       edge.exec('PRAGMA foreign_keys = ON');
       studio.exec(readFileSync(resolve('database/install/001_baseline.sql'), 'utf8'));
-      edge.exec(readFileSync(resolve('database/edge/install/001_edge_baseline.sql'), 'utf8'));
-      edge.exec(readFileSync(resolve('database/edge/install/002_edge_seed.sql'), 'utf8'));
+      edge.exec(readFileSync(resolve('database/edge/install/003_edge_baseline_v2.sql'), 'utf8'));
+      edge.exec(readFileSync(resolve('database/edge/install/004_edge_seed_v2.sql'), 'utf8'));
       studio.exec(`
         INSERT INTO studio_settings (key, value, type, updated_at_iso)
           VALUES ('edge_integration_mode', 'enabled', 'string', '2026-09-04T00:00:00Z'),

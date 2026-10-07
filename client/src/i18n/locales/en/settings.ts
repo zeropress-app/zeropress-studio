@@ -195,11 +195,6 @@ export const settings = {
         label: 'Enable comments',
         description: 'Show comments on Posts and Pages that allow them.',
       },
-      apiBaseUrl: {
-        label: 'ZeroPress API base URL',
-        description: 'Use an absolute HTTP(S) URL or a root-relative path. Leave empty to omit the comments provider from Preview Data.',
-        error: 'Enter an empty value or a safe absolute HTTP(S) or root-relative URL without credentials, query, or fragment.',
-      },
       perPage: {
         label: 'Comments per page',
         description: 'Choose an integer from 1 through 100.',

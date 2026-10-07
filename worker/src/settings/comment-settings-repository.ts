@@ -12,7 +12,6 @@ import {
 } from '../comments/request-secrets';
 
 type CommentSettingsRow = {
-  api_base_url?: unknown;
   comments_enabled?: unknown;
   require_approval?: unknown;
   per_page?: unknown;
@@ -114,7 +113,6 @@ async function materializeCommentSettingsState(
   const parsed = commentSettingsSchema.safeParse({
     enabled,
     provider: 'zeropress',
-    api_base_url: row.api_base_url,
     per_page: perPage,
     order: row.sort_order,
     threading: {
@@ -157,7 +155,6 @@ export async function readCommentSettingsState(input: {
   try {
     row = await input.edgeDb.prepare(`
       SELECT
-        api_base_url,
         comments_enabled,
         require_approval,
         per_page,
@@ -221,7 +218,6 @@ export async function updateCommentSettings(input: {
     result = await input.edgeDb.prepare(`
       INSERT INTO edge_comment_settings (
         id,
-        api_base_url,
         comments_enabled,
         require_approval,
         per_page,
@@ -233,9 +229,8 @@ export async function updateCommentSettings(input: {
         supabase_project_url,
         supabase_publishable_key,
         updated_at
-      ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
-        api_base_url = excluded.api_base_url,
         comments_enabled = excluded.comments_enabled,
         require_approval = excluded.require_approval,
         per_page = excluded.per_page,
@@ -247,8 +242,7 @@ export async function updateCommentSettings(input: {
         supabase_project_url = excluded.supabase_project_url,
         supabase_publishable_key = excluded.supabase_publishable_key,
         updated_at = excluded.updated_at
-      WHERE edge_comment_settings.api_base_url IS ?
-        AND edge_comment_settings.comments_enabled = ?
+      WHERE edge_comment_settings.comments_enabled = ?
         AND edge_comment_settings.require_approval = ?
         AND edge_comment_settings.per_page = ?
         AND edge_comment_settings.sort_order = ?
@@ -259,7 +253,6 @@ export async function updateCommentSettings(input: {
         AND edge_comment_settings.supabase_project_url IS ?
         AND edge_comment_settings.supabase_publishable_key IS ?
     `).bind(
-      input.settings.api_base_url,
       input.settings.enabled ? 1 : 0,
       input.settings.moderation.require_approval ? 1 : 0,
       input.settings.per_page,
@@ -271,7 +264,6 @@ export async function updateCommentSettings(input: {
       input.settings.auth.project_url,
       input.settings.auth.publishable_key,
       nowIso,
-      current.document.settings.api_base_url,
       current.document.settings.enabled ? 1 : 0,
       current.document.settings.moderation.require_approval ? 1 : 0,
       current.document.settings.per_page,

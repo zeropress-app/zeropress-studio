@@ -176,8 +176,19 @@
   gap: 12px;
 }
 
-.edge-settings-content > .settings-form {
+.edge-settings-content > .settings-form,
+.edge-settings-content > .settings-stack {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* Long action labels must fit narrow cards, including with fallback fonts. */
+.edge-settings-content .studio-panel-footer .studio-button {
+  min-width: 0;
+  max-width: 100%;
+  padding-block: 6px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .edge-settings-picker {

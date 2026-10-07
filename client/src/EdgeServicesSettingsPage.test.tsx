@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { requestEdgeUrlSettings } from './lib/edge-url-client';
+vi.mock('./lib/edge-url-client', () => ({ requestEdgeUrlSettings: vi.fn(), requestUpdateEdgeUrlSettings: vi.fn() }));
 
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -81,6 +83,7 @@ afterEach(() => {
 beforeEach(async () => {
   localStorage.clear();
   onSessionEnded.mockClear();
+  vi.mocked(requestEdgeUrlSettings).mockResolvedValue({ success: true, data: { settings: { edge_origin: '' }, revision: '0'.repeat(32), updated_at_iso: null } });
   await changeLocale('en');
 });
 

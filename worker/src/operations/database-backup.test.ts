@@ -296,13 +296,13 @@ describe('database SQL backup service', () => {
       const target = new DatabaseSync(':memory:');
       try {
         const baseline = readFileSync(new URL(
-          '../../../database/edge/install/001_edge_baseline.sql', import.meta.url,
+          '../../../database/edge/install/003_edge_baseline_v2.sql', import.meta.url,
         ), 'utf8');
         source.exec('PRAGMA foreign_keys = ON');
         target.exec('PRAGMA foreign_keys = ON');
         source.exec(baseline);
         source.exec(readFileSync(new URL(
-          '../../../database/edge/install/002_edge_seed.sql', import.meta.url,
+          '../../../database/edge/install/004_edge_seed_v2.sql', import.meta.url,
         ), 'utf8'));
         source.exec(`
           INSERT INTO edge_comment_targets (id, target_type, public_id, status, allow_comments)

@@ -98,7 +98,7 @@ function createDatabases() {
       active_operation_id TEXT
     );
     INSERT INTO zeropress_edge_schema_state
-    VALUES (1, 1, 'ready', NULL, NULL);
+    VALUES (1, 2, 'ready', NULL, NULL);
     CREATE TABLE edge_comment_targets (
       id INTEGER PRIMARY KEY,
       target_type TEXT NOT NULL,

@@ -1,3 +1,4 @@
+import { EDGE_DATABASE_LEGACY_BASELINE_SQL } from './schema-artifacts';
 import { z } from 'zod';
 import {
   DATABASE_UPGRADE_MAX_ARTIFACT_STATEMENTS,
@@ -154,9 +155,10 @@ const expectedManagedCatalog = splitSqlStatements(EDGE_DATABASE_BASELINE_SQL)
     || left.name.localeCompare(right.name, 'en')
   ));
 
-const expectedLegacyCatalog = expectedManagedCatalog.filter(
-  ({ name }) => name !== EDGE_DATABASE_SCHEMA_STATE_TABLE,
-);
+const expectedLegacyCatalog = splitSqlStatements(EDGE_DATABASE_LEGACY_BASELINE_SQL)
+  .map(schemaObjectFromStatement)
+  .filter((value): value is SchemaObject => value !== null && value.name !== EDGE_DATABASE_SCHEMA_STATE_TABLE)
+  .sort((left, right) => left.type.localeCompare(right.type, 'en') || left.name.localeCompare(right.name, 'en'));
 
 function parseCatalog(rows: CatalogRow[]): SchemaObject[] | null {
   const parsed: SchemaObject[] = [];
@@ -224,7 +226,7 @@ async function readCatalog(db: D1Database): Promise<SchemaObject[] | null> {
   return parseCatalog(result.results ?? []);
 }
 
-async function readSeedState(db: D1Database) {
+async function readSeedState(db: D1Database, legacy = false) {
   const row = await db.prepare(`
     SELECT
       (SELECT COUNT(*) FROM edge_comment_settings WHERE id = 1
@@ -237,7 +239,7 @@ async function readSeedState(db: D1Database) {
       ) AS newsletter_row,
       (SELECT COUNT(*) FROM edge_comment_settings
         WHERE id = 1
-          AND api_base_url IS NULL
+          ${legacy ? 'AND api_base_url IS NULL' : ''}
           AND comments_enabled = 1
           AND require_approval = 1
           AND per_page = 50
@@ -280,7 +282,7 @@ async function hasRequiredSeedRows(db: D1Database): Promise<boolean> {
 }
 
 async function hasCanonicalAdoptionSeeds(db: D1Database): Promise<boolean> {
-  const row = await readSeedState(db);
+  const row = await readSeedState(db, true);
   return row?.comments_seed === 1
     && row.runtime_seed === 1
     && row.mail_seed === 1
@@ -769,14 +771,14 @@ export async function adoptEdgeDatabase(input: {
         id, schema_version, lifecycle_state, target_schema_version,
         active_operation_id, updated_at_iso
       ) VALUES (1, ?, 'ready', NULL, NULL, ?)
-    `).bind(EDGE_DATABASE_TARGET_SCHEMA_VERSION, (input.now ?? new Date()).toISOString()),
+    `).bind(1, (input.now ?? new Date()).toISOString()),
   ]);
   const after = await inspectEdgeDatabaseLifecycle({
     edgeDb: input.edgeDb,
     siteMode: 'maintenance',
   });
-  if (after.state !== 'ready') {
-    throw new EdgeDatabaseLifecycleError('state_conflict', 'Edge adoption did not converge to ready.');
+  if (after.state !== 'upgrade_required') {
+    throw new EdgeDatabaseLifecycleError('state_conflict', 'Edge adoption did not register the legacy schema for upgrade.');
   }
 }
 

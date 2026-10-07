@@ -1,24 +1,28 @@
 {
   "contract_version": 1,
-  "schema_version": 1,
+  "schema_version": 2,
   "minimum_supported_schema_version": 1,
   "state_table": "zeropress_edge_schema_state",
   "supported_schema_catalogs": [
     {
       "schema_version": 1,
       "sha256": "d8068600f666766195aff82abaeae01413e6ed44a800a03444699cbcbed964f6"
+    },
+    {
+      "schema_version": 2,
+      "sha256": "91fe0a7d2bbef540b6019661af6bb6acfa297ebdf17b3428f476f9534648e339"
     }
   ],
   "install_artifacts": [
     {
-      "id": "edge_install_baseline_v1",
-      "file": "install/001_edge_baseline.sql",
-      "sha256": "5d06b8642538fcfdc298a9b55c557f7618f0a58c22d20286250333fb9a589d55"
+      "id": "edge_install_baseline_v2",
+      "file": "install/003_edge_baseline_v2.sql",
+      "sha256": "313e9f8cf5b2c644d30f5468bc2e9e85c297b7d7eb5839a456528a4f984b8c93"
     },
     {
-      "id": "edge_install_seed_v1",
-      "file": "install/002_edge_seed.sql",
-      "sha256": "d0d750e885e493c69cb465fd043ca0e2604911cee337d5286676ce49141553c4"
+      "id": "edge_install_seed_v2",
+      "file": "install/004_edge_seed_v2.sql",
+      "sha256": "f448bc2ab0d5a262154a6ea875f17d12c8ac5d3e1485fd7b20cf947bfee6b172"
     }
   ],
   "uninstall_artifact": {
@@ -26,5 +30,13 @@
     "file": "operations/001_uninstall.sql",
     "sha256": "fdb1aa287dc429485b9122da964d651a4be0f9ee2b87ad3c3bc1326f5ac40323"
   },
-  "upgrade_artifacts": []
+  "upgrade_artifacts": [
+    {
+      "id": "edge_schema_1_to_2",
+      "file": "schema-upgrades/schema_1_to_2.sql",
+      "from_version": 1,
+      "to_version": 2,
+      "sha256": "5fab747502c3a9ad45da972e1c17a32f3ba22b13145467013bc25b83df311f75"
+    }
+  ]
 }

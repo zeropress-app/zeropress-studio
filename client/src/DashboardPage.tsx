@@ -218,7 +218,7 @@ export function DashboardPage(input: {
       action: {
         label: t('runtime.actions.comments'),
         path: edge.comments.enabled && !edge.comments.api_configured
-          ? `${STUDIO_PATHS.commentSettings}#comment-api`
+          ? `${STUDIO_PATHS.edgeServicesSettings}#edge-url`
           : STUDIO_PATHS.commentSettings,
       },
     } : null,

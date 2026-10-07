@@ -15,22 +15,22 @@ describe('Edge database request-time lifecycle inspection', () => {
   it('accepts only the exact ready schema compiled into Studio', async () => {
     await expect(inspectEdgeDatabaseRuntimeState({
       edgeDb: edgeDb({
-        schema_version: 1,
+        schema_version: 2,
         lifecycle_state: 'ready',
         target_schema_version: null,
         active_operation_id: null,
       }),
     })).resolves.toEqual({
-      state: 'ready', reason: 'ready', currentSchemaVersion: 1,
+      state: 'ready', reason: 'ready', currentSchemaVersion: 2,
     });
   });
 
   it('classifies an active lifecycle operation as upgrade-required', async () => {
     await expect(inspectEdgeDatabaseRuntimeState({
       edgeDb: edgeDb({
-        schema_version: 1,
+        schema_version: 2,
         lifecycle_state: 'installing',
-        target_schema_version: 1,
+        target_schema_version: 2,
         active_operation_id: 'a'.repeat(32),
       }),
     })).resolves.toMatchObject({
@@ -41,7 +41,7 @@ describe('Edge database request-time lifecycle inspection', () => {
   it('fails closed on newer, malformed, missing, and unreadable lifecycle state', async () => {
     await expect(inspectEdgeDatabaseRuntimeState({
       edgeDb: edgeDb({
-        schema_version: 2,
+        schema_version: 3,
         lifecycle_state: 'ready',
         target_schema_version: null,
         active_operation_id: null,
@@ -51,9 +51,9 @@ describe('Edge database request-time lifecycle inspection', () => {
     });
     await expect(inspectEdgeDatabaseRuntimeState({
       edgeDb: edgeDb({
-        schema_version: 1,
+        schema_version: 2,
         lifecycle_state: 'failed',
-        target_schema_version: 1,
+        target_schema_version: 2,
         active_operation_id: 'a'.repeat(32),
       }),
     })).resolves.toMatchObject({
@@ -61,9 +61,9 @@ describe('Edge database request-time lifecycle inspection', () => {
     });
     await expect(inspectEdgeDatabaseRuntimeState({
       edgeDb: edgeDb({
-        schema_version: 1,
+        schema_version: 2,
         lifecycle_state: 'upgrading',
-        target_schema_version: 1,
+        target_schema_version: 2,
         active_operation_id: null,
       }),
     })).resolves.toMatchObject({

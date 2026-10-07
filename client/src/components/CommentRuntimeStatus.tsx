@@ -1,3 +1,4 @@
+import { requestEdgeUrlSettings } from '../lib/edge-url-client';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { hasStudioCapability } from '../../../contracts/authorization';
@@ -51,7 +52,7 @@ export function CommentRuntimeStatus(input: {
     }
     const controller = new AbortController();
     let active = true;
-    void requestCommentSettings(controller.signal).then((response) => {
+    void Promise.all([requestCommentSettings(controller.signal), requestEdgeUrlSettings(controller.signal)]).then(([response, url]) => {
       if (!active) return;
       if (!response.success) {
         if (response.error.code === 'AUTHENTICATION_REQUIRED') {
@@ -61,7 +62,12 @@ export function CommentRuntimeStatus(input: {
         setState('unavailable');
         return;
       }
-      if (!response.data.settings.api_base_url) {
+      if (!url.success) {
+        if (url.error.code === 'AUTHENTICATION_REQUIRED') input.onSessionEnded();
+        else setState('unavailable');
+        return;
+      }
+      if (!url.data.settings.edge_origin) {
         setState('unconfigured');
       } else if (!response.data.settings.enabled) {
         setState('disabled');
@@ -96,8 +102,8 @@ export function CommentRuntimeStatus(input: {
         && hasStudioCapability(input.roles, 'settings.manage') ? (
           <>
             {' '}
-            <Link to={STUDIO_PATHS.commentSettings}>
-              {input.copy.settingsLink}
+            <Link to={state === 'unconfigured' ? `${STUDIO_PATHS.edgeServicesSettings}#edge-url` : STUDIO_PATHS.commentSettings}>
+              {state === 'unconfigured' ? input.copy.edgeServicesLink : input.copy.settingsLink}
             </Link>
           </>
         ) : null}

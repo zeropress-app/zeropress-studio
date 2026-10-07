@@ -63,7 +63,7 @@ function createApp(dependencies: CreateAppDependencies = {}) {
       inspectEdgeDatabase: async ({ edgeDb }) => ({
         state: edgeDb ? 'ready' as const : 'unavailable' as const,
         current_schema_version: edgeDb ? 1 : null,
-        target_schema_version: 1 as const,
+        target_schema_version: 2 as const,
         operation_id: null,
         next_upgrade_steps: [],
         install_available: false,
@@ -917,8 +917,8 @@ describe('Maintenance and Recovery routes', () => {
       data: {
         operation: 'install_edge_database',
         status: 'completed',
-        current_schema_version: 1,
-        target_schema_version: 1,
+        current_schema_version: 2,
+        target_schema_version: 2,
       },
     });
     expect(authorizeOperationsAdministrator).toHaveBeenCalledWith({

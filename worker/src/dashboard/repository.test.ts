@@ -87,7 +87,7 @@ describe('Dashboard repositories', () => {
   it('materializes Edge attention and readiness from one row', async () => {
     const edgeDb = d1({
       comments_pending: 2,
-      comments_enabled: 1, comments_api_base_url: 'https://edge.example/api',
+      comments_enabled: 1,
       form_submissions_unread: 3,
       subscriptions_pending: 2,
       newsletter_confirmation_enabled: 1,
@@ -96,6 +96,7 @@ describe('Dashboard repositories', () => {
       edgeDb,
       permissions: { comments: true, forms: true, newsletters: true },
       mailConfigured: true,
+      edgeOrigin: 'https://site.example',
     })).resolves.toMatchObject({
       status: 'available',
       comments: { pending: 2, enabled: true, api_configured: true },
@@ -118,7 +119,7 @@ describe('Dashboard repositories', () => {
 
   it('classifies malformed Edge rows and missing binding', async () => {
     await expect(readDashboardEdgeOverview({
-      edgeDb: d1({ comments_pending: 0, comments_enabled: 2, comments_api_base_url: null }),
+      edgeDb: d1({ comments_pending: 0, comments_enabled: 2 }),
       permissions: { comments: true, forms: false, newsletters: false },
       mailConfigured: false,
     })).rejects.toMatchObject({ code: 'DASHBOARD_EDGE_DATA_INVALID' } satisfies Partial<StudioOperationalError>);

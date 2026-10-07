@@ -88,7 +88,6 @@ async function runEdgeCommentLifecycle(input: {
     statements.push(input.edgeDb.prepare(`
       UPDATE edge_comment_settings
       SET
-        api_base_url = NULL,
         comments_enabled = ?,
         require_approval = ?,
         per_page = ?,
@@ -98,8 +97,7 @@ async function runEdgeCommentLifecycle(input: {
         updated_at = ?
       WHERE id = 1
         AND (
-          api_base_url IS NOT NULL
-          OR comments_enabled != ?
+          comments_enabled != ?
           OR require_approval != ?
           OR per_page != ?
           OR sort_order != ?
@@ -153,7 +151,6 @@ async function runEdgeCommentLifecycle(input: {
               SELECT COUNT(*)
               FROM edge_comment_settings
               WHERE id = 1
-                AND api_base_url IS NULL
                 AND comments_enabled = ?
                 AND require_approval = ?
                 AND per_page = ?

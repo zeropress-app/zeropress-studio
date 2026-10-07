@@ -822,6 +822,21 @@ export const OPERATIONAL_LOG_DEFINITIONS = {
     message: 'Studio Edge mail queue message processing failed',
     guidance: 'Inspect the bounded reason or error, verify the Edge database lifecycle, mail provider, DB, EDGE_DB, and queue consumer configuration, then allow the scheduled retry or re-enable delivery after correction.',
   },
+  EDGE_URL_SETTINGS_DATABASE_QUERY_FAILED: {
+    level: 'error',
+    message: 'Studio Edge URL settings database query failed',
+    guidance: 'Verify the DB binding, D1 availability, and the current Studio studio_settings table before retrying.',
+  },
+  EDGE_URL_SETTINGS_DATA_INVALID: {
+    level: 'error',
+    message: 'Studio Edge URL settings data is invalid',
+    guidance: 'Keep the current D1 backup, inspect the canonical Edge URL Settings rows and revision, and restore known-good values before retrying.',
+  },
+  EDGE_URL_SETTINGS_DATABASE_WRITE_FAILED: {
+    level: 'error',
+    message: 'Studio Edge URL settings update failed',
+    guidance: 'Verify D1 availability and the current Studio studio_settings table, then reload Edge URL Settings before retrying the update.',
+  },
   SITE_MEDIA_SETTINGS_DATABASE_QUERY_FAILED: {
     level: 'error',
     message: 'Studio Media settings database query failed',

@@ -89,7 +89,6 @@ function createEdgeDatabase(options: { foreignKeys?: boolean } = {}) {
     PRAGMA foreign_keys = ${options.foreignKeys === false ? 'OFF' : 'ON'};
     CREATE TABLE edge_comment_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      api_base_url TEXT,
       comments_enabled INTEGER NOT NULL DEFAULT 1,
       require_approval INTEGER NOT NULL DEFAULT 1,
       per_page INTEGER NOT NULL DEFAULT 50,
@@ -130,12 +129,12 @@ function createEdgeDatabase(options: { foreignKeys?: boolean } = {}) {
     );
 
     INSERT INTO edge_comment_settings (
-      id, api_base_url, comments_enabled, require_approval, per_page,
+      id, comments_enabled, require_approval, per_page,
       sort_order, thread_comments, thread_comments_depth,
       request_secrets_json, auth_enabled, supabase_project_url,
       supabase_publishable_key, created_at, updated_at
     ) VALUES (
-      1, 'https://edge.example.com/api', 0, 0, 25,
+      1, 0, 0, 25,
       'asc', 0, 4,
       '{"version":1,"active":{"kid":"secret-kid"}}', 1,
       'https://project.supabase.co',
@@ -220,13 +219,12 @@ describe('Maintenance Edge comment lifecycle', () => {
 
     expect(row(database, `
       SELECT
-        api_base_url, comments_enabled, require_approval, per_page,
+        comments_enabled, require_approval, per_page,
         sort_order, thread_comments, thread_comments_depth,
         request_secrets_json, auth_enabled, supabase_project_url,
         supabase_publishable_key, created_at, updated_at
       FROM edge_comment_settings WHERE id = 1
     `)).toEqual({
-      api_base_url: null,
       comments_enabled: COMMENT_SETTINGS_DEFAULTS.enabled ? 1 : 0,
       require_approval:
         COMMENT_SETTINGS_DEFAULTS.moderation.require_approval ? 1 : 0,

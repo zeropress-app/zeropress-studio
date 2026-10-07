@@ -1,4 +1,30 @@
 export const edgeServices = {
+  url: {
+    "title": "Edge URL",
+    "description": "Use the address of your public Edge Worker for comments, forms, and newsletters.",
+    "hint": "Enter an HTTPS address without a path, such as https://edge.example.com. It may use the same origin as your site.",
+    "invalid": "Enter an HTTPS origin without a path, query, or custom port. Local development supports loopback addresses.",
+    "missing": "Set an Edge URL to use this connection.",
+    "configure": "Set Edge URL",
+    "loadFailed": "Could not load the Edge URL.",
+    "save": "Save Edge URL",
+    "saving": "Saving…",
+    "saved": "Edge URL saved.",
+    "failed": "Could not save the Edge URL. Try again.",
+    "conflict": "The Edge URL changed in another session. Reload before saving.",
+    "reload": "Reload saved URL",
+    "copy": "Copy URL",
+    "copyConfig": "Copy config.json",
+    "copied": "Copied.",
+    "copyFailed": "Could not copy. Select and copy the URL.",
+    "commentsHint": "Included in Preview Data when an Edge URL is configured.",
+    "configHint": "Use this address as {{key}} in the sample’s config.json.",
+    "endpoint": {
+      "comments": "Comments API base URL",
+      "form": "Form endpoint",
+      "newsletter": "Newsletter endpoint"
+    }
+  },
   documentTitle: 'Edge Services — ZeroPress Studio',
   kicker: 'EDGE INTEGRATION',
   title: 'Edge Services',

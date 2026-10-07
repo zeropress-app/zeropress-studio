@@ -1,3 +1,4 @@
+import { EdgeEndpoint } from './components/EdgeEndpoint';
 import {
   useEffect,
   useMemo,
@@ -1468,6 +1469,7 @@ export function NewslettersPage(input: {
       ) : null}
       {!loading && !failure && newsletter && runtime ? (
         <div className="newsletter-channel-stack">
+          <Panel><EdgeEndpoint kind="newsletter" slug={newsletter.slug} onSessionEnded={input.onSessionEnded} /></Panel>
           <Panel
             kicker={t('channel.kicker')}
             title={newsletter.title}

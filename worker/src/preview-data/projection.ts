@@ -1,3 +1,5 @@
+import { edgeEndpoint } from '../../../contracts/edge-url';
+import { readEdgeUrlSettings, type EdgeUrlSettingsDocument } from '../settings/edge-url-repository';
 import {
   canonicalizePreviewDataKeyOrder,
   PREVIEW_DATA_VERSION,
@@ -106,6 +108,7 @@ function compareTaxonomyTermsByNameThenSlug(
 }
 
 export type PreviewDataSettingsSnapshot = {
+  edgeUrl?: EdgeUrlSettingsDocument;
   general: GeneralSettingsDocument;
   output: OutputSettingsDocument;
   routing: RoutingSettingsDocument;
@@ -187,6 +190,7 @@ export async function readPreviewDataSettings(input: {
       keys: PREVIEW_DATA_SETTINGS_READ_KEYS,
     });
     return {
+      edgeUrl: await readEdgeUrlSettings({ db: input.db }),
       general: materializeGeneralSettingsDocument(rows),
       output: materializeOutputSettingsDocument(rows),
       routing: materializeRoutingSettingsDocument(rows),
@@ -390,10 +394,11 @@ export function buildPreviewDataV07(input: {
     ...(output.footer.attribution ? {} : { attribution: false }),
   };
   const commentSettings = input.commentSettings;
-  const projectedComments = commentSettings?.api_base_url
+  const commentsApi = edgeEndpoint(input.settings.edgeUrl?.settings.edge_origin ?? '', 'comments');
+  const projectedComments = commentSettings && commentsApi
     ? {
         enabled: commentSettings.enabled,
-        api_base_url: commentSettings.api_base_url,
+        api_base_url: commentsApi,
         provider: 'zeropress' as const,
         per_page: commentSettings.per_page,
         order: commentSettings.order,
@@ -615,8 +620,8 @@ export async function generatePreviewDataExport(input: {
       ? readCommentSettings({ edgeDb: input.edgeDb })
       : Promise.resolve(null),
   ]);
-  const commentTargets = commentDocument?.settings.api_base_url
-    && commentDocument.settings.enabled
+  const commentTargets = settings.edgeUrl?.settings.edge_origin
+    && commentDocument?.settings.enabled
     ? [
         ...posts.filter((post) => post.allow_comments).map((post) => ({
           targetType: 'post' as const,

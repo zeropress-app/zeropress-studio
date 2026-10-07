@@ -96,6 +96,11 @@ The supported Edge schema and artifacts are defined by the reviewed
 retain authored settings; adoption's canonical-seed check does not require
 subsequent settings to remain at installation defaults.
 
+Edge schema 1→2 removes the old comment API base URL. Set the independent
+[Edge URL](edge-connection.md) after upgrading; previous addresses are not
+migrated. An adopted unversioned schema is registered as version 1 and then
+requires this upgrade.
+
 An incompatible or non-ready Edge database pauses Edge-backed Studio features
 and causes the mail consumer to retry messages. Studio-native content and
 account management remain available. Edge lifecycle actions do not change

@@ -1,10 +1,11 @@
+import legacyBaseline from '../../../database/edge/install/001_edge_baseline.sql?raw';
+import legacySeed from '../../../database/edge/install/002_edge_seed.sql?raw';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import { splitSqlStatements } from '../../../contracts/sql-statements';
 import {
-  EDGE_DATABASE_BASELINE_SQL,
+  EDGE_DATABASE_LEGACY_BASELINE_SQL,
   EDGE_DATABASE_SCHEMA_STATE_TABLE,
-  EDGE_DATABASE_SEED_SQL,
   type EdgeDatabaseUpgradeArtifact,
 } from './schema-artifacts';
 import {
@@ -35,12 +36,12 @@ function database(hooks: SqliteD1Hooks = {}) {
 }
 
 function legacyInstall(sqlite: DatabaseSync) {
-  for (const statement of splitSqlStatements(EDGE_DATABASE_BASELINE_SQL)) {
+  for (const statement of splitSqlStatements(EDGE_DATABASE_LEGACY_BASELINE_SQL)) {
     if (!statement.includes(`CREATE TABLE ${EDGE_DATABASE_SCHEMA_STATE_TABLE}`)) {
       sqlite.exec(statement);
     }
   }
-  for (const statement of splitSqlStatements(EDGE_DATABASE_SEED_SQL)) {
+  for (const statement of splitSqlStatements(legacySeed)) {
     if (!statement.includes(`INSERT INTO ${EDGE_DATABASE_SCHEMA_STATE_TABLE}`)) {
       sqlite.exec(statement);
     }
@@ -54,7 +55,29 @@ afterEach(() => {
 });
 
 describe('Edge database lifecycle runner', () => {
-  it('atomically installs an empty database and materializes canonical v1 state', async () => {
+  it('upgrades a populated v1 database to the same catalog as a fresh v2 install', async () => {
+    const { sqlite, db } = database();
+    sqlite.exec(legacyBaseline);
+    sqlite.exec(legacySeed);
+    sqlite.exec(`UPDATE edge_comment_settings SET api_base_url = 'https://old.example/api', per_page = 25;
+      INSERT INTO edge_comment_targets(target_type, public_id, status, allow_comments) VALUES ('post', 42, 'published', 1);`);
+    await expect(inspectEdgeDatabaseLifecycle({ edgeDb: db, siteMode: 'maintenance' }))
+      .resolves.toMatchObject({ state: 'upgrade_required', current_schema_version: 1, target_schema_version: 2 });
+    const started = await startEdgeDatabaseUpgrade({ edgeDb: db, initiator: TEST_INITIATOR });
+    await applyNextEdgeDatabaseUpgrade({ edgeDb: db, operationId: started.operationId, stepId: started.nextStep.id });
+    await expect(inspectEdgeDatabaseLifecycle({ edgeDb: db, siteMode: 'maintenance' }))
+      .resolves.toMatchObject({ state: 'ready', current_schema_version: 2 });
+    expect(sqlite.prepare('SELECT per_page FROM edge_comment_settings').get()).toEqual({ per_page: 25 });
+    expect(sqlite.prepare('SELECT public_id FROM edge_comment_targets').get()).toEqual({ public_id: 42 });
+    const fresh = database();
+    await installEdgeDatabase({ edgeDb: fresh.db });
+    const catalog = (value: DatabaseSync) => value.prepare("SELECT type, name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all()
+      .map((row) => ({ ...row, sql: String(row.sql).replace(/\s+/gu, ' ').trim() }));
+    expect(catalog(sqlite)).toEqual(catalog(fresh.sqlite));
+  });
+
+
+  it('atomically installs an empty database and materializes canonical v2 state', async () => {
     const { sqlite, db } = database();
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db, siteMode: 'maintenance',
@@ -65,7 +88,7 @@ describe('Edge database lifecycle runner', () => {
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db, siteMode: 'maintenance',
     })).resolves.toMatchObject({
-      state: 'ready', current_schema_version: 1,
+      state: 'ready', current_schema_version: 2,
       install_available: false,
     });
     expect(sqlite.prepare(`
@@ -73,7 +96,7 @@ describe('Edge database lifecycle runner', () => {
              active_operation_id
       FROM zeropress_edge_schema_state WHERE id = 1
     `).get()).toEqual({
-      schema_version: 1,
+      schema_version: 2,
       lifecycle_state: 'ready',
       target_schema_version: null,
       active_operation_id: null,
@@ -106,7 +129,7 @@ describe('Edge database lifecycle runner', () => {
     );
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db, siteMode: 'maintenance',
-    })).resolves.toMatchObject({ state: 'ready', current_schema_version: 1 });
+    })).resolves.toMatchObject({ state: 'ready', current_schema_version: 2 });
   });
 
   it('previews every managed table and atomically uninstalls a ready database', async () => {
@@ -203,7 +226,7 @@ describe('Edge database lifecycle runner', () => {
     }]);
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db, siteMode: 'maintenance',
-    })).resolves.toMatchObject({ state: 'ready' });
+    })).resolves.toMatchObject({ state: 'upgrade_required', current_schema_version: 1 });
   });
 
   it('does not adopt incomplete seeds or an unexpected application object', async () => {
@@ -251,9 +274,9 @@ describe('Edge database lifecycle runner', () => {
     await installEdgeDatabase({ edgeDb: db });
     const sql = 'ALTER TABLE forms ADD COLUMN synthetic_marker TEXT';
     const artifact: EdgeDatabaseUpgradeArtifact = {
-      id: 'schema_1_to_2',
-      fromVersion: 1,
-      toVersion: 2,
+      id: 'schema_2_to_3',
+      fromVersion: 2,
+      toVersion: 3,
       sql,
       sha256: await createEdgeSchemaArtifactSha256(sql),
     };
@@ -261,11 +284,11 @@ describe('Edge database lifecycle runner', () => {
     const started = await startEdgeDatabaseUpgrade({
       initiator: TEST_INITIATOR,
       edgeDb: db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
       createOperationId: () => operationId,
     });
-    expect(started).toMatchObject({ operationId, currentVersion: 1 });
+    expect(started).toMatchObject({ operationId, currentVersion: 2 });
     await expect(readEdgeDatabaseUpgradeInitiator({
       edgeDb: db,
       operationId,
@@ -276,9 +299,9 @@ describe('Edge database lifecycle runner', () => {
         userEmail: 'later-admin@example.com',
       },
       edgeDb: db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
-    })).resolves.toMatchObject({ operationId, currentVersion: 1 });
+    })).resolves.toMatchObject({ operationId, currentVersion: 2 });
     await expect(readEdgeDatabaseUpgradeInitiator({
       edgeDb: db,
       operationId,
@@ -286,7 +309,7 @@ describe('Edge database lifecycle runner', () => {
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db,
       siteMode: 'maintenance',
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     })).resolves.toMatchObject({ state: 'in_progress', operation_id: operationId });
 
@@ -294,13 +317,13 @@ describe('Edge database lifecycle runner', () => {
       edgeDb: db,
       operationId,
       stepId: artifact.id,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     });
     expect(sqlite.prepare(`
       SELECT schema_version, lifecycle_state FROM zeropress_edge_schema_state
       WHERE id = 1
-    `).get()).toEqual({ schema_version: 2, lifecycle_state: 'ready' });
+    `).get()).toEqual({ schema_version: 3, lifecycle_state: 'ready' });
     expect(sqlite.prepare(`
       SELECT name FROM pragma_table_info('forms') WHERE name = 'synthetic_marker'
     `).get()).toEqual({ name: 'synthetic_marker' });
@@ -315,9 +338,9 @@ describe('Edge database lifecycle runner', () => {
       CREATE INDEX idx_forms_synthetic_marker ON forms(synthetic_marker);
     `;
     const artifact: EdgeDatabaseUpgradeArtifact = {
-      id: 'schema_1_to_2',
-      fromVersion: 1,
-      toVersion: 2,
+      id: 'schema_2_to_3',
+      fromVersion: 2,
+      toVersion: 3,
       sql,
       sha256: await createEdgeSchemaArtifactSha256(sql),
     };
@@ -325,7 +348,7 @@ describe('Edge database lifecycle runner', () => {
     const started = await startEdgeDatabaseUpgrade({
       initiator: TEST_INITIATOR,
       edgeDb: db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
       createOperationId: () => operationId,
     });
@@ -333,7 +356,7 @@ describe('Edge database lifecycle runner', () => {
       edgeDb: db,
       operationId: started.operationId,
       stepId: artifact.id,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     };
 
@@ -348,19 +371,19 @@ describe('Edge database lifecycle runner', () => {
     await expect(inspectEdgeDatabaseLifecycle({
       edgeDb: db,
       siteMode: 'maintenance',
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     })).resolves.toMatchObject({
       state: 'in_progress',
-      current_schema_version: 1,
+      current_schema_version: 2,
       operation_id: operationId,
     });
     await expect(startEdgeDatabaseUpgrade({
       initiator: TEST_INITIATOR,
       edgeDb: db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
-    })).resolves.toMatchObject({ operationId, currentVersion: 1 });
+    })).resolves.toMatchObject({ operationId, currentVersion: 2 });
 
     hooks.throwAfterCommitOnce = true;
     await expect(applyNextEdgeDatabaseUpgrade(request)).rejects.toThrow(
@@ -371,7 +394,7 @@ describe('Edge database lifecycle runner', () => {
              active_operation_id
       FROM zeropress_edge_schema_state WHERE id = 1
     `).get()).toEqual({
-      schema_version: 2,
+      schema_version: 3,
       lifecycle_state: 'ready',
       target_schema_version: null,
       active_operation_id: null,
@@ -384,9 +407,9 @@ describe('Edge database lifecycle runner', () => {
   it('refuses to start or continue an upgrade while a restore journal exists', async () => {
     const sql = 'ALTER TABLE forms ADD COLUMN synthetic_marker TEXT';
     const artifact: EdgeDatabaseUpgradeArtifact = {
-      id: 'schema_1_to_2',
-      fromVersion: 1,
-      toVersion: 2,
+      id: 'schema_2_to_3',
+      fromVersion: 2,
+      toVersion: 3,
       sql,
       sha256: await createEdgeSchemaArtifactSha256(sql),
     };
@@ -397,7 +420,7 @@ describe('Edge database lifecycle runner', () => {
     await expect(startEdgeDatabaseUpgrade({
       initiator: TEST_INITIATOR,
       edgeDb: beforeStart.db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     })).rejects.toMatchObject({ issue: 'not_available' });
 
@@ -407,7 +430,7 @@ describe('Edge database lifecycle runner', () => {
     await startEdgeDatabaseUpgrade({
       initiator: TEST_INITIATOR,
       edgeDb: beforeStep.db,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
       createOperationId: () => operationId,
     });
@@ -416,7 +439,7 @@ describe('Edge database lifecycle runner', () => {
       edgeDb: beforeStep.db,
       operationId,
       stepId: artifact.id,
-      targetVersion: 2,
+      targetVersion: 3,
       artifacts: [artifact],
     })).rejects.toMatchObject({ issue: 'state_conflict' });
   });

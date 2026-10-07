@@ -1,3 +1,4 @@
+import { EdgeUrlSettings } from './components/EdgeUrlSettings';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -253,6 +254,7 @@ export function EdgeServicesSettingsPage(input: {
       />
       <EdgeSettingsLayout>
         <div className="settings-stack">
+          <EdgeUrlSettings csrfToken={input.data.csrf_token} onSessionEnded={input.onSessionEnded} />
           {loading && !settingsDocument ? <InlineStatus>{t('loading')}</InlineStatus> : null}
           {failure ? <Notice tone="error">{failureMessage(failure)}</Notice> : null}
           {failure?.kind === 'api' && MAINTENANCE_ERROR_CODES.has(failure.code) ? (

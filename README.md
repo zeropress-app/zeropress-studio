@@ -65,6 +65,9 @@ flowchart TB
   studio --> edgeData
 ```
 
+See [Edge connection addresses](docs/edge-connection.md) to configure the public
+Worker URL and copy comment, Form, and Newsletter endpoints.
+
 ## Requirements
 
 - Node.js 22.22.0 or newer

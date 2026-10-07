@@ -8,6 +8,7 @@ function createDashboardRoutes(
   dependencies: Parameters<typeof createDashboardRoutesImpl>[0],
 ) {
   return createDashboardRoutesImpl({
+    readEdgeUrl: vi.fn().mockResolvedValue({ settings: { edge_origin: 'https://site.example' }, revision: '0'.repeat(32), updated_at_iso: null }),
     ...dependencies,
     readEdgeMode: vi.fn().mockResolvedValue('enabled'),
     countPendingEdgeTargets: vi.fn().mockResolvedValue(0),
@@ -190,6 +191,7 @@ describe('Dashboard routes', () => {
       readStudio: vi.fn().mockResolvedValue(content),
       readMail: vi.fn().mockResolvedValue({ configured: true }),
       readEdge,
+      readEdgeUrl: vi.fn().mockResolvedValue({ settings: { edge_origin: 'https://site.example' }, revision: '0'.repeat(32), updated_at_iso: null }),
       readEdgeMode: vi.fn().mockResolvedValue('enabled'),
       countPendingEdgeTargets: vi.fn().mockResolvedValue(0),
       inspectEdge: vi.fn().mockResolvedValue({

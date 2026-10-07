@@ -1,3 +1,4 @@
+import { COMMENT_SETTINGS_DEFAULTS } from '../../../contracts/comment-settings';
 import { describe, expect, it, vi } from 'vitest';
 import { validatePreviewData } from '@zeropress/preview-data-validator';
 import { materializeRoutingSettingsDefaults } from '../../../contracts/routing-settings';
@@ -140,8 +141,8 @@ describe('Preview Data v0.7 projection', () => {
       generatedAt: GENERATED_AT,
     });
 
-    expect(database.prepare).toHaveBeenCalledTimes(13);
-    expect(database.all).toHaveBeenCalledTimes(5);
+    expect(database.prepare).toHaveBeenCalledTimes(14);
+    expect(database.all).toHaveBeenCalledTimes(6);
     expect(database.batch).toHaveBeenCalledTimes(3);
     expect(result.validation).toEqual({
       status: 'valid',
@@ -665,16 +666,22 @@ describe('Preview Data v0.7 projection', () => {
     expect(validatePreviewData(previewData).ok).toBe(true);
   });
 
+  it('exports with comments disconnected until an Edge URL is configured', () => {
+    const settings = defaultSettingsSnapshot();
+    const preview = buildPreviewDataV07({ settings, commentSettings: COMMENT_SETTINGS_DEFAULTS, generatedAt: GENERATED_AT });
+    expect(preview.site.comments).toBeUndefined();
+    expect(validatePreviewData(preview).ok).toBe(true);
+  });
+
   it('projects effective ZeroPress settings and target-bound Post/Page tokens', () => {
     const postPublicId = 100_000_000_001;
     const pagePublicId = 100_000_000_002;
     const previewData = buildPreviewDataV07({
       generatedAt: GENERATED_AT,
-      settings: defaultSettingsSnapshot(),
+      settings: { ...defaultSettingsSnapshot(), edgeUrl: { settings: { edge_origin: 'https://edge.example.com' }, revision: 'a'.repeat(32), updated_at_iso: null } },
       commentSettings: {
         enabled: true,
         provider: 'zeropress',
-        api_base_url: 'https://edge.example.com/api',
         per_page: 50,
         order: 'desc',
         threading: { enabled: true, max_depth: 2 },

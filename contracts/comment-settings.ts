@@ -3,7 +3,6 @@ import { apiErrorSchema } from './api';
 import { settingsRevisionSchema } from './settings-revision';
 
 export const COMMENT_SETTINGS_LIMITS = {
-  apiBaseUrlCodePoints: 2_048,
   supabaseProjectUrlCodePoints: 2_048,
   perPageMinimum: 1,
   perPageMaximum: 100,
@@ -17,7 +16,6 @@ export const SUPABASE_PUBLISHABLE_KEY_PATTERN =
 export const COMMENT_SETTINGS_DEFAULTS = {
   enabled: true,
   provider: 'zeropress',
-  api_base_url: null,
   per_page: 50,
   order: 'desc',
   threading: {
@@ -47,53 +45,6 @@ function hasUnsafeUrlCharacter(value: string): boolean {
       || code <= 31
       || code === 127;
   });
-}
-
-/**
- * Normalize the Preview Data v0.7 comments API-base URL contract.
- * Root-relative paths remain root-relative; absolute URLs retain their path.
- */
-export function normalizeCommentApiBaseUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  if (
-    value.length === 0
-    || value.trim() !== value
-    || codePointLength(value) > COMMENT_SETTINGS_LIMITS.apiBaseUrlCodePoints
-    || hasUnsafeUrlCharacter(value)
-    || value.startsWith('//')
-    || /%(?![0-9A-Fa-f]{2})/u.test(value)
-    || /(?:^|\/)\.{1,2}(?:\/|$|[?#])/u.test(value)
-  ) {
-    return null;
-  }
-
-  const rootRelative = value.startsWith('/');
-  let parsed: URL;
-  try {
-    parsed = rootRelative
-      ? new URL(value, 'https://zeropress.invalid')
-      : new URL(value);
-  } catch {
-    return null;
-  }
-
-  if (
-    !['http:', 'https:'].includes(parsed.protocol)
-    || parsed.username
-    || parsed.password
-    || parsed.search
-    || parsed.hash
-  ) {
-    return null;
-  }
-
-  const pathname = parsed.pathname === '/'
-    ? '/'
-    : parsed.pathname.replace(/\/+$/u, '');
-  if (rootRelative) return pathname;
-  return pathname === '/'
-    ? parsed.origin
-    : `${parsed.origin}${pathname}`;
 }
 
 /**
@@ -149,27 +100,6 @@ export function normalizeSupabasePublishableKey(value: unknown): string | null {
   }
   return value;
 }
-
-const apiBaseUrlInputSchema = z.string().transform((value, context) => {
-  const normalized = normalizeCommentApiBaseUrl(value);
-  if (normalized === null) {
-    context.addIssue({
-      code: 'custom',
-      message: 'Expected an absolute HTTP(S) or single-slash root-relative URL',
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});
-
-const canonicalApiBaseUrlSchema = z.string().superRefine((value, context) => {
-  if (normalizeCommentApiBaseUrl(value) !== value) {
-    context.addIssue({
-      code: 'custom',
-      message: 'Expected a canonical comments API base URL',
-    });
-  }
-});
 
 const nullableSupabaseProjectUrlInputSchema = z.union([
   z.string().transform((value, context) => {
@@ -292,13 +222,11 @@ const commentSettingsFields = {
 
 export const commentSettingsInputSchema = z.object({
   ...commentSettingsFields,
-  api_base_url: z.union([apiBaseUrlInputSchema, z.null()]),
   auth: supabaseAuthInputSchema,
 }).strict();
 
 export const commentSettingsSchema = z.object({
   ...commentSettingsFields,
-  api_base_url: z.union([canonicalApiBaseUrlSchema, z.null()]),
   auth: supabaseAuthSchema,
 }).strict();
 
@@ -309,7 +237,6 @@ export function areCommentSettingsEqual(
 ): boolean {
   return left.enabled === right.enabled
     && left.provider === right.provider
-    && left.api_base_url === right.api_base_url
     && left.per_page === right.per_page
     && left.order === right.order
     && left.threading.enabled === right.threading.enabled

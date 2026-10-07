@@ -1582,6 +1582,31 @@ message parsing and retries the entire batch unchanged. Valid transient failures
 retry without a per-message override; the consumer configuration owns the retry
 delay and limit and records an exhausted message as a failed Queue deletion.
 
+## `EDGE_URL_SETTINGS_DATABASE_QUERY_FAILED`
+
+- Level: `error`
+- Message: `Studio Edge URL settings database query failed`
+- Guidance: `Verify the DB binding, D1 availability, and the current Studio studio_settings table before retrying.`
+- Expected context: `resource=DB`, `action=read_edge_url_settings`
+
+## `EDGE_URL_SETTINGS_DATA_INVALID`
+
+- Level: `error`
+- Message: `Studio Edge URL settings data is invalid`
+- Guidance: `Keep the current D1 backup, inspect the canonical Edge URL Settings rows and revision, and restore known-good values before retrying.`
+- Expected context: `resource=DB`, `action=validate_edge_url_settings`
+
+## `EDGE_URL_SETTINGS_DATABASE_WRITE_FAILED`
+
+- Level: `error`
+- Message: `Studio Edge URL settings update failed`
+- Guidance: `Verify D1 availability and the current Studio studio_settings table, then reload Edge URL Settings before retrying the update.`
+- Expected context: `resource=DB`, `action=update_edge_url_settings`
+
+A stale revision or invalid origin is an expected public
+rejection and is not logged. Edge URL origins, revisions, and administrator
+identity are never recorded.
+
 ## `SITE_MEDIA_SETTINGS_DATABASE_QUERY_FAILED`
 
 - Level: `error`

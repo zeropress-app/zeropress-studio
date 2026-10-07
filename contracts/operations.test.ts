@@ -95,7 +95,7 @@ describe('Maintenance and Recovery contract', () => {
         edge_database: {
           state: 'uninstalled',
           current_schema_version: null,
-          target_schema_version: 1,
+          target_schema_version: 2,
           operation_id: null,
           next_upgrade_steps: [],
           install_available: false,

@@ -104,7 +104,6 @@ describe('Comment settings routes', () => {
   it('writes a complete normalized ZeroPress settings document for an administrator', async () => {
     const settings = {
       ...document.settings,
-      api_base_url: 'https://edge.example.com/api',
       auth: {
         enabled: true,
         provider: 'supabase' as const,
@@ -130,7 +129,6 @@ describe('Comment settings routes', () => {
     const response = await routes.fetch(mutationRequest('/', {
       settings: {
         ...settings,
-        api_base_url: 'https://edge.example.com/api/',
         auth: {
           ...settings.auth,
           project_url: ' https://Example.Supabase.co/ ',

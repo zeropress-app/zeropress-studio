@@ -1,3 +1,4 @@
+import { EdgeEndpoint } from './components/EdgeEndpoint';
 import {
   useEffect,
   useMemo,
@@ -6,12 +7,10 @@ import {
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router';
 import type { ApiErrorCode } from '../../contracts/api';
 import {
   areCommentSettingsEqual,
   COMMENT_SETTINGS_DEFAULTS,
-  normalizeCommentApiBaseUrl,
   normalizeSupabaseProjectUrl,
   normalizeSupabasePublishableKey,
   type CommentRequestSecurityResource,
@@ -51,8 +50,7 @@ type EditableSupabaseAuth = Omit<
   project_url: string;
   publishable_key: string;
 };
-type EditableSettings = Omit<CommentSettings, 'api_base_url' | 'auth'> & {
-  api_base_url: string;
+type EditableSettings = Omit<CommentSettings, 'auth'> & {
   auth: EditableSupabaseAuth;
 };
 type Failure =
@@ -88,7 +86,6 @@ type RequestSecurityActionState =
 
 const EMPTY_DRAFT: EditableSettings = {
   ...COMMENT_SETTINGS_DEFAULTS,
-  api_base_url: '',
   threading: { ...COMMENT_SETTINGS_DEFAULTS.threading },
   moderation: { ...COMMENT_SETTINGS_DEFAULTS.moderation },
   auth: {
@@ -101,7 +98,6 @@ const EMPTY_DRAFT: EditableSettings = {
 function editable(settings: CommentSettings): EditableSettings {
   return {
     ...settings,
-    api_base_url: settings.api_base_url ?? '',
     threading: { ...settings.threading },
     moderation: { ...settings.moderation },
     auth: {
@@ -113,10 +109,6 @@ function editable(settings: CommentSettings): EditableSettings {
 }
 
 function normalizedDraft(settings: EditableSettings): CommentSettings | null {
-  const trimmedApiBaseUrl = settings.api_base_url.trim();
-  const apiBaseUrl = trimmedApiBaseUrl
-    ? normalizeCommentApiBaseUrl(trimmedApiBaseUrl)
-    : null;
   const trimmedProjectUrl = settings.auth.project_url.trim();
   const trimmedPublishableKey = settings.auth.publishable_key.trim();
   const projectUrl = trimmedProjectUrl
@@ -125,7 +117,6 @@ function normalizedDraft(settings: EditableSettings): CommentSettings | null {
   const publishableKey = trimmedPublishableKey
     ? normalizeSupabasePublishableKey(trimmedPublishableKey)
     : null;
-  if (trimmedApiBaseUrl && apiBaseUrl === null) return null;
   if (
     (trimmedProjectUrl && projectUrl === null)
     || (trimmedPublishableKey && publishableKey === null)
@@ -144,7 +135,6 @@ function normalizedDraft(settings: EditableSettings): CommentSettings | null {
   return {
     enabled: settings.enabled,
     provider: 'zeropress',
-    api_base_url: apiBaseUrl,
     per_page: settings.per_page,
     order: settings.order,
     threading: { ...settings.threading },
@@ -267,8 +257,6 @@ export function CommentSettingsPage(input: {
   data: AccountSession;
   onSessionEnded: () => void;
 }) {
-  const { hash } = useLocation();
-  const apiBaseUrlRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation('settings');
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
@@ -286,14 +274,7 @@ export function CommentSettingsPage(input: {
   const settingsDocument = loadState.kind === 'ready'
     ? loadState.document
     : null;
-  useEffect(() => {
-    if (hash === '#comment-api' && loadState.kind === 'ready') {
-      apiBaseUrlRef.current?.focus();
-    }
-  }, [hash, loadState.kind]);
   const normalized = useMemo(() => normalizedDraft(draft), [draft]);
-  const apiBaseInvalid = draft.api_base_url.trim() !== ''
-    && normalizeCommentApiBaseUrl(draft.api_base_url.trim()) === null;
   const perPageInvalid = !Number.isInteger(draft.per_page)
     || draft.per_page < 1
     || draft.per_page > 100;
@@ -647,30 +628,7 @@ export function CommentSettingsPage(input: {
               onChange={(enabled) => updateDraft('enabled', enabled)}
             />
           </SwitchGroup>
-          <div id="comment-api">
-            <Field
-              label={t('comments.fields.apiBaseUrl.label')}
-              hint={t('comments.fields.apiBaseUrl.description')}
-              error={apiBaseInvalid
-                ? t('comments.fields.apiBaseUrl.error')
-                : undefined}
-            >
-              {(control) => (
-                <input
-                  {...control}
-                  ref={apiBaseUrlRef}
-                  className="studio-field-input"
-                  value={draft.api_base_url}
-                  placeholder="https://edge.example.com/api"
-                  disabled={saving}
-                  onChange={(event) => updateDraft(
-                    'api_base_url',
-                    event.target.value,
-                  )}
-                />
-              )}
-            </Field>
-          </div>
+          <EdgeEndpoint kind="comments" onSessionEnded={input.onSessionEnded} />
           <div className="settings-fields settings-fields-split">
             <Field
               label={t('comments.fields.perPage.label')}

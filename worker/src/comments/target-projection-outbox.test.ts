@@ -138,7 +138,7 @@ function createEdgeDatabase() {
       active_operation_id TEXT
     );
     INSERT INTO zeropress_edge_schema_state
-    VALUES (1, 1, 'ready', NULL, NULL);
+    VALUES (1, 2, 'ready', NULL, NULL);
     CREATE TABLE edge_comment_targets (
       id INTEGER PRIMARY KEY,
       target_type TEXT NOT NULL,
@@ -343,7 +343,7 @@ describe('comment-target projection outbox', () => {
     const edge = {
       prepare: vi.fn((sql: string) => sql.includes('zeropress_edge_schema_state')
         ? { first: vi.fn().mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             lifecycle_state: 'ready',
             target_schema_version: null,
             active_operation_id: null,
@@ -384,7 +384,7 @@ describe('comment-target projection outbox', () => {
     const edge = {
       prepare: vi.fn((sql: string) => sql.includes('zeropress_edge_schema_state')
         ? { first: vi.fn().mockResolvedValue({
-            schema_version: 1,
+            schema_version: 2,
             lifecycle_state: 'ready',
             target_schema_version: null,
             active_operation_id: null,
@@ -431,7 +431,7 @@ describe('comment-target projection outbox', () => {
     edge.prepare(`
       UPDATE zeropress_edge_schema_state
       SET lifecycle_state = 'installing',
-          target_schema_version = 1,
+          target_schema_version = 2,
           active_operation_id = ?
     `).run('a'.repeat(32));
 

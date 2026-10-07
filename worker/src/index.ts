@@ -1,3 +1,4 @@
+import { createEdgeUrlSettingsRoutes, type EdgeUrlSettingsRouteDependencies } from './settings/edge-url-routes';
 import { auditMiddleware } from './audit/service';
 import { createAuditRoutes } from './audit/routes';
 import {
@@ -219,6 +220,7 @@ export function createApp(dependencies?: {
   comments?: CommentManagementRouteDependencies;
   media?: MediaRouteDependencies;
   mediaSettings?: MediaSettingsRouteDependencies;
+  edgeUrlSettings?: EdgeUrlSettingsRouteDependencies;
   siteBranding?: SiteBrandingRouteDependencies;
   customCodeSettings?: CustomCodeSettingsRouteDependencies;
   newsletterSettings?: NewsletterSettingsRouteDependencies;
@@ -403,6 +405,10 @@ export function createApp(dependencies?: {
   app.route('/api/settings/edge-security', createEdgeSecuritySettingsRoutes({
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.edgeSecuritySettings,
+  }));
+  app.route('/api/settings/edge-url', createEdgeUrlSettingsRoutes({
+    resolveSession: dependencies?.resolveSession,
+    ...dependencies?.edgeUrlSettings,
   }));
   app.route('/api/settings/media', createMediaSettingsRoutes({
     resolveSession: dependencies?.resolveSession,

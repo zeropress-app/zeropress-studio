@@ -32,7 +32,7 @@ function lifecycle(
   return vi.fn(async (): Promise<EdgeDatabaseStatus> => ({
     state,
     current_schema_version: state === 'uninstalled' ? null : 1,
-    target_schema_version: 1,
+    target_schema_version: 2,
     operation_id: null,
     next_upgrade_steps: [],
     install_available: false,

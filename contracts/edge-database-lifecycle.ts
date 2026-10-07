@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { apiErrorSchema } from './api';
 import { databaseUpgradeStepSchema } from './database-upgrade';
 
-export const EDGE_DATABASE_SCHEMA_VERSION = 1;
+export const EDGE_DATABASE_SCHEMA_VERSION = 2;
 export const EDGE_DATABASE_INSTALL_CONFIRMATION = 'INSTALL EDGE DATABASE';
 export const EDGE_DATABASE_ADOPT_CONFIRMATION = 'ADOPT EDGE DATABASE';
 export const EDGE_DATABASE_UPGRADE_CONFIRMATION = 'UPGRADE EDGE DATABASE';

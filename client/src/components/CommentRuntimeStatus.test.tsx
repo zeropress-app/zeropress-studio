@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { requestEdgeUrlSettings } from '../lib/edge-url-client';
+vi.mock('../lib/edge-url-client', () => ({ requestEdgeUrlSettings: vi.fn() }));
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -38,9 +40,9 @@ afterEach(() => {
 
 describe('CommentRuntimeStatus', () => {
   it('shows active runtime state to an editor without exposing settings navigation', async () => {
+    vi.mocked(requestEdgeUrlSettings).mockResolvedValue({ success: true, data: { settings: { edge_origin: 'https://edge.example.com' }, revision: 'a'.repeat(32), updated_at_iso: null } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({
       ...COMMENT_SETTINGS_DEFAULTS,
-      api_base_url: 'https://edge.example.com/api',
     })));
     render(
       <MemoryRouter>
@@ -55,10 +57,10 @@ describe('CommentRuntimeStatus', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('links an administrator from an unconfigured item policy to Comment Settings', async () => {
+  it('links an administrator from an unconfigured item policy to Edge URL settings', async () => {
+    vi.mocked(requestEdgeUrlSettings).mockResolvedValue({ success: true, data: { settings: { edge_origin: '' }, revision: '0'.repeat(32), updated_at_iso: null } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({
       ...COMMENT_SETTINGS_DEFAULTS,
-      api_base_url: null,
     })));
     render(
       <MemoryRouter>
@@ -70,7 +72,7 @@ describe('CommentRuntimeStatus', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Runtime unconfigured')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open settings' }))
-      .toHaveAttribute('href', '/settings/edge/comments');
+    expect(screen.getByRole('link', { name: 'Open Edge Services' }))
+      .toHaveAttribute('href', '/settings/edge#edge-url');
   });
 });

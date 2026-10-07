@@ -1,3 +1,4 @@
+import { EdgeEndpoint } from './components/EdgeEndpoint';
 import {
   useEffect,
   useMemo,
@@ -674,6 +675,7 @@ function SettingsPanel(input: {
             <Notice tone="warning">{t('settings.deleteBlocked')}</Notice>
           ) : null}
           <div className="forms-grid">
+            <EdgeEndpoint kind="form" slug={input.form.slug} onSessionEnded={input.onSessionEnded} />
             <Field label={t('settings.slug')}>
               {(control) => (
                 <input {...control} value={input.form.slug} disabled />

@@ -3,7 +3,6 @@ import type {
   DashboardEdgeAvailable,
 } from '../../../contracts/dashboard';
 import type { PostAccess } from '../../../contracts/posts';
-import { normalizeCommentApiBaseUrl } from '../../../contracts/comment-settings';
 import { StudioOperationalError } from '../lib/operational-error';
 
 export type DashboardPermissions = {
@@ -185,6 +184,7 @@ export async function readDashboardEdgeOverview(input: {
     'comments' | 'forms' | 'newsletters'
   >;
   mailConfigured: boolean;
+  edgeOrigin?: string;
 }): Promise<DashboardEdgeAvailable> {
   if (!input.edgeDb) {
     throw new StudioOperationalError(
@@ -206,7 +206,6 @@ export async function readDashboardEdgeOverview(input: {
     columns.push(
       'comment_counts.pending AS comments_pending',
       'comment_settings.comments_enabled AS comments_enabled',
-      'comment_settings.api_base_url AS comments_api_base_url',
     );
     sources.push(`(
       SELECT COUNT(*) AS pending
@@ -214,7 +213,7 @@ export async function readDashboardEdgeOverview(input: {
       WHERE status = 'pending'
     ) AS comment_counts`);
     sources.push(`(
-      SELECT comments_enabled, api_base_url
+      SELECT comments_enabled
       FROM edge_comment_settings
       WHERE id = 1
     ) AS comment_settings`);
@@ -264,21 +263,7 @@ export async function readDashboardEdgeOverview(input: {
   }
   if (!row) throw edgeDataInvalid();
 
-  let apiConfigured = false;
-  if (input.permissions.comments) {
-    const apiBaseUrl = row.comments_api_base_url;
-    if (apiBaseUrl !== null) {
-      if (
-        typeof apiBaseUrl !== 'string'
-        || normalizeCommentApiBaseUrl(apiBaseUrl) !== apiBaseUrl
-      ) {
-        throw edgeDataInvalid(
-          new TypeError('Dashboard comments API base URL is invalid.'),
-        );
-      }
-      apiConfigured = true;
-    }
-  }
+  const apiConfigured = Boolean(input.edgeOrigin);
 
   const newsletterConfirmationEnabled = input.permissions.newsletters
     ? sqlBoolean(row, 'newsletter_confirmation_enabled', edgeDataInvalid)
