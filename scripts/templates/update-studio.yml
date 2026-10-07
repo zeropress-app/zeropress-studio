@@ -1,0 +1,106 @@
+name: Update Studio
+run-name: Update Studio to ${{ inputs.target }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Fixed release tag to install, e.g. v0.7.3"
+        required: true
+        type: string
+      installed:
+        description: "Installed release tag; required only for the first update"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-release-update
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare and validate update
+    if: github.repository != 'zeropress-app/zeropress-studio'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      changed: ${{ steps.prepare.outputs.changed }}
+      base_commit: ${{ steps.prepare.outputs.base_commit }}
+    env:
+      HUSKY: "0"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - name: Checkout installation branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install updater dependencies
+        run: npm ci
+
+      - name: Prepare release changes
+        id: prepare
+        env:
+          STUDIO_UPDATE_FROM: ${{ inputs.installed }}
+          STUDIO_UPDATE_TARGET: ${{ inputs.target }}
+        run: node scripts/update-studio.mjs prepare
+
+      - name: Validate candidate
+        if: steps.prepare.outputs.changed == 'true'
+        run: node scripts/update-studio.mjs validate
+
+      - name: Save validated update
+        if: steps.prepare.outputs.changed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-update
+          path: |
+            ${{ runner.temp }}/studio-update/update.patch
+            ${{ runner.temp }}/studio-update/metadata.json
+          if-no-files-found: error
+          retention-days: 7
+
+  pull-request:
+    name: Create update PR
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      HUSKY: "0"
+    steps:
+      - name: Checkout validated base
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base_commit }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Download validated update
+        uses: actions/download-artifact@v8
+        with:
+          name: studio-update
+          path: ${{ runner.temp }}/studio-update
+
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/update-studio.mjs publish

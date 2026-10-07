@@ -188,6 +188,17 @@ To recreate a Worker with existing KV namespaces, set their `id` values in
 Dashboard or with `npx wrangler kv namespace list`. Git-connected builds do not
 write provisioned IDs back to the repository.
 
+## Updates
+
+Use [Studio updates](docs/updates.md) to prepare a validated update through
+GitHub Actions or a local command while preserving your installation
+configuration. Review and merge the update to deploy through your existing
+Cloudflare connection.
+
+For a guided local update, run `node scripts/update-studio.mjs` from your
+installation repository. It asks for release versions and confirms branch and
+commit creation after validation.
+
 ## Operations and security
 
 Studio fails closed when its site mode, required Secrets, or database lifecycle
