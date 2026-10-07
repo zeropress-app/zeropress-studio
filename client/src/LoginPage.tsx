@@ -96,6 +96,12 @@ function getApiErrorMessage(
       return t('errors.api.alreadyConfigured');
     case 'INVALID_MFA_CODE':
       return t('errors.api.invalidMfa');
+    case 'WEBAUTHN_NOT_FIDO_CERTIFIED':
+    case 'WEBAUTHN_METADATA_MISSING':
+    case 'WEBAUTHN_ATTESTATION_UNVERIFIED':
+    case 'WEBAUTHN_SECURITY_STATUS_REJECTED':
+    case 'WEBAUTHN_ATTESTATION_UNAVAILABLE':
+    case 'WEBAUTHN_REGISTRATION_POLICY_CHANGED':
     case 'WEBAUTHN_VERIFICATION_FAILED':
       return t('errors.api.invalidWebAuthn');
     case 'PASSKEY_SIGN_IN_FAILED':

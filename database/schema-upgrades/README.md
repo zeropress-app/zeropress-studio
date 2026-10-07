@@ -21,3 +21,8 @@ visual editor contract. Existing Post and Page HTML stays unchanged and opens
 in source mode. Use **Visual** to review its conversion before editing it with
 SunEditor. Existing autosaves and revisions remain available; restoring an
 older snapshot also opens it in source mode.
+
+[`003_to_004_passkey_attestation.sql`](003_to_004_passkey_attestation.sql) adds
+registration-time attestation verification records. Existing credentials remain
+usable and have no verification record. The global registration policy uses
+`studio_settings` and defaults to off when absent.

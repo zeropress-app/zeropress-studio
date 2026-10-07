@@ -109,6 +109,8 @@ describe('WebAuthn contracts', () => {
       credential_device_type: 'singleDevice',
       backed_up: false,
       attestation_format: 'packed',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
       aaguid: '08987058-cadc-4b81-b6e1-30de50dcbe96',
       created_at_iso: '2026-07-31T12:00:00.000Z',
       last_used_at_iso: null,
@@ -119,6 +121,8 @@ describe('WebAuthn contracts', () => {
       ...credential,
       aaguid: null,
       attestation_format: 'none',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
     }).success).toBe(true);
     expect(webAuthnCredentialSummarySchema.safeParse({
       ...credential,

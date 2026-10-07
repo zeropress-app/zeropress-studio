@@ -10,6 +10,7 @@ import {
   Palette,
   Route,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Upload,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ const SECTIONS = [
   { path: STUDIO_PATHS.generalSettings, key: 'general', icon: Settings },
   { path: STUDIO_PATHS.publishingSettings, key: 'publishing', icon: Upload },
   { path: STUDIO_PATHS.analyticsSettings, key: 'analytics', icon: ChartNoAxesCombined },
+  { path: STUDIO_PATHS.securitySettings, key: 'security', icon: ShieldCheck },
   { path: STUDIO_PATHS.interfaceSettings, key: 'interface', icon: Languages },
   { path: STUDIO_PATHS.brandingSettings, key: 'branding', icon: Palette },
   { path: STUDIO_PATHS.mediaSettings, key: 'media', icon: Image },

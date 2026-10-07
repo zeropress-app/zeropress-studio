@@ -28,11 +28,13 @@ export const settings = {
     reset: 'Undo changes',
   },
   navigation: {
+    security: 'Studio security',
     publishing: 'Publishing',
     analytics: 'Analytics',
     section: 'Settings section',
     edgeSection: 'Edge services section',
     descriptions: {
+      security: 'Passkey registration policy',
       publishing: 'GitHub repository connection.',
       analytics: 'Traffic on your public site',
       general: 'Site identity and localization',

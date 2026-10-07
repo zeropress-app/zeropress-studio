@@ -1,3 +1,4 @@
+import { attestationVerificationSchema, passkeyModelSchema } from './passkey-metadata';
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -78,6 +79,8 @@ export const webAuthnCredentialSummarySchema = z.object({
   backed_up: z.boolean(),
   attestation_format: webAuthnAttestationFormatSchema,
   aaguid: webAuthnAaguidSchema.nullable(),
+  attestation_verification: attestationVerificationSchema,
+  model: passkeyModelSchema.nullable(),
   created_at_iso: z.iso.datetime({ offset: true }),
   last_used_at_iso: z.iso.datetime({ offset: true }).nullable(),
 }).strict();

@@ -94,3 +94,9 @@ target public IDs, titles, comments, row contents, orphan snapshots,
 administrator credentials, confirmation input, and artifact contents. The
 canonical `initiated_by_*` fields identify the administrator for authenticated
 operations.
+
+Passkey policy reads and writes emit bounded operational codes on failure.
+Additional attestation verification failures contain only the action and error
+classification, never tokens, certificates, attestation responses, or metadata
+BLOBs. Expected policy rejections are returned to the user without operational
+error logs. Policy changes are recorded in the Audit Log by field name.

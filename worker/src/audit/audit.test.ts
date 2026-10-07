@@ -187,7 +187,7 @@ describe('released schema upgrade', () => {
       expect(catalog(old)).toEqual(catalog(fresh));
       expect(old.prepare("SELECT value FROM site_settings WHERE key = 'test'").get()).toEqual({ value: 'preserved' });
       expect(old.prepare('SELECT count(*) AS count FROM audit_logs').get()).toEqual({ count: 0 });
-      expect([STUDIO_SCHEMA_VERSION, MIN_SUPPORTED_STUDIO_SCHEMA_VERSION]).toEqual([3, 1]);
+      expect([STUDIO_SCHEMA_VERSION, MIN_SUPPORTED_STUDIO_SCHEMA_VERSION]).toEqual([4, 1]);
     } finally { old.close(); fresh.close(); }
   });
 });

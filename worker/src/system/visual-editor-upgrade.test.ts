@@ -76,7 +76,7 @@ describe('visual editor schema transition', () => {
     const { sqlite, snapshots, digests } = oldDatabase();
     try {
       const db = sqliteD1(sqlite);
-      expect(await upgrade(db)).toMatchObject({ status: 'completed', current_schema_version: 3 });
+      expect(await upgrade(db)).toMatchObject({ status: 'in_progress', current_schema_version: 3 });
       expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
       for (const table of ['posts', 'pages']) {
         for (const row of sqlite.prepare(`SELECT content,editor_mode,editor_profile FROM ${table}`).all()) {

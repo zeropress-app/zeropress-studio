@@ -213,6 +213,8 @@ describe('WebAuthn D1 repository', () => {
     expect(storedRegistrationChallenge).not.toBeNull();
 
     const registered = await registerWebAuthnCredential({
+      attestationVerification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      policyRevision: '0'.repeat(32),
       db: d1,
       challenge: storedRegistrationChallenge!,
       userId: identity.userId,
@@ -239,6 +241,8 @@ describe('WebAuthn D1 repository', () => {
         transports,
         backed_up: true,
         attestation_format: 'none',
+        attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+        model: null,
         aaguid: null,
       },
     });
@@ -386,6 +390,8 @@ describe('WebAuthn D1 repository', () => {
     });
 
     await expect(registerWebAuthnCredential({
+      attestationVerification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      policyRevision: '0'.repeat(32),
       db: d1,
       challenge: challenge!,
       userId: identity.userId,
@@ -406,6 +412,8 @@ describe('WebAuthn D1 repository', () => {
       kind: 'completed',
       credential: {
         attestation_format: 'packed',
+        attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+        model: expect.objectContaining({ listed: true, certification: 'certified' }),
         aaguid: '08987058-cadc-4b81-b6e1-30de50dcbe96',
       },
     });
@@ -551,4 +559,22 @@ describe('WebAuthn D1 repository', () => {
         (SELECT COUNT(*) FROM webauthn_discovery_challenges) AS discovery_count
     `).get()).toEqual({ account_count: 0, discovery_count: 0 });
   });
+});
+
+it('guards credential writes against a policy change after verification, without consuming the challenge', async () => {
+  const { database, d1 } = createTestDatabase();
+  try {
+    const identity = seedUserAndSessions(database); const now = new Date('2026-07-31T12:00:00.000Z');
+    const created = await createWebAuthnChallenge({ db: d1, userId: identity.userId, sessionId: identity.currentSessionId, authRevision: identity.authRevision,
+      purpose: 'registration', operation: 'add_webauthn', challenge: 's'.repeat(43), origin: 'https://studio.example.test', rpId: 'studio.example.test', now });
+    const challenge = await getWebAuthnChallenge({ db: d1, token: created.token, userId: identity.userId, sessionId: identity.currentSessionId, authRevision: identity.authRevision, purpose: 'registration', operation: 'add_webauthn', now });
+    database.prepare("INSERT INTO studio_settings (key,value,type,updated_at_iso) VALUES ('passkey_registration_policy_revision',?,'string',?)").run('f'.repeat(32), now.toISOString());
+    const result = await registerWebAuthnCredential({ db: d1, userId: identity.userId, authRevision: identity.authRevision, challenge: challenge!,
+      displayName: 'Stale policy', credentialId: 'credential', publicKey: new Uint8Array([1]), counter: 0, transports: [], credentialDeviceType: 'multiDevice',
+      credentialBackedUp: true, attestationFormat: 'none', policyRevision: '0'.repeat(32), now,
+      attestationVerification: { state: 'unverified', reason: 'no_attestation', evaluated_at_iso: now.toISOString(), snapshot_id: 'a'.repeat(64) } });
+    expect(result).toEqual({ kind: 'policy_changed' });
+    expect(database.prepare('SELECT COUNT(*) AS n FROM user_webauthn_credentials').get()).toEqual({ n: 0 });
+    expect(database.prepare('SELECT consumed_by FROM webauthn_challenges WHERE id=?').get(challenge!.id)).toEqual({ consumed_by: null });
+  } finally { database.close(); }
 });

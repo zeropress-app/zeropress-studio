@@ -15,6 +15,36 @@ token-only operations and failed credential checks omit both fields. No event
 uses `actor_type`, raw request email, passwords, tokens, MFA values, or
 confirmation input.
 
+## `PASSKEY_SETTINGS_DATA_INVALID`
+
+- Level: `error`
+- Message: `Passkey registration policy is invalid`
+- Metadata: `resource=DB`, `action=read_passkey_policy`
+
+## `PASSKEY_SETTINGS_QUERY_FAILED`
+
+- Level: `error`
+- Message: `Passkey registration policy could not be read`
+- Metadata: `resource=DB`, `action=read_passkey_policy`
+
+## `PASSKEY_SETTINGS_WRITE_FAILED`
+
+- Level: `error`
+- Message: `Passkey registration policy could not be saved`
+- Metadata: `resource=DB`, `action=update_passkey_policy`
+
+## `PASSKEY_ATTESTATION_UNAVAILABLE`
+
+- Level: `warn`
+- Message: `Additional passkey attestation verification could not be completed`
+- Metadata: `action=register_passkey`
+
+An unreadable policy blocks new registrations. An additional attestation
+service failure blocks registration when the strict policy is on. With the
+policy off, successful base WebAuthn verification remains sufficient and the
+additional verification result is recorded as unavailable. Existing sign-in
+and reauthentication remain independent of these checks.
+
 ## `AUDIT_WRITE_FAILED`
 
 - Level: `warn`

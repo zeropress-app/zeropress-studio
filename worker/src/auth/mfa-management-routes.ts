@@ -1,3 +1,6 @@
+import { readPasskeySettings } from './passkey-settings-repository';
+import { evaluatePasskeyRegistration, PASSKEY_SNAPSHOT } from './passkey-metadata';
+import type { ApiErrorCode } from '../../../contracts/api';
 import { recordAudit, userAuditActor } from '../audit/service';
 import {
   generateAuthenticationOptions,
@@ -40,7 +43,7 @@ import {
   type WebAuthnRegistrationResponse,
 } from '../../../contracts/webauthn';
 import { errorResponse, requireClientIp } from '../lib/http';
-import { StudioOperationalError } from '../lib/operational-error';
+import { logOperationalFailure, StudioOperationalError } from '../lib/operational-error';
 import type { StudioHonoEnvironment } from '../types';
 import {
   capabilityForMfaManagementOperation,
@@ -95,6 +98,8 @@ const MANAGEMENT_BODY_LIMIT = 256 * 1024;
 const WEBAUTHN_TIMEOUT_MS = WEBAUTHN_CHALLENGE_TTL_SECONDS * 1000;
 
 type MfaManagementDependencies = {
+  readPasskeySettings?: typeof readPasskeySettings;
+  evaluatePasskeyRegistration?: typeof evaluatePasskeyRegistration;
   resolveSession: ResolveUserSession;
   getStatus?: typeof getMfaManagementStatus;
   verifyPassword?: typeof verifyMfaManagementPassword;
@@ -260,6 +265,8 @@ export function createMfaManagementRoutes(
   dependencies: MfaManagementDependencies,
 ) {
   const routes = new Hono<StudioHonoEnvironment>();
+  const readPolicy = dependencies.readPasskeySettings ?? readPasskeySettings;
+  const evaluateRegistration = dependencies.evaluatePasskeyRegistration ?? evaluatePasskeyRegistration;
   const getStatus = dependencies.getStatus ?? getMfaManagementStatus;
   const verifyPassword = dependencies.verifyPassword
     ?? verifyMfaManagementPassword;
@@ -333,6 +340,7 @@ export function createMfaManagementRoutes(
           configured_at_iso: status.configuredAtIso,
         },
         webauthn: {
+          registration_policy: { ...await readPolicy({ db: c.env.DB }), snapshot: PASSKEY_SNAPSHOT },
           current_rp_id: requestContext.rpId,
           max_credentials: 10,
           credentials,
@@ -940,6 +948,7 @@ export function createMfaManagementRoutes(
     });
     if (authorized instanceof Response) return authorized;
 
+    const policy = await readPolicy({ db: c.env.DB });
     const allCredentials = await listCredentials({
       db: c.env.DB,
       userId: authorized.session.user.id,
@@ -1001,6 +1010,7 @@ export function createMfaManagementRoutes(
         success: true,
         data: {
           options,
+          registration_policy: { ...policy, snapshot: PASSKEY_SNAPSHOT },
           challenge_token: challenge.token,
           expires_at_iso: challenge.expiresAtIso,
         },
@@ -1055,6 +1065,7 @@ export function createMfaManagementRoutes(
       return errorResponse(c, 401, 'WEBAUTHN_CHALLENGE_INVALID');
     }
 
+    const policy = await readPolicy({ db: c.env.DB });
     let verification;
     try {
       verification = await verifyRegistration({
@@ -1083,7 +1094,21 @@ export function createMfaManagementRoutes(
     if (!transports.success) {
       return errorResponse(c, 401, 'WEBAUTHN_VERIFICATION_FAILED');
     }
+    const assessment = await evaluateRegistration({ response: parsed.data.response, registration, now });
+    if (assessment.rejection === 'verification_unavailable') {
+      logOperationalFailure('PASSKEY_ATTESTATION_UNAVAILABLE', { metadata: { action: 'register_passkey' } });
+    }
+    if (policy.settings.require_fido_certified_authenticator && assessment.rejection) {
+      const codes: Record<NonNullable<typeof assessment.rejection>, ApiErrorCode> = {
+        not_certified: 'WEBAUTHN_NOT_FIDO_CERTIFIED', metadata_missing: 'WEBAUTHN_METADATA_MISSING',
+        attestation_unverified: 'WEBAUTHN_ATTESTATION_UNVERIFIED', security_status: 'WEBAUTHN_SECURITY_STATUS_REJECTED',
+        verification_unavailable: 'WEBAUTHN_ATTESTATION_UNAVAILABLE',
+      };
+      return errorResponse(c, assessment.rejection === 'verification_unavailable' ? 503 : 403, codes[assessment.rejection]);
+    }
     const result = await registerCredential({
+      attestationVerification: assessment.proof,
+      policyRevision: policy.revision,
       db: c.env.DB,
       challenge,
       userId: authorized.session.user.id,
@@ -1099,6 +1124,7 @@ export function createMfaManagementRoutes(
       aaguid: registration.aaguid,
       now,
     });
+    if (result.kind === 'policy_changed') return errorResponse(c, 409, 'WEBAUTHN_REGISTRATION_POLICY_CHANGED');
     if (result.kind === 'challenge_invalid') {
       return errorResponse(c, 401, 'WEBAUTHN_CHALLENGE_INVALID');
     }

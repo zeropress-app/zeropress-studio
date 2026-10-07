@@ -1,3 +1,4 @@
+import { PASSKEY_SNAPSHOT } from './passkey-metadata';
 import { withAuthRateLimits } from '../test-helpers/auth-database';
 import { describe, expect, it, vi } from 'vitest';
 import type { Env } from '../types';
@@ -70,6 +71,7 @@ describe('MFA management routes', () => {
     const verifyPassword = vi.fn();
     const onError = vi.fn();
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       verifyPassword,
       now: () => now,
@@ -98,6 +100,7 @@ describe('MFA management routes', () => {
 
   it('reports one TOTP factor and fresh step-up state', async () => {
     const response = await createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       getStatus: vi.fn().mockResolvedValue({
         configuredAtIso: '2026-07-30T12:00:00.000Z',
@@ -118,6 +121,7 @@ describe('MFA management routes', () => {
           configured_at_iso: '2026-07-30T12:00:00.000Z',
         },
         webauthn: {
+          registration_policy: { settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null, snapshot: PASSKEY_SNAPSHOT },
           current_rp_id: 'studio.local',
           max_credentials: 10,
           credentials: [],
@@ -136,6 +140,7 @@ describe('MFA management routes', () => {
       '2026-07-31T12:00:00.001Z',
     ]) {
       const response = await createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
         resolveSession: vi.fn().mockResolvedValue({
           ...resolvedSession,
           mfaVerifiedAtIso,
@@ -163,6 +168,7 @@ describe('MFA management routes', () => {
       mfaVerifiedAtIso: '2026-07-31T11:50:00.000Z',
     };
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(staleSession),
       verifyPassword,
       now: () => now,
@@ -204,6 +210,7 @@ describe('MFA management routes', () => {
       expiresAtIso: '2026-07-31T12:05:00.000Z',
     });
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       verifyPassword: vi.fn().mockResolvedValue(true),
       listWebAuthnAuthenticationCredentials:
@@ -254,6 +261,7 @@ describe('MFA management routes', () => {
     });
     const completeAuthentication = vi.fn().mockResolvedValue(true);
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       getWebAuthnChallenge: vi.fn().mockResolvedValue({
         id: 'a'.repeat(32),
@@ -350,6 +358,7 @@ describe('MFA management routes', () => {
       },
     });
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       listWebAuthnCredentials: vi.fn().mockResolvedValue([]),
       listWebAuthnAuthenticationCredentials:
@@ -433,12 +442,15 @@ describe('MFA management routes', () => {
         credential_device_type: 'multiDevice',
         backed_up: true,
         attestation_format: 'packed',
+        attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+        model: null,
         aaguid: '08987058-cadc-4b81-b6e1-30de50dcbe96',
         created_at_iso: now.toISOString(),
         last_used_at_iso: null,
       },
     });
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       getWebAuthnChallenge: vi.fn().mockResolvedValue(challenge),
       verifyWebAuthnRegistration: verifyRegistration,
@@ -503,6 +515,7 @@ describe('MFA management routes', () => {
     const challengeToken = 'a'.repeat(32);
     const registerCredential = vi.fn();
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       getWebAuthnChallenge: vi.fn().mockResolvedValue({
         id: challengeToken,
@@ -575,6 +588,8 @@ describe('MFA management routes', () => {
       credential_device_type: 'multiDevice' as const,
       backed_up: true,
       attestation_format: 'packed',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
       aaguid: null,
       created_at_iso: now.toISOString(),
       last_used_at_iso: null,
@@ -586,6 +601,7 @@ describe('MFA management routes', () => {
     const verifyPassword = vi.fn();
     const testEnv = env();
     const response = await createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       renameWebAuthnCredential: renameCredential,
       verifyPassword,
@@ -622,6 +638,7 @@ describe('MFA management routes', () => {
     const credentialId = 'b'.repeat(32);
     const renameCredential = vi.fn();
     const missingSessionResponse = await createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(null),
       renameWebAuthnCredential: renameCredential,
     }).fetch(
@@ -634,6 +651,7 @@ describe('MFA management routes', () => {
     expect(missingSessionResponse.status).toBe(401);
 
     const invalidCsrfResponse = await createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       renameWebAuthnCredential: renameCredential,
     }).fetch(
@@ -653,6 +671,7 @@ describe('MFA management routes', () => {
       revokedSessions: 2,
     });
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue({
         ...resolvedSession,
         siteTitle: 'Editorial Magazine',
@@ -741,6 +760,7 @@ describe('MFA management routes', () => {
       revokedSessions: 3,
     });
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       verifyPassword,
       hashPassword,
@@ -795,6 +815,7 @@ describe('MFA management routes', () => {
     const hashPassword = vi.fn();
     const changePassword = vi.fn();
     const routes = createMfaManagementRoutes({
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null }),
       resolveSession: vi.fn().mockResolvedValue(resolvedSession),
       verifyPassword: vi.fn().mockResolvedValue(true),
       hashPassword,
@@ -817,5 +838,48 @@ describe('MFA management routes', () => {
     });
     expect(hashPassword).not.toHaveBeenCalled();
     expect(changePassword).not.toHaveBeenCalled();
+  });
+});
+
+describe('registration policy enforcement', () => {
+  it.each([
+    { strict: false, rejection: 'metadata_missing', expected: 200 },
+    { strict: false, rejection: 'verification_unavailable', expected: 200 },
+    { strict: true, rejection: null, expected: 200 },
+    { strict: true, rejection: 'not_certified', expected: 403 },
+    { strict: true, rejection: 'metadata_missing', expected: 403 },
+    { strict: true, rejection: 'attestation_unverified', expected: 403 },
+    { strict: true, rejection: 'security_status', expected: 403 },
+    { strict: true, rejection: 'verification_unavailable', expected: 503 },
+  ] as const)('enforces strict=$strict and assessment=$rejection', async ({ strict, rejection, expected }) => {
+    const grant = await createMfaManagementGrant({ authSecret, userId, sessionId, authRevision, operation: 'add_webauthn', now });
+    const proof = { state: rejection ? 'unverified' : 'verified', reason: rejection ? 'no_attestation' : 'verified',
+      evaluated_at_iso: now.toISOString(), snapshot_id: PASSKEY_SNAPSHOT.id };
+    const credential = { id: 'b'.repeat(32), display_name: 'Passkey', rp_id: 'studio.local', transports: ['internal'], credential_device_type: 'multiDevice',
+      backed_up: true, attestation_format: 'none', aaguid: null, model: null, attestation_verification: proof, created_at_iso: now.toISOString(), last_used_at_iso: null };
+    const store = vi.fn().mockResolvedValue({ kind: 'completed', credential });
+    const routes = createMfaManagementRoutes({
+      resolveSession: vi.fn().mockResolvedValue(resolvedSession), now: () => now,
+      readPasskeySettings: async () => ({ settings: { require_fido_certified_authenticator: strict }, revision: '4'.repeat(32), updated_at_iso: now.toISOString() }),
+      getWebAuthnChallenge: vi.fn().mockResolvedValue({ id: 'a'.repeat(32), origin: 'https://studio.local', rpId: 'studio.local', challenge: 'synthetic' }),
+      verifyWebAuthnRegistration: vi.fn().mockResolvedValue({ verified: true, registrationInfo: { userVerified: true, credential: { id: 'credential', publicKey: new Uint8Array([1]), counter: 0, transports: [] }, aaguid: '00000000-0000-0000-0000-000000000000', fmt: 'none' } }),
+      evaluatePasskeyRegistration: vi.fn().mockResolvedValue({ proof, rejection }), registerWebAuthnCredential: store,
+    });
+    const response = await routes.fetch(mutationRequest('/webauthn/registration/complete', {
+      management_token: grant.token, challenge_token: 'a'.repeat(32), display_name: 'Passkey',
+      response: { id: 'credential', rawId: 'credential', type: 'public-key', clientExtensionResults: {}, response: { clientDataJSON: 'client', attestationObject: 'attestation' } },
+    }), env());
+    expect(response.status).toBe(expected);
+    if (expected === 200) expect(store).toHaveBeenCalledWith(expect.objectContaining({ policyRevision: '4'.repeat(32), attestationVerification: proof }));
+    else expect(store).not.toHaveBeenCalled();
+  });
+  it('does not issue registration options when the policy cannot be read', async () => {
+    const grant = await createMfaManagementGrant({ authSecret, userId, sessionId, authRevision, operation: 'add_webauthn', now });
+    const generate = vi.fn();
+    const routes = createMfaManagementRoutes({ resolveSession: vi.fn().mockResolvedValue(resolvedSession), now: () => now,
+      readPasskeySettings: async () => { throw new Error('synthetic unavailable policy'); }, generateWebAuthnRegistrationOptions: generate });
+    routes.onError((_error, c) => c.json({ success: false }, 503));
+    expect((await routes.fetch(mutationRequest('/webauthn/registration/options', { management_token: grant.token }), env())).status).toBe(503);
+    expect(generate).not.toHaveBeenCalled();
   });
 });

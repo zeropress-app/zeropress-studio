@@ -34,7 +34,7 @@ import {
   requestMfaManagementWebAuthnStepUpVerification,
   type MfaManagementClientErrorCode,
 } from './lib/mfa-management-client';
-import { getPasskeyAuthenticatorName } from './lib/passkey-authenticator';
+import { getPasskeyAuthenticatorName, getPasskeyAuthenticatorModel, PASSKEY_DISPLAY_SNAPSHOT } from './lib/passkey-authenticator';
 import { STUDIO_PATHS } from './routing/studio-routes';
 import {
   Button,
@@ -186,6 +186,7 @@ export function WebAuthnManagementPage(input: {
     if (value.kind === 'unexpected') {
       return t('webauthn.errors.unexpected');
     }
+    if (value.code === 'WEBAUTHN_NOT_FIDO_CERTIFIED' || value.code === 'WEBAUTHN_METADATA_MISSING' || value.code === 'WEBAUTHN_ATTESTATION_UNVERIFIED' || value.code === 'WEBAUTHN_SECURITY_STATUS_REJECTED' || value.code === 'WEBAUTHN_ATTESTATION_UNAVAILABLE' || value.code === 'WEBAUTHN_REGISTRATION_POLICY_CHANGED') return t(`passkeyMetadata.errors.${value.code}`);
     if (value.code === 'INVALID_CURRENT_PASSWORD') {
       return t('management.errors.invalidPassword');
     }
@@ -404,6 +405,13 @@ export function WebAuthnManagementPage(input: {
             handleApiError(options.error.code);
             return;
           }
+          if (options.data.registration_policy.revision !== loadState.status.webauthn.registration_policy.revision) {
+            setLoadState({ kind: 'ready', status: { ...loadState.status, webauthn: {
+              ...loadState.status.webauthn, registration_policy: options.data.registration_policy,
+            } } });
+            handleApiError('WEBAUTHN_REGISTRATION_POLICY_CHANGED');
+            return;
+          }
           let registration;
           try {
             registration = await startRegistration({
@@ -572,6 +580,8 @@ export function WebAuthnManagementPage(input: {
                 {ready.webauthn.credentials.map((credential) => {
                   const currentHost =
                     credential.rp_id === ready.webauthn.current_rp_id;
+                  const model = getPasskeyAuthenticatorModel(credential.aaguid);
+                  const proof = credential.attestation_verification;
                   const authenticatorName = getPasskeyAuthenticatorName(credential.aaguid);
                   return (
                     <article
@@ -597,6 +607,18 @@ export function WebAuthnManagementPage(input: {
                           </p>
                         ) : null}
                         <dl className="account-credential-meta">
+                          <div><dt>{t('passkeyMetadata.certification')}</dt><dd>{t(`passkeyMetadata.${model?.certification ?? 'unknown'}`)}{model?.certification_level ? ` (${model.certification_level.replace('FIDO_CERTIFIED_', '').replace('FIDO_CERTIFIED', 'FIDO')})` : ''}</dd></div>
+                          <div><dt>{t('passkeyMetadata.proof')}</dt><dd>{t(`passkeyMetadata.${proof.state}`)}</dd></div>
+                        </dl>
+                        {model?.security_reports.length ? <Notice tone="warning">{t('passkeyMetadata.securityNotice')}</Notice> : null}
+                        <details className="passkey-metadata-details"><summary>{t('passkeyMetadata.details')}</summary>
+                        <p>{t(`passkeyMetadata.reasons.${proof.reason}`)}</p>
+                        <dl className="account-credential-meta">
+                          <div><dt>{t('passkeyMetadata.protection')}</dt><dd>{model?.key_protection.length ? model.key_protection.map((value) => t(`passkeyMetadata.keyProtection.${value}`, { defaultValue: value })).join(', ') : t('webauthn.metadataUnavailable')}</dd></div>
+                          {model?.security_reports.length ? <div><dt>{t('passkeyMetadata.security')}</dt><dd>{[...new Set(model.security_reports.map((report) => report.status))].map((value) => t(`passkeyMetadata.securityReports.${value}`, { defaultValue: value })).join(', ')}</dd></div> : null}
+                          <div><dt>{t('passkeyMetadata.snapshot')}</dt><dd>{t('passkeyMetadata.snapshotValue', { number: PASSKEY_DISPLAY_SNAPSHOT.mds_no, date: dateFormatter.format(new Date(PASSKEY_DISPLAY_SNAPSHOT.evaluated_at_iso)) })}</dd></div>
+                          {proof.snapshot_id ? <div><dt>{t('passkeyMetadata.registrationSnapshot')}</dt><dd><code className="passkey-snapshot-id">{proof.snapshot_id}</code></dd></div> : null}
+                          {proof.evaluated_at_iso ? <div><dt>{t('passkeyMetadata.evaluatedAt')}</dt><dd>{dateFormatter.format(new Date(proof.evaluated_at_iso))}</dd></div> : null}
                           <div>
                             <dt>{t('webauthn.fields.rpId')}</dt>
                             <dd>{credential.rp_id}</dd>
@@ -639,6 +661,7 @@ export function WebAuthnManagementPage(input: {
                             </dd>
                           </div>
                         </dl>
+                        </details>
                       </div>
                       <div className="account-credential-actions">
                         <Button
@@ -690,6 +713,7 @@ export function WebAuthnManagementPage(input: {
           className="account-dialog-form"
           onSubmit={(event) => void executeAction(event)}
         >
+          {action?.kind === 'add' && ready?.webauthn.registration_policy.settings.require_fido_certified_authenticator ? <Notice tone="info">{t('passkeyMetadata.strictNotice')}</Notice> : null}
           {action && action.kind !== 'remove' ? (
             <Field label={t('webauthn.dialog.displayName')}>
               {(control) => (

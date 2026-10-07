@@ -1,3 +1,4 @@
+import { createPasskeySettingsRoutes, type PasskeySettingsDependencies } from './auth/passkey-settings-routes';
 import { createEdgeUrlSettingsRoutes, type EdgeUrlSettingsRouteDependencies } from './settings/edge-url-routes';
 import { auditMiddleware } from './audit/service';
 import { createAuditRoutes } from './audit/routes';
@@ -176,6 +177,7 @@ const MANAGED_MEDIA_STORAGE_ENABLED =
   || __ZEROPRESS_MANAGED_MEDIA_STORAGE_ENABLED__;
 
 export function createApp(dependencies?: {
+  passkeySettings?: PasskeySettingsDependencies;
   analytics?: AnalyticsRouteDependencies;
   publishing?: PublishingRouteDependencies;
   authenticate?: CredentialsAuthenticator;
@@ -383,6 +385,7 @@ export function createApp(dependencies?: {
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.studioInterfaceSettings,
   }));
+  app.route('/api/settings/passkeys', createPasskeySettingsRoutes({ resolveSession: dependencies?.resolveSession, ...dependencies?.passkeySettings }));
   app.route('/api/settings/access', createCloudflareAccessRoutes({
     resolveSession: dependencies?.resolveSession,
     ...dependencies?.cloudflareAccess,

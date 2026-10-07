@@ -1,3 +1,4 @@
+import { passkeySettingsDocumentSchema } from './passkey-settings';
 import { z } from 'zod';
 import { apiErrorSchema } from './api';
 import {
@@ -24,6 +25,7 @@ export const mfaManagementOperationSchema = z.enum([
   'add_webauthn',
   'remove_webauthn',
   'change_password',
+  'change_passkey_policy',
   'invite_user',
   'reissue_user_invitation',
   'reset_user_access',
@@ -48,6 +50,7 @@ export const mfaManagementStatusSuccessSchema = z.object({
       configured_at_iso: z.iso.datetime({ offset: true }),
     }).strict(),
     webauthn: z.object({
+      registration_policy: passkeySettingsDocumentSchema,
       current_rp_id: z.string().trim().toLowerCase().min(1).max(253),
       max_credentials: z.literal(MAX_WEBAUTHN_CREDENTIALS),
       credentials: z.array(webAuthnCredentialSummarySchema)
@@ -190,7 +193,8 @@ export const mfaManagementWebAuthnRegistrationOptionsSuccessSchema =
   z.object({
     success: z.literal(true),
     data: z.object({
-      options: webAuthnRegistrationOptionsSchema,
+      registration_policy: passkeySettingsDocumentSchema,
+    options: webAuthnRegistrationOptionsSchema,
       challenge_token: webAuthnChallengeTokenSchema,
       expires_at_iso: z.iso.datetime({ offset: true }),
     }).strict(),

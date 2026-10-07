@@ -73,6 +73,13 @@ const PasswordChangePage = lazyScreen(
   ['security'],
 );
 
+const PasskeySettingsPage = lazyScreen(
+  async () => ({
+    default: (await import('./PasskeySettingsPage')).PasskeySettingsPage,
+  }),
+  ['security', 'settings'],
+);
+
 const WebAuthnManagementPage = lazyScreen(
   async () => ({
     default: (await import('./WebAuthnManagementPage')).WebAuthnManagementPage,
@@ -729,6 +736,21 @@ export function AuthenticatedApplication(input: {
                 <GeneralSettingsPage
                   data={input.data}
                   onSiteIdentityChanged={setSiteIdentity}
+                  onSessionEnded={input.onSessionEnded}
+                />
+              ) : (
+                <StudioAccessDeniedPage />
+              )}
+            </DeferredRoute>
+          )}
+        />
+        <Route
+          path={STUDIO_PATHS.securitySettings}
+          element={(
+            <DeferredRoute>
+              {canManageSettings ? (
+                <PasskeySettingsPage
+                  data={input.data}
                   onSessionEnded={input.onSessionEnded}
                 />
               ) : (

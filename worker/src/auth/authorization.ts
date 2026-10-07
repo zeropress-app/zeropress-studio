@@ -50,6 +50,7 @@ export async function requireStudioCapability(input: {
 export function capabilityForMfaManagementOperation(
   operation: string,
 ): StudioCapability | null {
+  if (operation === 'change_passkey_policy') return 'settings.manage';
   return operation === 'invite_user'
     || operation === 'reissue_user_invitation'
     || operation === 'reset_user_access'

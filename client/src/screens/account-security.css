@@ -463,3 +463,18 @@
     flex-direction: column;
   }
 }
+
+.passkey-metadata-details {
+  margin-block-start: 1rem;
+}
+.passkey-metadata-details > summary {
+  cursor: pointer;
+  width: fit-content;
+  padding-block: .5rem;
+}
+.passkey-metadata-details > p {
+  margin-block: .75rem;
+}
+.passkey-snapshot-id {
+  overflow-wrap: anywhere;
+}

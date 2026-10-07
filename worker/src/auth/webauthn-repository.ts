@@ -1,3 +1,7 @@
+import { getPasskeyModel } from './passkey-metadata';
+import { attestationVerificationSchema, UNEVALUATED_ATTESTATION, type AttestationVerification } from '../../../contracts/passkey-metadata';
+import { revisionExpectationGuard } from '../settings/revisioned-settings-repository';
+import { PASSKEY_POLICY_KEY, PASSKEY_POLICY_REVISION_KEY } from './passkey-settings-repository';
 import type {
   AttestationFormat,
   CredentialDeviceType,
@@ -30,6 +34,7 @@ type WebAuthnCredentialRow = {
   backed_up: number;
   attestation_format: AttestationFormat;
   aaguid: string | null;
+  attestation_verification_json: string | null;
   created_at_iso: string;
   updated_at_iso: string;
   last_used_at_iso: string | null;
@@ -189,6 +194,8 @@ function toSummary(row: WebAuthnCredentialRow): WebAuthnCredentialSummary {
     backed_up: Boolean(row.backed_up),
     attestation_format: row.attestation_format,
     aaguid: formatStoredAaguid(row.aaguid),
+    model: getPasskeyModel(formatStoredAaguid(row.aaguid)),
+    attestation_verification: row.attestation_verification_json == null ? { ...UNEVALUATED_ATTESTATION } : attestationVerificationSchema.parse(JSON.parse(row.attestation_verification_json)),
     created_at_iso: row.created_at_iso,
     last_used_at_iso: row.last_used_at_iso,
   };
@@ -778,7 +785,8 @@ export type RegisterWebAuthnCredentialResult =
   | { kind: 'challenge_invalid' }
   | { kind: 'limit_reached' }
   | { kind: 'name_conflict' }
-  | { kind: 'credential_conflict' };
+  | { kind: 'credential_conflict' }
+  | { kind: 'policy_changed' };
 
 export async function registerWebAuthnCredential(input: {
   db: D1Database;
@@ -793,6 +801,8 @@ export async function registerWebAuthnCredential(input: {
   credentialDeviceType: CredentialDeviceType;
   credentialBackedUp: boolean;
   attestationFormat: AttestationFormat;
+  attestationVerification: AttestationVerification;
+  policyRevision: string;
   aaguid?: string;
   now?: Date;
   createId?: () => string;
@@ -801,6 +811,9 @@ export async function registerWebAuthnCredential(input: {
   const nowIso = (input.now ?? new Date()).toISOString();
   const rowId = (input.createId ?? createOpaqueId)();
   const attemptId = (input.createAttemptId ?? createOpaqueId)();
+  const policyGuard = revisionExpectationGuard({ table: 'studio_settings', revisionKey: PASSKEY_POLICY_REVISION_KEY,
+    settingKeys: [PASSKEY_POLICY_KEY], expectedRevision: input.policyRevision });
+  const proofJson = JSON.stringify(attestationVerificationSchema.parse(input.attestationVerification));
   try {
     const results = await input.db.batch([
       input.db.prepare(`
@@ -815,6 +828,7 @@ export async function registerWebAuthnCredential(input: {
           AND rp_id = ?
           AND consumed_by IS NULL
           AND expires_at_iso > ?
+          AND ${policyGuard.sql}
       `).bind(
         attemptId,
         input.challenge.id,
@@ -824,6 +838,7 @@ export async function registerWebAuthnCredential(input: {
         input.challenge.origin,
         input.challenge.rpId,
         nowIso,
+        ...policyGuard.bindings,
       ),
       input.db.prepare(`
         INSERT INTO user_webauthn_credentials (
@@ -841,7 +856,8 @@ export async function registerWebAuthnCredential(input: {
           aaguid,
           created_at_iso,
           updated_at_iso,
-          last_used_at_iso
+          last_used_at_iso,
+          attestation_verification_json
         )
         SELECT
           ?,
@@ -858,7 +874,8 @@ export async function registerWebAuthnCredential(input: {
           ?,
           ?,
           ?,
-          NULL
+          NULL,
+          ?
         FROM webauthn_challenges consumed
         WHERE consumed.id = ?
           AND consumed.consumed_by = ?
@@ -893,6 +910,7 @@ export async function registerWebAuthnCredential(input: {
         normalizeAaguid(input.aaguid),
         nowIso,
         nowIso,
+        proofJson,
         input.challenge.id,
         attemptId,
         input.userId,
@@ -908,7 +926,8 @@ export async function registerWebAuthnCredential(input: {
       `).bind(input.challenge.id, attemptId),
     ]);
     if (readChanges(results[0]) !== 1) {
-      return { kind: 'challenge_invalid' };
+      const current = await input.db.prepare(`SELECT ${policyGuard.sql} AS matches`).bind(...policyGuard.bindings).first<{ matches: number }>();
+      return { kind: current?.matches === 1 ? 'challenge_invalid' : 'policy_changed' };
     }
     if (readChanges(results[1]) === 1 && readChanges(results[2]) === 1) {
       const credential = await input.db.prepare(`

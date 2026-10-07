@@ -1303,7 +1303,8 @@ CREATE TABLE user_webauthn_credentials (
     ),
   created_at_iso TEXT NOT NULL,
   updated_at_iso TEXT NOT NULL,
-  last_used_at_iso TEXT,
+  last_used_at_iso TEXT, attestation_verification_json TEXT
+  CHECK (attestation_verification_json IS NULL OR json_valid(attestation_verification_json)),
   CHECK (created_at_iso <= updated_at_iso)
 );
 

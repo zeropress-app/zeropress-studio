@@ -670,6 +670,16 @@ describe('database SQL backup service', () => {
     `);
     database.prepare('INSERT INTO auth_rate_limits VALUES (?, ?, ?, ?)')
       .run('totp_account', 'f'.repeat(64), 10, 2_000_000_000);
+    const proof = { state: 'verified', reason: 'verified', evaluated_at_iso: '2026-08-03T00:00:00.000Z', snapshot_id: '1'.repeat(64) };
+    database.prepare(`INSERT INTO users (id,email,password_hash,name,created_at_iso,updated_at_iso)
+      VALUES (?, 'owner@example.test', 'synthetic', 'Owner', ?, ?)`).run('1'.repeat(32), proof.evaluated_at_iso, proof.evaluated_at_iso);
+    database.prepare(`INSERT INTO user_webauthn_credentials (id,user_id,credential_id,public_key,signature_counter,display_name,rp_id,transports,credential_device_type,backed_up,attestation_format,attestation_verification_json,created_at_iso,updated_at_iso)
+      VALUES (?,?, 'synthetic-credential', 'AQID', 0, 'Synthetic', 'studio.example.test', '[]', 'singleDevice', 0, 'packed', ?, ?, ?)`)
+      .run('2'.repeat(32), '1'.repeat(32), JSON.stringify(proof), proof.evaluated_at_iso, proof.evaluated_at_iso);
+    database.prepare(`INSERT INTO studio_settings (key,value,type,updated_at_iso) VALUES ('passkey_registration_policy', ?, 'json', ?)`)
+      .run(JSON.stringify({ require_fido_certified_authenticator: true }), proof.evaluated_at_iso);
+    database.prepare(`INSERT INTO studio_settings (key,value,type,updated_at_iso) VALUES ('passkey_registration_policy_revision', ?, 'string', ?)`)
+      .run('3'.repeat(32), proof.evaluated_at_iso);
     const d1 = sqliteD1(database);
     const backup = await exportDatabaseBackup({
       db: d1,
@@ -727,6 +737,10 @@ describe('database SQL backup service', () => {
       sql: backupWithDerivedRow.sql,
     });
 
+    expect(database.prepare('SELECT attestation_verification_json FROM user_webauthn_credentials').get())
+      .toEqual({ attestation_verification_json: JSON.stringify(proof) });
+    expect(database.prepare("SELECT value FROM studio_settings WHERE key='passkey_registration_policy'").get())
+      .toEqual({ value: JSON.stringify({ require_fido_certified_authenticator: true }) });
     expect(database.prepare('SELECT * FROM auth_rate_limits').all()).toEqual([{
       scope: 'totp_account', subject_hash: 'f'.repeat(64), attempt_count: 10, reset_at: 2_000_000_000,
     }]);

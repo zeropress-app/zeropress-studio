@@ -14,6 +14,7 @@ const paths = [
   STUDIO_PATHS.generalSettings,
   STUDIO_PATHS.publishingSettings,
   STUDIO_PATHS.analyticsSettings,
+  STUDIO_PATHS.securitySettings,
   STUDIO_PATHS.interfaceSettings,
   STUDIO_PATHS.brandingSettings,
   STUDIO_PATHS.mediaSettings,

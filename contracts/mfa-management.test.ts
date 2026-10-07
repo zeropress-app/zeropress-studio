@@ -14,6 +14,7 @@ describe('MFA management contracts', () => {
           configured_at_iso: '2026-07-31T00:00:00.000Z',
         },
         webauthn: {
+          registration_policy: { settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null, snapshot: { id: 'a'.repeat(64), mds_no: 1, blob_sha256: 'b'.repeat(64), evaluated_at_iso: '2026-10-01T00:00:00.000Z', next_update: '2026-11-01', names_commit: 'c'.repeat(40), source: 'https://mds.fidoalliance.org/' } },
           current_rp_id: 'studio.example.com',
           max_credentials: 10,
           credentials: [],
@@ -28,6 +29,7 @@ describe('MFA management contracts', () => {
           configured_at_iso: '2026-07-31T00:00:00.000Z',
         },
         webauthn: {
+          registration_policy: { settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null, snapshot: { id: 'a'.repeat(64), mds_no: 1, blob_sha256: 'b'.repeat(64), evaluated_at_iso: '2026-10-01T00:00:00.000Z', next_update: '2026-11-01', names_commit: 'c'.repeat(40), source: 'https://mds.fidoalliance.org/' } },
           current_rp_id: 'studio.example.com',
           max_credentials: 10,
           credentials: [],

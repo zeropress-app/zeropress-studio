@@ -222,6 +222,11 @@ complete. A maintenance-mode Studio restore already in progress can restart
 using its operation record and the token/IP boundary, because account data
 may be partially restored.
 
+Studio SQL backups include the passkey registration policy and recorded
+attestation results. Reset removes credentials and the policy with the other
+account and Studio settings; Clear Content retains them. Restored credentials
+retain their recorded result and snapshot identifier.
+
 Restore does not change site mode or restore R2 objects. A backup may also
 restore a Cloudflare Access requirement tied to an old hostname; use
 [Access recovery](cloudflare-access.md#recovery-and-origin-changes) before

@@ -18,11 +18,10 @@ vi.mock('@simplewebauthn/browser', () => ({
   startRegistration: webAuthnMocks.startRegistration,
 }));
 
-vi.mock('./lib/passkey-authenticator-names.json', () => ({
-  names: {
-    '08987058-cadc-4b81-b6e1-30de50dcbe96': 'Example Passkey Provider',
-  },
-}));
+vi.mock('./lib/passkey-authenticator-metadata.json', () => ({ default: {
+  snapshot: { mds_no: 1, evaluated_at_iso: '2026-10-01T00:00:00.000Z' },
+  models: { '08987058-cadc-4b81-b6e1-30de50dcbe96': { name: 'Example Passkey Provider', listed: false, certification: 'unknown', certification_level: null, security_reports: [], key_protection: [] } },
+} }));
 
 const csrfToken = 'c'.repeat(43);
 const managementToken = 'm'.repeat(64);
@@ -42,6 +41,7 @@ function statusResponse(credentials: unknown[] = []) {
         configured_at_iso: '2026-07-30T12:00:00.000Z',
       },
       webauthn: {
+        registration_policy: { settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null, snapshot: { id: 'a'.repeat(64), mds_no: 1, blob_sha256: 'b'.repeat(64), evaluated_at_iso: '2026-10-01T00:00:00.000Z', next_update: '2026-11-01', names_commit: 'c'.repeat(40), source: 'https://mds.fidoalliance.org/' } },
         current_rp_id: 'localhost',
         max_credentials: 10,
         credentials,
@@ -80,6 +80,8 @@ describe('WebAuthnManagementPage', () => {
       credential_device_type: 'multiDevice',
       backed_up: true,
       attestation_format: 'none',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
       created_at_iso: '2026-07-31T12:00:00.000Z',
       last_used_at_iso: null,
     }));
@@ -96,6 +98,7 @@ describe('WebAuthnManagementPage', () => {
     for (const credential of credentials.slice(1)) {
       const card = screen.getByRole('heading', { name: credential.display_name }).closest('article')!;
       expect(within(card).queryByText(prefix)).not.toBeInTheDocument();
+      if (credential.aaguid) (card.querySelector('details') as HTMLDetailsElement).open = true;
       if (credential.aaguid) expect(within(card).getByText(credential.aaguid)).toBeVisible();
     }
   });
@@ -120,6 +123,8 @@ describe('WebAuthnManagementPage', () => {
       credential_device_type: 'multiDevice',
       backed_up: true,
       attestation_format: 'packed',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
       aaguid: '08987058-cadc-4b81-b6e1-30de50dcbe96',
       created_at_iso: '2026-07-31T12:00:00.000Z',
       last_used_at_iso: null,
@@ -149,6 +154,7 @@ describe('WebAuthnManagementPage', () => {
         return Promise.resolve(response({
           success: true,
           data: {
+            registration_policy: { settings: { require_fido_certified_authenticator: false }, revision: '0'.repeat(32), updated_at_iso: null, snapshot: { id: 'a'.repeat(64), mds_no: 1, blob_sha256: 'b'.repeat(64), evaluated_at_iso: '2026-10-01T00:00:00.000Z', next_update: '2026-11-01', names_commit: 'c'.repeat(40), source: 'https://mds.fidoalliance.org/' } },
             options: {
               challenge: 'challenge',
               rp: { id: 'localhost', name: 'ZeroPress Studio' },
@@ -241,6 +247,8 @@ describe('WebAuthnManagementPage', () => {
       credential_device_type: 'multiDevice',
       backed_up: true,
       attestation_format: 'packed',
+      attestation_verification: { state: 'not_evaluated', reason: 'not_evaluated', evaluated_at_iso: null, snapshot_id: null },
+      model: null,
       aaguid: null,
       created_at_iso: '2026-07-31T12:00:00.000Z',
       last_used_at_iso: null,

@@ -31,8 +31,8 @@ actions in [Audit Log](docs/audit-log.md).
 - Comment moderation, Forms, Newsletters, and mail delivery management through
   an optional ZeroPress Edge integration
 - Role-based administration for administrators, editors, and authors
-- Mandatory authenticator-app MFA, optional Passkeys and security keys, and
-  active-session management
+- Mandatory authenticator-app MFA, optional [Passkeys and security keys](docs/passkeys.md),
+  optional FIDO certification requirements for registration, and active-session management
 - Optional Cloudflare Access verification as an additional infrastructure
   boundary
 - Database lifecycle, backup, recovery, reconciliation, and upgrade tools in a
@@ -236,5 +236,8 @@ Report vulnerabilities privately using the [security policy](SECURITY.md).
 ZeroPress Studio is released under the
 [Apache License 2.0](LICENSE).
 
-Passkey authenticator names use a bundled snapshot from
+Passkey metadata uses a bundled, verified [FIDO MDS](https://fidoalliance.org/metadata/)
+snapshot and supplemental names from
 [passkey-authenticator-aaguids](https://github.com/passkeydeveloper/passkey-authenticator-aaguids).
+See [Passkeys and FIDO metadata](docs/passkeys.md) for the optional registration
+policy and the meaning of certification and attestation results.

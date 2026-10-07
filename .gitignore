@@ -9,3 +9,4 @@ client/.wrangler/
 *.tsbuildinfo
 /playwright-report/
 /test-results/
+.cache/fido-mds/

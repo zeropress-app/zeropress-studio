@@ -24,9 +24,9 @@
     "typecheck": "tsc -b --force",
     "format:wrangler": "node scripts/format-wrangler.mjs",
     "format:wrangler:check": "node scripts/format-wrangler.mjs --check",
-    "update:passkey-names": "node scripts/update-passkey-names.mjs",
     "deploy": "node scripts/build-deploy.mjs deploy",
-    "deploy:dry-run": "node scripts/build-deploy.mjs dry-run"
+    "deploy:dry-run": "node scripts/build-deploy.mjs dry-run",
+    "update:passkey-metadata": "node scripts/update-passkey-metadata.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
@@ -63,6 +63,7 @@
     "@cloudflare/workers-types": "5.20260929.1",
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
+    "@peculiar/x509": "2.1.0",
     "@playwright/test": "1.63.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
@@ -77,6 +78,7 @@
     "husky": "9.1.7",
     "jsdom": "29.1.1",
     "jsonc-parser": "3.3.1",
+    "reflect-metadata": "0.2.2",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2",

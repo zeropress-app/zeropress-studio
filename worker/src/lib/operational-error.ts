@@ -12,6 +12,10 @@ type OperationalLogDefinition = {
 };
 
 export const OPERATIONAL_LOG_DEFINITIONS = {
+  PASSKEY_SETTINGS_DATA_INVALID: { level: 'error', message: 'Passkey registration policy is invalid' },
+  PASSKEY_SETTINGS_QUERY_FAILED: { level: 'error', message: 'Passkey registration policy could not be read' },
+  PASSKEY_SETTINGS_WRITE_FAILED: { level: 'error', message: 'Passkey registration policy could not be saved' },
+  PASSKEY_ATTESTATION_UNAVAILABLE: { level: 'warn', message: 'Additional passkey attestation verification could not be completed' },
   AUDIT_WRITE_FAILED: { level: 'warn', message: 'Audit record could not be saved' },
   AUDIT_IP_HASH_FAILED: { level: 'warn', message: 'Audit IP hashing failed; the raw IP was omitted' },
   AUDIT_SNAPSHOT_FAILED: { level: 'warn', message: 'Audit actor snapshot could not be read' },

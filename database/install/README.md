@@ -27,7 +27,8 @@ for the resulting integration state and post-install operations.
 
 ## Data ownership
 
-Studio D1 owns accounts, authored content, Media metadata, site settings, and
+Studio D1 owns accounts, passkey registration policy and verification records,
+authored content, Media metadata, site settings, and
 the journals used by its lifecycle tools. Public comments, Forms, and
 Newsletter data belong to the separate Edge database. Media objects reside in
 R2 or at external URLs; SQL backups contain their metadata, not their bytes.
